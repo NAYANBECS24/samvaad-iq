@@ -854,13 +854,53 @@ function riskFlagsForIntent(intent, confidence) {
   return flags
 }
 
+function buildRagSourceChunks(response) {
+  const sourceIds = new Set(response.sources || [])
+  const selectedCases = cases.filter((caseRecord) => sourceIds.has(caseRecord.fir_id)).slice(0, 3)
+  const chunks = selectedCases.map((caseRecord, index) => ({
+    id: `RAG-FIR-${String(index + 1).padStart(2, '0')}`,
+    service: 'Catalyst QuickML RAG',
+    title: `${caseRecord.fir_id} narrative and MO`,
+    text: `${caseRecord.case_summary} MO: ${caseRecord.mo}`,
+    confidence: Math.max(0.72, Number((response.confidence - index * 0.04).toFixed(2))),
+  }))
+
+  if (selectedCases[0]) {
+    const legal = legalExplainabilityForCase(selectedCases[0])
+    chunks.push({
+      id: 'RAG-LEGAL-01',
+      service: 'Catalyst QuickML RAG',
+      title: `BNS / IPC support for ${legal.crimeType}`,
+      text: `BNS ${legal.bns}; ${legal.legalNote} ${legal.humanActionNote}`,
+      confidence: 0.86,
+    })
+  }
+
+  chunks.push({
+    id: 'RAG-SOP-01',
+    service: 'Catalyst QuickML RAG',
+    title: 'Investigation SOP guardrail',
+    text: 'Use source FIRs, masked identifiers, supervisor review, and human verification before operational action.',
+    confidence: 0.94,
+  })
+
+  return chunks.slice(0, 5)
+}
+
 function decorateResponse(response) {
+  const sourceChunks = buildRagSourceChunks(response)
   return {
     ...response,
     leadStrength: leadStrength(response.confidence),
     nextSteps: nextStepsForIntent(response.intent, response.sources || []),
     suggestedQuestions: suggestedQuestionsForIntent(response.intent, response.sources || []),
     riskFlags: riskFlagsForIntent(response.intent, response.confidence),
+    sourceChunks,
+    quickMlRag: {
+      knowledgeBase: 'FIR + BNS + SOP + evidence metadata demo KB',
+      retrievalMode: 'Prototype deterministic retrieval mapped to Catalyst QuickML',
+      sourceCount: sourceChunks.length,
+    },
     audit: {
       policy: 'synthetic-data-only',
       sourceCount: response.sources?.length || 0,

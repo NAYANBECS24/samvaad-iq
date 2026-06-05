@@ -9,6 +9,7 @@ import ColdCases from './pages/ColdCases.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import DiffusionRisk from './pages/DiffusionRisk.jsx'
 import DigitalEvidence from './pages/DigitalEvidence.jsx'
+import EvidenceLab from './pages/EvidenceLab.jsx'
 import GovernanceAudit from './pages/GovernanceAudit.jsx'
 import HotspotMap from './pages/HotspotMap.jsx'
 import InvestigationChat from './pages/InvestigationChat.jsx'
@@ -75,6 +76,7 @@ function App() {
             <Route path="map" element={<HotspotMap />} />
             <Route path="network" element={<NetworkGraph />} />
             <Route path="network/:firId" element={<NetworkGraph />} />
+            <Route path="evidence-lab" element={<EvidenceLab />} />
             <Route path="evidence" element={<DigitalEvidence />} />
             <Route path="similar" element={<SimilarCases />} />
             <Route path="similar/:firId" element={<SimilarCases />} />

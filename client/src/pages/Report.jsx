@@ -1,5 +1,5 @@
 import html2pdf from 'html2pdf.js'
-import { Download, FileText, GitBranch, MapPinned, ShieldCheck, Stamp } from 'lucide-react'
+import { Cloud, Download, FileText, GitBranch, Mail, MapPinned, ShieldCheck, Stamp, Zap } from 'lucide-react'
 import { useMemo } from 'react'
 import DetectiveRoom from '../components/DetectiveRoom.jsx'
 import {
@@ -30,6 +30,21 @@ function buildReportFromResponse(response) {
     title: `${response.intent.replace(/_/g, ' ')} Investigation Brief`,
     generatedAt: response.timestamp || new Date().toISOString(),
     cases: selected,
+    smartBrowz: {
+      renderJobId: `SBZ-${Date.now().toString().slice(-6)}`,
+      status: 'browser-export-fallback',
+      service: 'Catalyst SmartBrowz',
+    },
+    stratusObject: {
+      bucket: 'samvaad-intelligence-briefs',
+      key: `reports/prototype-${Date.now().toString().slice(-6)}.pdf`,
+      service: 'Catalyst Stratus',
+    },
+    mailEvent: {
+      template: 'Supervisor evidence review',
+      status: 'ready-to-send',
+      service: 'Catalyst Mail',
+    },
   }
 }
 
@@ -164,12 +179,32 @@ function Report() {
             ['Source Count', `${report.cases.length} FIR records`],
             ['Confidence', `${Math.round((response.confidence || 0) * 100)}%`],
             ['Conversation', response.conversationId || 'CONV-DEMO'],
+            ['SmartBrowz', report.smartBrowz?.renderJobId || 'SBZ-DEMO'],
+            ['Stratus Object', report.stratusObject?.key || 'reports/prototype.pdf'],
           ].map(([label, value]) => (
             <div key={label}>
               <span>{label}</span>
               <strong>{value}</strong>
             </div>
           ))}
+        </section>
+
+        <section>
+          <h3>Catalyst Render And Delivery Path</h3>
+          <div className="report-delivery-grid">
+            {[
+              ['SmartBrowz PDF Render', report.smartBrowz?.status || 'queued', report.smartBrowz?.service || 'Catalyst SmartBrowz', Zap],
+              ['Stratus Storage', report.stratusObject?.bucket || 'samvaad-intelligence-briefs', report.stratusObject?.service || 'Catalyst Stratus', Cloud],
+              ['Supervisor Mail', report.mailEvent?.status || 'ready-to-send', report.mailEvent?.service || 'Catalyst Mail', Mail],
+            ].map(([label, value, detail, Icon]) => (
+              <div key={label}>
+                <Icon size={17} />
+                <strong>{label}</strong>
+                <span>{value}</span>
+                <p>{detail}</p>
+              </div>
+            ))}
+          </div>
         </section>
 
         <section>

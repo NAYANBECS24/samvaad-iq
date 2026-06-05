@@ -26,6 +26,7 @@ All case records, users, identifiers, and evidence references are synthetic demo
 - FIR Dossier with Overview, Evidence, Crime DNA, Legal XAI, Action Plan, and Audit tabs
 - English/Kanglish investigation chat with deterministic responses for demo reliability
 - Browser speech input on supported browsers
+- NETRA Evidence Lab: upload-style evidence intake, Zia-style OCR/STT/entity extraction, FIR linking, Crime DNA matching, QuickML RAG chunks, SmartBrowz report staging, Signals/Circuits audit trail, and Catalyst Cache precompute view
 - Detective Room reasoning cards with source FIRs and evidence chips
 - Hotspot Map with Leaflet risk markers
 - Crime Contagion Diffusion page with Rc-style area risk and repeated-identifier corridors
@@ -35,6 +36,7 @@ All case records, users, identifiers, and evidence references are synthetic demo
 - Governance Audit page with RBAC matrix, audit trail, evidence controls, and skeptic guardrails
 - PDF-ready investigation brief export
 - API routes for auth, dashboard summary, chat, similar cases, hotspots, diffusion, Legal XAI, audit, patrol simulation, and reports
+- API routes for Evidence Lab profiles, evidence analysis, SmartBrowz-style report handoff, and cache precompute readiness
 
 ## Repository Layout
 
@@ -98,6 +100,10 @@ Useful routes:
 - `POST /api/legal/map`
 - `GET /api/audit/logs`
 - `GET /api/catalyst/readiness`
+- `GET /api/evidence/profiles`
+- `POST /api/evidence/analyze`
+- `POST /api/evidence/report`
+- `GET /api/cache/precompute`
 - `POST /api/report`
 
 ## Judge Demo Flow
@@ -107,9 +113,10 @@ Detailed steps are in `demo/demo-script.md`. Recommended short flow:
 1. Login as `investigator@ksp.demo` / `demo123`.
 2. Open Investigation and ask: `Saar, Mysuru alli last 6 months motorcycle theft pattern show maadi`.
 3. Show Detective Room, source FIRs, and linked dossier evidence.
-4. Open Hotspots and Diffusion for Mysuru motorcycle theft.
-5. Ask whether `FIR-2025-BLR-001` and `FIR-2025-BLR-014` are connected.
-6. Open Network Graph, Crime DNA, Patrol What-If, Governance Audit, and Reports.
+4. Open Evidence Lab, choose CCTV Image or FIR PDF, stage the SmartBrowz report, then open Reports.
+5. Open Hotspots and Diffusion for Mysuru motorcycle theft.
+6. Ask whether `FIR-2025-BLR-001` and `FIR-2025-BLR-014` are connected.
+7. Open Network Graph, Crime DNA, Patrol What-If, Governance Audit, and Pipeline.
 
 ## Submission Bundle
 

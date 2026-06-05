@@ -10,6 +10,7 @@ const { buildReport } = require('./modules/reportBuilder')
 const { legalExplainabilityForCase } = require('./modules/legalXai')
 const { buildDiffusionModel } = require('./modules/diffusionEngine')
 const { getCatalystReadiness } = require('./modules/catalystReadiness')
+const { buildEvidenceAnalysis, getCachePlan, getEvidenceProfiles } = require('./modules/evidenceIntelligence')
 
 const roleLanding = {
   Admin: '/dashboard',
@@ -148,6 +149,29 @@ async function handleRequest(req, res) {
 
     if (req.method === 'GET' && path === '/api/catalyst/readiness') {
       return sendJson(res, 200, getCatalystReadiness())
+    }
+
+    if (req.method === 'GET' && path === '/api/evidence/profiles') {
+      return sendJson(res, 200, getEvidenceProfiles())
+    }
+
+    if (req.method === 'POST' && path === '/api/evidence/analyze') {
+      const body = await readJson(req)
+      return sendJson(res, 200, buildEvidenceAnalysis(body))
+    }
+
+    if (req.method === 'POST' && path === '/api/evidence/report') {
+      const body = await readJson(req)
+      const analysis = buildEvidenceAnalysis(body)
+      return sendJson(res, 200, {
+        report: analysis.report,
+        auditTrail: analysis.auditTrail,
+        matchedCases: analysis.matchedCases,
+      })
+    }
+
+    if (req.method === 'GET' && path === '/api/cache/precompute') {
+      return sendJson(res, 200, getCachePlan())
     }
 
     if (req.method === 'POST' && path === '/api/auth/login') {

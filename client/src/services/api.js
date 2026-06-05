@@ -68,6 +68,18 @@ export const api = {
     }),
   auditLogs: () => request('/audit/logs'),
   catalystReadiness: () => request('/catalyst/readiness'),
+  evidenceProfiles: () => request('/evidence/profiles'),
+  analyzeEvidence: (payload) =>
+    request('/evidence/analyze', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  evidenceReport: (payload) =>
+    request('/evidence/report', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  cachePrecompute: () => request('/cache/precompute'),
   buildReport: (payload) =>
     request('/report', {
       method: 'POST',

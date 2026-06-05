@@ -1,4 +1,4 @@
-import { AlertTriangle, ClipboardCheck, FileText, GitBranch, Loader2, Map, Mic, Search, Sparkles, Volume2, VolumeX } from 'lucide-react'
+import { AlertTriangle, BrainCircuit, ClipboardCheck, FileText, GitBranch, Loader2, Map, Mic, Search, Sparkles, Volume2, VolumeX } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import CaseCard from '../components/CaseCard.jsx'
@@ -264,6 +264,29 @@ function InvestigationChat() {
           <p className="answer-text">
             <TypeWriter text={latest.answer} key={latest.conversationId} />
           </p>
+          {latest.sourceChunks?.length ? (
+            <div className="quickml-rag-panel">
+              <div className="section-heading">
+                <div>
+                  <p className="eyebrow">QuickML RAG</p>
+                  <h2>Retrieved Source Chunks</h2>
+                </div>
+                <BrainCircuit size={18} />
+              </div>
+              <div className="rag-source-grid compact-rag">
+                {latest.sourceChunks.slice(0, 3).map((chunk) => (
+                  <div key={chunk.id} className="rag-source-card">
+                    <span>{chunk.id}</span>
+                    <strong>{chunk.title}</strong>
+                    <p>{chunk.text}</p>
+                    <small>
+                      {chunk.service} | {Math.round(chunk.confidence * 100)}%
+                    </small>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
           <div className={`voice-output-strip ${isSpeaking ? 'is-speaking' : ''}`}>
             <button className="secondary-button voice-output-button" type="button" onClick={toggleVoiceOutput}>
               {isSpeaking ? <VolumeX size={17} /> : <Volume2 size={17} />}

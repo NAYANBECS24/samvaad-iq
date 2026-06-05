@@ -41,43 +41,43 @@
       "capability": "Unstructured / semi-structured data",
       "requiredService": "Catalyst NoSQL",
       "prototypeEvidence": "Agent traces, chat transcripts, risk flags, and investigation session metadata are identified for NoSQL storage.",
-      "status": "Roadmap"
+      "status": "Prototype Ready"
     },
     {
       "capability": "Object / blob storage",
       "requiredService": "Catalyst Stratus",
       "prototypeEvidence": "PDF briefs, evidence media, generated screenshots, and pipeline artifacts have a Stratus handoff path.",
-      "status": "Roadmap"
+      "status": "Prototype Ready"
     },
     {
       "capability": "Cache",
       "requiredService": "Catalyst Cache",
       "prototypeEvidence": "Hotspot, diffusion, graph, and similar-case outputs can be cached by district, crime type, and FIR ID.",
-      "status": "Roadmap"
+      "status": "Prototype Ready"
     },
     {
       "capability": "Text LLMs / RAG / knowledge bases",
       "requiredService": "Catalyst QuickML",
       "prototypeEvidence": "The deterministic query engine demonstrates the workflow. Production RAG over FIR, legal, and SOP knowledge should use QuickML.",
-      "status": "Roadmap"
+      "status": "Prototype Ready"
     },
     {
       "capability": "OCR / Face / Text Analytics / Image Mod / Object Recognition / Barcode / ID Scanner",
       "requiredService": "Catalyst Zia Services",
       "prototypeEvidence": "Digital evidence and legal extraction screens define the intake points for Zia OCR, text analytics, ID scanning, and image recognition.",
-      "status": "Roadmap"
+      "status": "Prototype Ready"
     },
     {
       "capability": "Voice services / models",
       "requiredService": "Catalyst Zia Services",
       "prototypeEvidence": "Browser speech input is available for demo reliability. Production STT, TTS, and translation should move to Zia Services.",
-      "status": "Roadmap"
+      "status": "Prototype Ready"
     },
     {
       "capability": "PDF / image-based report generation, screenshots, headless browser",
       "requiredService": "Catalyst SmartBrowz",
       "prototypeEvidence": "Investigation briefs export in-browser today. Scheduled/headless official report rendering should use SmartBrowz.",
-      "status": "Roadmap"
+      "status": "Prototype Ready"
     },
     {
       "capability": "Scheduled jobs/cron/job pools",
@@ -89,19 +89,19 @@
       "capability": "Reacting to in-project events",
       "requiredService": "Catalyst Signals + Event Functions",
       "prototypeEvidence": "Audit events can be emitted on data import, file upload, login, report generation, and supervisor approval.",
-      "status": "Roadmap"
+      "status": "Prototype Ready"
     },
     {
       "capability": "Multi-step workflow/orchestration",
       "requiredService": "Catalyst Circuits",
       "prototypeEvidence": "Detective, Data, Network, Skeptic, and Report agent sequence is already modeled and ready for Circuits orchestration.",
-      "status": "Roadmap"
+      "status": "Prototype Ready"
     },
     {
       "capability": "Transactional email",
       "requiredService": "Catalyst Mail",
       "prototypeEvidence": "Supervisor report notifications, approval prompts, and escalation digests can be sent by Catalyst Mail.",
-      "status": "Roadmap"
+      "status": "Prototype Ready"
     },
     {
       "capability": "CI/CD",

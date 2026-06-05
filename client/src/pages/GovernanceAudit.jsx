@@ -15,8 +15,9 @@ function buildAuditEvents(userRole) {
     ['AUD-LIVE-01', userRole || 'Guest', 'Authenticated session checked local RBAC profile'],
     ['AUD-LIVE-02', 'Data Agent', `${latestCases.length} recent FIR records indexed for command view`],
     ['AUD-LIVE-03', 'Network Agent', 'Shared entity graph paths available for selected FIRs'],
-    ['AUD-LIVE-04', 'Skeptic Agent', 'All generated outputs marked as investigative support only'],
-    ['AUD-LIVE-05', 'Report Agent', 'PDF brief path records source FIR IDs and human-review note'],
+    ['AUD-LIVE-04', 'Evidence Lab', 'Zia extraction, RAG chunks, SmartBrowz report, and Signals trail require supervisor review'],
+    ['AUD-LIVE-05', 'Skeptic Agent', 'All generated outputs marked as investigative support only'],
+    ['AUD-LIVE-06', 'Report Agent', 'PDF brief path records source FIR IDs and human-review note'],
   ]
 }
 
@@ -25,7 +26,7 @@ function GovernanceAudit() {
   const summary = seedSummary()
   const auditEvents = buildAuditEvents(user?.role)
   const productionControls = catalystBlueprint.serviceMap.filter((item) =>
-    ['Ready', 'Schema Ready', 'Console Config', 'Pipeline Ready'].includes(item.status),
+    ['Ready', 'Schema Ready', 'Console Config', 'Pipeline Ready', 'Prototype Ready'].includes(item.status),
   )
 
   return (

@@ -22,6 +22,7 @@ const pipelineTabs = ['Data Flow', 'Agent Room', 'API Layer', 'Catalyst Map', 'D
 const layers = [
   { icon: Database, name: 'Synthetic FIR Store', metric: '12 FIR / 7 station records', tone: 'tone-blue' },
   { icon: Bot, name: 'Query Engine', metric: 'English + Kanglish intents', tone: '' },
+  { icon: ListChecks, name: 'Evidence Lab', metric: 'Zia + RAG + SmartBrowz flow', tone: 'tone-blue' },
   { icon: GitBranch, name: 'KAVACH Crime DNA', metric: '6-factor scoring model', tone: 'tone-violet' },
   { icon: MapPinned, name: 'Hotspot + Patrol', metric: 'Cluster and what-if outputs', tone: 'tone-amber' },
   { icon: FileText, name: 'Report Builder', metric: 'PDF-ready evidence brief', tone: '' },
@@ -42,6 +43,10 @@ const apiRoutes = [
   ['GET', '/api/audit/logs', 'Supervisor audit timeline'],
   ['POST', '/api/report', 'HTML investigation brief'],
   ['GET', '/api/catalyst/readiness', 'Catalyst service and GitHub readiness map'],
+  ['GET', '/api/evidence/profiles', 'Evidence Lab profile and workflow catalog'],
+  ['POST', '/api/evidence/analyze', 'Zia-style extraction, RAG chunks, FIR links, and audit trail'],
+  ['POST', '/api/evidence/report', 'SmartBrowz/Stratus/Mail report handoff'],
+  ['GET', '/api/cache/precompute', 'Catalyst Cache precompute plan'],
 ]
 
 const deploymentStack = [
@@ -57,6 +62,7 @@ const serviceStatusClass = {
   'Schema Ready': 'status-schema',
   'Console Config': 'status-console',
   'Pipeline Ready': 'status-pipeline',
+  'Prototype Ready': 'status-prototype',
   Roadmap: 'status-roadmap',
 }
 
@@ -66,7 +72,11 @@ function SystemPipeline() {
     acc[item.status] = (acc[item.status] || 0) + 1
     return acc
   }, {})
-  const readyCount = (serviceCounts.Ready || 0) + (serviceCounts['Schema Ready'] || 0) + (serviceCounts['Pipeline Ready'] || 0)
+  const readyCount =
+    (serviceCounts.Ready || 0) +
+    (serviceCounts['Schema Ready'] || 0) +
+    (serviceCounts['Pipeline Ready'] || 0) +
+    (serviceCounts['Prototype Ready'] || 0)
 
   return (
     <div className="page-stack">

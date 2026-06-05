@@ -7,6 +7,7 @@ const { patrolWhatIf } = require('../modules/patrolEngine')
 const { legalExplainabilityForCase } = require('../modules/legalXai')
 const { buildDiffusionModel } = require('../modules/diffusionEngine')
 const { getCatalystReadiness } = require('../modules/catalystReadiness')
+const { buildEvidenceAnalysis, getCachePlan } = require('../modules/evidenceIntelligence')
 
 const hotspot = answerQuery('Last 6 months alli Mysuru division chain snatching hotspots show maadi', 'Investigator')
 assert.strictEqual(hotspot.intent, 'HOTSPOT_QUERY')
@@ -43,5 +44,13 @@ assert.ok(diffusion.rc > 0)
 const catalyst = getCatalystReadiness()
 assert.ok(catalyst.serviceMap.some((item) => item.requiredService.includes('Catalyst Pipelines')))
 assert.strictEqual(catalyst.summary.buildOutput, 'dist')
+
+const evidence = buildEvidenceAnalysis({ profileId: 'cctv-image', fileName: 'judge-cctv.png' })
+assert.ok(evidence.matchedCases.length >= 2)
+assert.ok(evidence.report.smartBrowz.renderJobId.startsWith('SBZ-'))
+assert.ok(evidence.sourceChunks.some((chunk) => chunk.service.includes('QuickML')))
+
+const cache = getCachePlan()
+assert.ok(cache.entries.some((entry) => entry.service === 'Catalyst Cache'))
 
 console.log('SAMVAAD-IQ API smoke tests passed')

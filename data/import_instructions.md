@@ -11,5 +11,7 @@ Create these Catalyst Data Store tables first:
 - `Relations`: `source`, `target`, `type`, `weight`
 - `AuditLogs`: `user_email`, `role`, `query`, `intent`, `timestamp`, `result_count`, `confidence`
 - `Reports`: `report_id`, `title`, `user_email`, `generated_at`, `source_firs`, `file_id`, `status`
+- `EvidenceObjects`: `object_key`, `file_name`, `evidence_type`, `checksum`, `extraction_mode`, `linked_firs`, `review_status`
+- `EvidenceExtractions`: `object_key`, `crime_type`, `district`, `location`, `time_window`, `vehicle`, `phone_hash`, `suspect_mentions`, `legal_hints`, `confidence`
 
 For the first demo build, keep the local JSON fallback active so the prototype does not depend on manual import timing.

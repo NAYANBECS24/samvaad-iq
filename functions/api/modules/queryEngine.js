@@ -5,6 +5,7 @@ const { getHotspots } = require('./hotspotEngine')
 const { patrolWhatIf } = require('./patrolEngine')
 const { buildReport } = require('./reportBuilder')
 const { buildAgentRoom } = require('./agentRoom')
+const { legalExplainabilityForCase } = require('./legalXai')
 
 const DISCLAIMER = 'Investigative lead only. Requires human verification.'
 
@@ -52,8 +53,41 @@ function evidenceFromCases(selected) {
   }))
 }
 
+function buildSourceChunks(payload) {
+  const selected = cases.filter((caseRecord) => (payload.sources || []).includes(caseRecord.fir_id)).slice(0, 3)
+  const chunks = selected.map((caseRecord, index) => ({
+    id: `RAG-FIR-${String(index + 1).padStart(2, '0')}`,
+    service: 'Catalyst QuickML RAG',
+    title: `${caseRecord.fir_id} narrative and MO`,
+    text: `${caseRecord.case_summary} MO: ${caseRecord.mo}`,
+    confidence: Math.max(0.72, Number(((payload.confidence || 0.78) - index * 0.04).toFixed(2))),
+  }))
+
+  if (selected[0]) {
+    const legal = legalExplainabilityForCase(selected[0].fir_id)
+    chunks.push({
+      id: 'RAG-LEGAL-01',
+      service: 'Catalyst QuickML RAG',
+      title: `BNS / IPC support for ${legal.crimeType}`,
+      text: `BNS ${legal.bns}; ${legal.legalNote} ${legal.humanActionNote}`,
+      confidence: 0.86,
+    })
+  }
+
+  chunks.push({
+    id: 'RAG-SOP-01',
+    service: 'Catalyst QuickML RAG',
+    title: 'Investigation SOP guardrail',
+    text: 'Use source FIRs, masked identifiers, supervisor review, and human verification before operational action.',
+    confidence: 0.94,
+  })
+
+  return chunks.slice(0, 5)
+}
+
 function decorate(payload) {
   const confidence = payload.confidence || 0.7
+  const sourceChunks = buildSourceChunks(payload)
   const nextSteps = {
     HOTSPOT_QUERY: ['Review mapped station beat timing', 'Compare CCTV or patrol logs for repeated windows'],
     CASE_LINK_QUERY: ['Open graph view and verify shared entities', 'Escalate only after human review of hashes'],
@@ -68,6 +102,12 @@ function decorate(payload) {
       confidence >= 0.82 ? 'Strong investigative lead' : confidence >= 0.65 ? 'Moderate lead' : 'Weak lead',
     nextSteps: nextSteps[payload.intent] || ['Verify source FIR details', 'Treat output as decision support only'],
     riskFlags: ['Synthetic dataset only', 'Not an automated guilt prediction'],
+    sourceChunks,
+    quickMlRag: {
+      knowledgeBase: 'FIR + BNS + SOP + evidence metadata demo KB',
+      retrievalMode: 'Prototype deterministic retrieval mapped to Catalyst QuickML',
+      sourceCount: sourceChunks.length,
+    },
     audit: {
       policy: 'synthetic-data-only',
       generatedAt: new Date().toISOString(),

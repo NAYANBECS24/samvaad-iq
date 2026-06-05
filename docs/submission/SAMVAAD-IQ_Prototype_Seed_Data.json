@@ -1,0 +1,362 @@
+{
+  "users": [
+    {
+      "email": "admin@samvaad.local",
+      "password": "demo123",
+      "role": "Admin",
+      "access": "All modules, data seeding, user audit logs"
+    },
+    {
+      "email": "investigator@samvaad.local",
+      "password": "demo123",
+      "role": "Investigator",
+      "access": "Case search, similar cases, network graph, report generation"
+    },
+    {
+      "email": "analyst@samvaad.local",
+      "password": "demo123",
+      "role": "Analyst",
+      "access": "Dashboard, maps, trend analysis, model outputs"
+    },
+    {
+      "email": "supervisor@samvaad.local",
+      "password": "demo123",
+      "role": "Supervisor",
+      "access": "All insights, approval notes, patrol simulation, exports"
+    }
+  ],
+  "police_stations": [
+    {
+      "station_id": "PS-BLR-JYN",
+      "station_name": "Jayanagar Police Station",
+      "district": "Bengaluru South",
+      "lat": 12.925,
+      "lon": 77.5938
+    },
+    {
+      "station_id": "PS-BLR-BSK",
+      "station_name": "Banashankari Police Station",
+      "district": "Bengaluru South",
+      "lat": 12.9182,
+      "lon": 77.5736
+    },
+    {
+      "station_id": "PS-MYS-LKR",
+      "station_name": "Lashkar Police Station",
+      "district": "Mysuru",
+      "lat": 12.3165,
+      "lon": 76.6504
+    },
+    {
+      "station_id": "PS-MYS-VVP",
+      "station_name": "VV Puram Police Station",
+      "district": "Mysuru",
+      "lat": 12.3221,
+      "lon": 76.6385
+    },
+    {
+      "station_id": "PS-HUB-KES",
+      "station_name": "Keshwapur Police Station",
+      "district": "Hubballi-Dharwad",
+      "lat": 15.3651,
+      "lon": 75.1231
+    },
+    {
+      "station_id": "PS-MNG-PAN",
+      "station_name": "Pandeshwar Police Station",
+      "district": "Mangaluru",
+      "lat": 12.8613,
+      "lon": 74.8436
+    }
+  ],
+  "cases": [
+    {
+      "fir_id": "FIR-2025-BLR-001",
+      "district": "Bengaluru South",
+      "station_id": "PS-BLR-JYN",
+      "crime_type": "Motorcycle Theft",
+      "date": "2025-11-08",
+      "time": "21:40",
+      "lat": 12.9253,
+      "lon": 77.594,
+      "status": "Under Investigation",
+      "mo": "Two-person team targets bikes parked near metro exit, breaks handle lock, uses duplicate ignition key.",
+      "case_summary": "Synthetic report: black motorcycle removed from public parking near Jayanagar metro after 9 PM.",
+      "bns_sections": "303(2), 317",
+      "accused_ids": [
+        "A-112",
+        "A-205"
+      ],
+      "victim_id": "V-501",
+      "vehicle": "KA-05-SYN-1122",
+      "phone_hash": "PH-HASH-711"
+    },
+    {
+      "fir_id": "FIR-2025-BLR-014",
+      "district": "Bengaluru South",
+      "station_id": "PS-BLR-BSK",
+      "crime_type": "Motorcycle Theft",
+      "date": "2025-11-16",
+      "time": "22:15",
+      "lat": 12.9186,
+      "lon": 77.573,
+      "status": "Open",
+      "mo": "Two-person team targets commuter bikes near bus stop, breaks handle lock, moves vehicle towards outer ring road.",
+      "case_summary": "Synthetic report: motorcycle stolen near Banashankari bus stand during evening crowd.",
+      "bns_sections": "303(2), 317",
+      "accused_ids": [
+        "A-112"
+      ],
+      "victim_id": "V-518",
+      "vehicle": "KA-05-SYN-1189",
+      "phone_hash": "PH-HASH-711"
+    },
+    {
+      "fir_id": "FIR-2025-MYS-006",
+      "district": "Mysuru",
+      "station_id": "PS-MYS-LKR",
+      "crime_type": "Chain Snatching",
+      "date": "2025-10-03",
+      "time": "19:25",
+      "lat": 12.3169,
+      "lon": 76.651,
+      "status": "Charge Sheet Filed",
+      "mo": "Rider-pillion pair on scooter approaches pedestrian from left side and snatches gold chain near market road.",
+      "case_summary": "Synthetic report: evening chain snatching reported near crowded commercial lane.",
+      "bns_sections": "304(2), 3(5)",
+      "accused_ids": [
+        "A-301",
+        "A-302"
+      ],
+      "victim_id": "V-601",
+      "vehicle": "KA-09-SYN-3001",
+      "phone_hash": "PH-HASH-901"
+    },
+    {
+      "fir_id": "FIR-2025-MYS-011",
+      "district": "Mysuru",
+      "station_id": "PS-MYS-VVP",
+      "crime_type": "Chain Snatching",
+      "date": "2025-10-10",
+      "time": "19:45",
+      "lat": 12.3225,
+      "lon": 76.6381,
+      "status": "Under Investigation",
+      "mo": "Rider-pillion pair on scooter approaches pedestrian from left side; target selected near dimly-lit lane.",
+      "case_summary": "Synthetic report: similar evening chain snatching with scooter-based escape.",
+      "bns_sections": "304(2), 3(5)",
+      "accused_ids": [
+        "A-301"
+      ],
+      "victim_id": "V-612",
+      "vehicle": "KA-09-SYN-3001",
+      "phone_hash": "PH-HASH-901"
+    },
+    {
+      "fir_id": "FIR-2025-HUB-009",
+      "district": "Hubballi-Dharwad",
+      "station_id": "PS-HUB-KES",
+      "crime_type": "UPI Fraud",
+      "date": "2025-09-19",
+      "time": "14:05",
+      "lat": 15.3655,
+      "lon": 75.1228,
+      "status": "Open",
+      "mo": "Caller impersonates bank support, sends malicious UPI collect request, transfers amount through mule account.",
+      "case_summary": "Synthetic report: victim lost money after responding to fake bank verification call.",
+      "bns_sections": "318(4), IT Act 66D",
+      "accused_ids": [
+        "A-450"
+      ],
+      "victim_id": "V-701",
+      "vehicle": "NA",
+      "phone_hash": "PH-HASH-450"
+    },
+    {
+      "fir_id": "FIR-2025-MNG-004",
+      "district": "Mangaluru",
+      "station_id": "PS-MNG-PAN",
+      "crime_type": "UPI Fraud",
+      "date": "2025-09-22",
+      "time": "13:55",
+      "lat": 12.861,
+      "lon": 74.8439,
+      "status": "Open",
+      "mo": "Caller impersonates bank support, uses same wording and mule account pattern as earlier fraud case.",
+      "case_summary": "Synthetic report: fraudulent collect request sent after spoofed verification call.",
+      "bns_sections": "318(4), IT Act 66D",
+      "accused_ids": [
+        "A-450",
+        "A-451"
+      ],
+      "victim_id": "V-708",
+      "vehicle": "NA",
+      "phone_hash": "PH-HASH-450"
+    },
+    {
+      "fir_id": "FIR-2025-BLR-027",
+      "district": "Bengaluru South",
+      "station_id": "PS-BLR-JYN",
+      "crime_type": "House Burglary",
+      "date": "2025-08-22",
+      "time": "02:30",
+      "lat": 12.9243,
+      "lon": 77.5916,
+      "status": "Open",
+      "mo": "Entry through rear window between 1 AM and 4 AM; targets locked independent houses.",
+      "case_summary": "Synthetic report: jewellery and electronics reported missing from locked home.",
+      "bns_sections": "331, 305",
+      "accused_ids": [
+        "A-777"
+      ],
+      "victim_id": "V-811",
+      "vehicle": "KA-03-SYN-7777",
+      "phone_hash": "PH-HASH-777"
+    },
+    {
+      "fir_id": "FIR-2025-BLR-033",
+      "district": "Bengaluru South",
+      "station_id": "PS-BLR-BSK",
+      "crime_type": "House Burglary",
+      "date": "2025-08-29",
+      "time": "02:10",
+      "lat": 12.9172,
+      "lon": 77.5722,
+      "status": "Open",
+      "mo": "Entry through rear window between 1 AM and 4 AM; CCTV shows same small goods vehicle nearby.",
+      "case_summary": "Synthetic report: repeated night burglary pattern near residential layout.",
+      "bns_sections": "331, 305",
+      "accused_ids": [
+        "A-777",
+        "A-778"
+      ],
+      "victim_id": "V-819",
+      "vehicle": "KA-03-SYN-7777",
+      "phone_hash": "PH-HASH-777"
+    }
+  ],
+  "accused": [
+    {
+      "accused_id": "A-112",
+      "display_name": "Offender-112",
+      "age_group": "25-35",
+      "known_mo": "Motorcycle theft near transit points after 9 PM",
+      "prior_case_count": 4,
+      "risk_note": "Investigative priority only; not an automated guilt label."
+    },
+    {
+      "accused_id": "A-205",
+      "display_name": "Associate-205",
+      "age_group": "20-30",
+      "known_mo": "Vehicle lookout role",
+      "prior_case_count": 1,
+      "risk_note": "Linked through synthetic FIR association."
+    },
+    {
+      "accused_id": "A-301",
+      "display_name": "Offender-301",
+      "age_group": "20-30",
+      "known_mo": "Scooter-based chain snatching during evening crowds",
+      "prior_case_count": 3,
+      "risk_note": "Investigative priority only; requires human verification."
+    },
+    {
+      "accused_id": "A-302",
+      "display_name": "Associate-302",
+      "age_group": "20-30",
+      "known_mo": "Pillion rider in chain-snatching pattern",
+      "prior_case_count": 1,
+      "risk_note": "Synthetic demonstration record."
+    },
+    {
+      "accused_id": "A-450",
+      "display_name": "Fraud-Node-450",
+      "age_group": "30-40",
+      "known_mo": "Bank impersonation and UPI collect fraud",
+      "prior_case_count": 5,
+      "risk_note": "Financial network indicator, not final evidence."
+    },
+    {
+      "accused_id": "A-777",
+      "display_name": "Burglary-Node-777",
+      "age_group": "25-40",
+      "known_mo": "Late-night rear-window burglary",
+      "prior_case_count": 2,
+      "risk_note": "Potential MO match from synthetic data."
+    }
+  ],
+  "relations": [
+    {
+      "source": "A-112",
+      "target": "FIR-2025-BLR-001",
+      "type": "ACCUSED_IN",
+      "weight": 0.95
+    },
+    {
+      "source": "A-112",
+      "target": "FIR-2025-BLR-014",
+      "type": "ACCUSED_IN",
+      "weight": 0.92
+    },
+    {
+      "source": "A-112",
+      "target": "PH-HASH-711",
+      "type": "PHONE_LINK",
+      "weight": 0.88
+    },
+    {
+      "source": "A-301",
+      "target": "FIR-2025-MYS-006",
+      "type": "ACCUSED_IN",
+      "weight": 0.93
+    },
+    {
+      "source": "A-301",
+      "target": "FIR-2025-MYS-011",
+      "type": "ACCUSED_IN",
+      "weight": 0.9
+    },
+    {
+      "source": "A-301",
+      "target": "KA-09-SYN-3001",
+      "type": "VEHICLE_LINK",
+      "weight": 0.91
+    },
+    {
+      "source": "A-450",
+      "target": "FIR-2025-HUB-009",
+      "type": "ACCUSED_IN",
+      "weight": 0.89
+    },
+    {
+      "source": "A-450",
+      "target": "FIR-2025-MNG-004",
+      "type": "ACCUSED_IN",
+      "weight": 0.86
+    },
+    {
+      "source": "A-450",
+      "target": "ACCT-HASH-450A",
+      "type": "ACCOUNT_LINK",
+      "weight": 0.91
+    },
+    {
+      "source": "A-777",
+      "target": "FIR-2025-BLR-027",
+      "type": "ACCUSED_IN",
+      "weight": 0.87
+    },
+    {
+      "source": "A-777",
+      "target": "FIR-2025-BLR-033",
+      "type": "ACCUSED_IN",
+      "weight": 0.82
+    },
+    {
+      "source": "A-777",
+      "target": "KA-03-SYN-7777",
+      "type": "VEHICLE_LINK",
+      "weight": 0.85
+    }
+  ]
+}

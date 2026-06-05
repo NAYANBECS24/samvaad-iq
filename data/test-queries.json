@@ -1,0 +1,34 @@
+{
+  "test_queries": [
+    {
+      "role": "Investigator",
+      "query": "Last 6 months alli Mysuru division chain snatching hotspots show maadi",
+      "expected_answer": "Two synthetic chain-snatching cases appear around Lashkar and VV Puram between 19:00 and 20:00. The repeated scooter vehicle KA-09-SYN-3001 and shared MO indicate a possible linked pattern. Confidence: 0.86.",
+      "visual_output": "Hotspot map with two Mysuru points and a case card list."
+    },
+    {
+      "role": "Investigator",
+      "query": "Are FIR-2025-BLR-001 and FIR-2025-BLR-014 connected?",
+      "expected_answer": "Yes. Both are Bengaluru South motorcycle thefts after 9 PM, share accused A-112, phone hash PH-HASH-711, similar transit-location MO, and close time pattern. Treat this as an investigative lead, not final proof.",
+      "visual_output": "Network graph: A-112 -> two FIR nodes -> shared phone hash -> two police stations."
+    },
+    {
+      "role": "Analyst",
+      "query": "Find similar cases to FIR-2025-BLR-027",
+      "expected_answer": "FIR-2025-BLR-033 is the closest match. Similarity drivers: late-night timing, rear-window entry, independent-house target, same vehicle hash KA-03-SYN-7777, and Bengaluru South geography. Similarity score: 0.84.",
+      "visual_output": "Similar-case panel with Crime DNA factors."
+    },
+    {
+      "role": "Supervisor",
+      "query": "What if 3 patrol units are added to Jayanagar and Banashankari from 9 PM to 12 AM?",
+      "expected_answer": "Prototype simulation estimates higher coverage of motorcycle-theft hotspots from 56% to 82%. Recommended patrol focus: metro exit, bus stand, and outer ring road exit corridors. This is a resource-planning estimate, not a guarantee.",
+      "visual_output": "Before/after patrol coverage cards and route suggestion."
+    },
+    {
+      "role": "Supervisor",
+      "query": "Generate PDF report for the motorcycle theft cluster",
+      "expected_answer": "Report generated with case list, evidence links, graph image, BNS mapping, confidence notes, human-review disclaimer, and audit timestamp.",
+      "visual_output": "PDF export button and report preview."
+    }
+  ]
+}

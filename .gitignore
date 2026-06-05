@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+.DS_Store
+*.log
+logs/
+client/node_modules/
+client/dist/
+functions/**/node_modules/
+.catalyst/
+.zcatalystrc

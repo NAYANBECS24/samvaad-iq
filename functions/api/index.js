@@ -9,6 +9,7 @@ const { patrolWhatIf } = require('./modules/patrolEngine')
 const { buildReport } = require('./modules/reportBuilder')
 const { legalExplainabilityForCase } = require('./modules/legalXai')
 const { buildDiffusionModel } = require('./modules/diffusionEngine')
+const { getCatalystReadiness } = require('./modules/catalystReadiness')
 
 const roleLanding = {
   Admin: '/dashboard',
@@ -143,6 +144,10 @@ async function handleRequest(req, res) {
           { id: 'AUD-04', actor: 'Report Agent', event: 'Evidence export path ready' },
         ],
       })
+    }
+
+    if (req.method === 'GET' && path === '/api/catalyst/readiness') {
+      return sendJson(res, 200, getCatalystReadiness())
     }
 
     if (req.method === 'POST' && path === '/api/auth/login') {

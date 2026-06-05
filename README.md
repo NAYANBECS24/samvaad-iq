@@ -12,6 +12,8 @@ All case records, users, identifiers, and evidence references are synthetic demo
 - Local API prototype: Node.js HTTP server
 - Deployment target: Zoho Catalyst compatible function structure
 - Slate Git deployment: build from repository root with output path `dist`
+- Catalyst Pipelines: root `catalyst-pipelines.yaml` prepared for GitHub auto-fetch deployment
+- Catalyst service map: visible in the app and available at `GET /api/catalyst/readiness`
 - Data mode: bundled synthetic JSON fallback
 - Secrets: no real `.env` file is committed; only `.env.example` is provided
 - Submission documents: included in `docs/submission/`
@@ -44,6 +46,8 @@ samvaad-iq/
   data/                   Synthetic source data and import notes
   docs/                   Architecture images, environment notes, submission bundle
   demo/                   Demo script for judges
+  catalyst.json           Catalyst deploy map for generated client and API function
+  catalyst-pipelines.yaml Catalyst Pipelines GitHub auto-fetch workflow
 ```
 
 ## Quick Start
@@ -93,6 +97,7 @@ Useful routes:
 - `POST /api/crime-dna/similar`
 - `POST /api/legal/map`
 - `GET /api/audit/logs`
+- `GET /api/catalyst/readiness`
 - `POST /api/report`
 
 ## Judge Demo Flow
@@ -135,6 +140,8 @@ Dashboard and Patrol views fetch current field weather context from Open-Meteo, 
 
 The working API lives in `functions/api`. `functions/samvaad-api` is kept as a Catalyst-name compatibility wrapper matching the implementation guide.
 
+The root `catalyst.json` deploys the generated React client from `dist` and the `functions/api` serverless target. The root `catalyst-pipelines.yaml` is prepared for Catalyst Pipelines so a linked GitHub repository can be fetched and deployed on push.
+
 Account-owner steps for final Catalyst deployment:
 
 ```powershell
@@ -150,6 +157,8 @@ For Git-based Slate deployment, set the Slate app to build from the repository r
 - Install command: `npm install`
 - Build command: `npm run build`
 - Output path: `dist`
+
+Detailed GitHub-to-Catalyst steps are in `docs/catalyst-github-deployment.md`.
 
 Keep Catalyst local state, generated deploy output, and real environment files out of GitHub. This repository intentionally tracks `.env.example` only.
 

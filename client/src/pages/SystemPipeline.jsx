@@ -5,16 +5,19 @@ import {
   Database,
   FileText,
   GitBranch,
+  ListChecks,
   MapPinned,
   Network,
+  Rocket,
   ShieldCheck,
   Workflow,
 } from 'lucide-react'
 import { useState } from 'react'
 import architectureImage from '../assets/samvaad_architecture.png'
 import workflowImage from '../assets/samvaad_workflow.png'
+import catalystBlueprint from '../../../data/catalyst-service-map.json'
 
-const pipelineTabs = ['Data Flow', 'Agent Room', 'API Layer', 'Deployment']
+const pipelineTabs = ['Data Flow', 'Agent Room', 'API Layer', 'Catalyst Map', 'Deployment']
 
 const layers = [
   { icon: Database, name: 'Synthetic FIR Store', metric: '12 FIR / 7 station records', tone: 'tone-blue' },
@@ -38,10 +41,32 @@ const apiRoutes = [
   ['POST', '/api/legal/map', 'Legal XAI mapping'],
   ['GET', '/api/audit/logs', 'Supervisor audit timeline'],
   ['POST', '/api/report', 'HTML investigation brief'],
+  ['GET', '/api/catalyst/readiness', 'Catalyst service and GitHub readiness map'],
 ]
+
+const deploymentStack = [
+  ['catalyst.json', 'Whole-app Catalyst deploy map: dist client output plus functions/api'],
+  ['catalyst-pipelines.yaml', 'Catalyst Pipeline steps for install, lint, build, smoke test, and deploy'],
+  ['client/public/client-package.json', 'Web Client Hosting metadata copied into the Vite build output'],
+  ['functions/api', 'Serverless Functions backend target'],
+  ['data/catalyst-service-map.json', 'Submission service map shared by API, UI, and docs'],
+]
+
+const serviceStatusClass = {
+  Ready: 'status-ready',
+  'Schema Ready': 'status-schema',
+  'Console Config': 'status-console',
+  'Pipeline Ready': 'status-pipeline',
+  Roadmap: 'status-roadmap',
+}
 
 function SystemPipeline() {
   const [activeTab, setActiveTab] = useState('Data Flow')
+  const serviceCounts = catalystBlueprint.serviceMap.reduce((acc, item) => {
+    acc[item.status] = (acc[item.status] || 0) + 1
+    return acc
+  }, {})
+  const readyCount = (serviceCounts.Ready || 0) + (serviceCounts['Schema Ready'] || 0) + (serviceCounts['Pipeline Ready'] || 0)
 
   return (
     <div className="page-stack">
@@ -52,7 +77,7 @@ function SystemPipeline() {
         </div>
         <div className="intent-pill">
           <Workflow size={16} />
-          Prototype-ready
+          Catalyst-ready
         </div>
       </header>
 
@@ -70,6 +95,24 @@ function SystemPipeline() {
             </article>
           )
         })}
+      </section>
+
+      <section className="readiness-grid">
+        {[
+          ['Catalyst Services', catalystBlueprint.serviceMap.length, Cloud, 'tone-blue'],
+          ['Ready / Schema Ready', readyCount, CheckCircle2, ''],
+          ['GitHub Auto-Fetch Steps', catalystBlueprint.githubFlow.length, GitBranch, 'tone-violet'],
+          ['Readiness Gates', catalystBlueprint.readinessGates.length, ListChecks, 'tone-amber'],
+        ].map(([label, value, Icon, tone]) => (
+          <article key={label} className={`readiness-card ${tone}`}>
+            <Icon size={22} />
+            <div>
+              <span>{label}</span>
+              <strong>{value}</strong>
+            </div>
+            <CheckCircle2 size={18} />
+          </article>
+        ))}
       </section>
 
       <nav className="tab-strip" aria-label="Pipeline sections">
@@ -185,43 +228,90 @@ function SystemPipeline() {
         </section>
       ) : null}
 
+      {activeTab === 'Catalyst Map' ? (
+        <section className="panel">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Zoho Catalyst Alignment</p>
+              <h2>Required Service Map</h2>
+            </div>
+            <Cloud size={20} />
+          </div>
+          <div className="risk-list catalyst-summary">
+            <span>{catalystBlueprint.summary.deploymentMode}</span>
+            <span>Build output: {catalystBlueprint.summary.buildOutput}</span>
+            <span>{catalystBlueprint.summary.githubAutoFetch}</span>
+          </div>
+          <div className="table-wrap">
+            <table className="case-table catalyst-table">
+              <thead>
+                <tr>
+                  <th>Capability</th>
+                  <th>Required Catalyst Service</th>
+                  <th>Prototype Evidence</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {catalystBlueprint.serviceMap.map((item) => (
+                  <tr key={`${item.capability}-${item.requiredService}`}>
+                    <td>{item.capability}</td>
+                    <td>{item.requiredService}</td>
+                    <td>{item.prototypeEvidence}</td>
+                    <td>
+                      <span className={`service-status ${serviceStatusClass[item.status] || ''}`}>{item.status}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
+
       {activeTab === 'Deployment' ? (
         <section className="dossier-grid">
           <article className="panel">
             <div className="section-heading">
               <div>
-                <p className="eyebrow">Catalyst</p>
-                <h2>Function Compatibility</h2>
+                <p className="eyebrow">GitHub To Catalyst</p>
+                <h2>Auto-Fetch Deployment Flow</h2>
               </div>
-              <Cloud size={20} />
+              <Rocket size={20} />
             </div>
-            {[
-              ['functions/api', 'Working local Node API used by npm run api:dev'],
-              ['functions/samvaad-api', 'Guide-aligned Catalyst function wrapper'],
-              ['client/dist', 'Vite build output for hosting'],
-              ['data/seed-data.json', 'Synthetic dataset for local and API modules'],
-            ].map(([name, detail]) => (
-              <div key={name} className="station-row">
-                <strong>{name}</strong>
-                <span>ready</span>
-                <small>{detail}</small>
+            {catalystBlueprint.githubFlow.map((item) => (
+              <div key={item.step} className="audit-row">
+                <span>{item.step}</span>
+                <p>
+                  <strong>{item.name}</strong>
+                  <br />
+                  {item.detail}
+                </p>
               </div>
             ))}
           </article>
           <article className="panel">
             <div className="section-heading">
               <div>
-                <p className="eyebrow">Controls</p>
-                <h2>Readiness Gates</h2>
+                <p className="eyebrow">Deploy Package</p>
+                <h2>Catalyst Files And Gates</h2>
               </div>
               <ShieldCheck size={20} />
             </div>
+            {deploymentStack.map(([name, detail]) => (
+              <div key={name} className="station-row">
+                <strong>{name}</strong>
+                <span>ready</span>
+                <small>{detail}</small>
+              </div>
+            ))}
+            <div className="compact-heading">
+              <p className="eyebrow">Readiness Gates</p>
+            </div>
             <div className="risk-list">
-              <span>Auth route present</span>
-              <span>API smoke tests pass</span>
-              <span>PDF report path ready</span>
-              <span>Synthetic-only data</span>
-              <span>Catalyst login pending owner account</span>
+              {catalystBlueprint.readinessGates.map((gate) => (
+                <span key={gate}>{gate}</span>
+              ))}
             </div>
           </article>
         </section>

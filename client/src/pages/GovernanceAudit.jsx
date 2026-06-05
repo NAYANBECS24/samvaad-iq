@@ -1,5 +1,6 @@
-import { AlertTriangle, ClipboardCheck, Eye, History, LockKeyhole, Scale, ShieldAlert, UserCheck } from 'lucide-react'
+import { AlertTriangle, ClipboardCheck, Cloud, Eye, History, LockKeyhole, Scale, ShieldAlert, UserCheck } from 'lucide-react'
 import { cases, demoUsers, getStoredUser, seedSummary } from '../services/prototypeEngine.js'
+import catalystBlueprint from '../../../data/catalyst-service-map.json'
 
 const permissions = [
   ['Admin', 'All modules, synthetic data validation, user audit logs', 'Data stewardship'],
@@ -23,6 +24,9 @@ function GovernanceAudit() {
   const user = getStoredUser()
   const summary = seedSummary()
   const auditEvents = buildAuditEvents(user?.role)
+  const productionControls = catalystBlueprint.serviceMap.filter((item) =>
+    ['Ready', 'Schema Ready', 'Console Config', 'Pipeline Ready'].includes(item.status),
+  )
 
   return (
     <div className="page-stack">
@@ -53,10 +57,63 @@ function GovernanceAudit() {
           <span>Synthetic FIRs</span>
           <strong>{summary.cases}</strong>
         </article>
+        <article className="kpi-card">
+          <Cloud size={22} />
+          <span>Catalyst Controls</span>
+          <strong>{productionControls.length}</strong>
+        </article>
         <article className="kpi-card emphasis">
           <Scale size={22} />
           <span>Legal Review</span>
           <strong>Required</strong>
+        </article>
+      </section>
+
+      <section className="dossier-grid">
+        <article className="panel">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Catalyst Compliance</p>
+              <h2>Required Services For This Prototype</h2>
+            </div>
+            <Cloud size={20} />
+          </div>
+          <div className="table-wrap">
+            <table className="case-table">
+              <thead>
+                <tr>
+                  <th>Service</th>
+                  <th>Current Evidence</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {productionControls.map((item) => (
+                  <tr key={item.requiredService}>
+                    <td>{item.requiredService}</td>
+                    <td>{item.prototypeEvidence}</td>
+                    <td>{item.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article className="panel">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Submission Gates</p>
+              <h2>Human-Controlled Deployment Checks</h2>
+            </div>
+            <ClipboardCheck size={20} />
+          </div>
+          {catalystBlueprint.readinessGates.map((gate, index) => (
+            <div key={gate} className="audit-row">
+              <span>{String(index + 1).padStart(2, '0')}</span>
+              <p>{gate}</p>
+            </div>
+          ))}
         </article>
       </section>
 

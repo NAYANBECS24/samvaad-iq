@@ -1,0 +1,8 @@
+{
+  "name": "samvaad-iq-netra",
+  "version": "0.1.0",
+  "homepage": "index.html",
+  "login_redirect": "index.html",
+  "404": "404.html",
+  "description": "SAMVAAD-IQ NETRA crime intelligence command prototype for Catalyst hosting"
+}

@@ -6,6 +6,7 @@ const { getHotspots } = require('../modules/hotspotEngine')
 const { patrolWhatIf } = require('../modules/patrolEngine')
 const { legalExplainabilityForCase } = require('../modules/legalXai')
 const { buildDiffusionModel } = require('../modules/diffusionEngine')
+const { getCatalystReadiness } = require('../modules/catalystReadiness')
 
 const hotspot = answerQuery('Last 6 months alli Mysuru division chain snatching hotspots show maadi', 'Investigator')
 assert.strictEqual(hotspot.intent, 'HOTSPOT_QUERY')
@@ -38,5 +39,9 @@ assert.ok(legal.privacyTag.includes('Hashed'))
 
 const diffusion = buildDiffusionModel({ district: 'Mysuru', crimeType: 'Motorcycle Theft' })
 assert.ok(diffusion.rc > 0)
+
+const catalyst = getCatalystReadiness()
+assert.ok(catalyst.serviceMap.some((item) => item.requiredService.includes('Catalyst Pipelines')))
+assert.strictEqual(catalyst.summary.buildOutput, 'dist')
 
 console.log('SAMVAAD-IQ API smoke tests passed')

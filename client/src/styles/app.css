@@ -913,6 +913,41 @@ select:focus, input:focus, button:focus-visible, a:focus-visible {
   font-weight: 700;
 }
 
+.catalyst-summary { margin-bottom: 16px; }
+
+.catalyst-table { min-width: 940px; }
+
+.service-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.status-ready,
+.status-schema,
+.status-pipeline {
+  color: var(--emerald);
+  background: var(--emerald-soft);
+  border: 1px solid rgba(16, 185, 129, 0.18);
+}
+
+.status-console {
+  color: var(--cyan);
+  background: var(--cyan-soft);
+  border: 1px solid rgba(0, 240, 255, 0.16);
+}
+
+.status-roadmap {
+  color: var(--amber);
+  background: var(--amber-soft);
+  border: 1px solid rgba(245, 158, 11, 0.14);
+}
+
 .action-row { flex-wrap: wrap; gap: 10px; margin-top: 18px; }
 
 .voice-output-strip {

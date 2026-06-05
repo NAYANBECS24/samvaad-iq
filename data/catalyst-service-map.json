@@ -1,0 +1,142 @@
+{
+  "summary": {
+    "project": "SAMVAAD-IQ / NETRA",
+    "deploymentMode": "Catalyst Slate or Web Client Hosting for React, Catalyst Serverless Functions for API",
+    "githubAutoFetch": "Catalyst Pipelines can link this GitHub repository and trigger on push.",
+    "buildOutput": "dist",
+    "ownerAction": "Create/connect the Catalyst project, set pipeline variables, then push to the linked GitHub branch."
+  },
+  "serviceMap": [
+    {
+      "capability": "Frontend / SPA / static site",
+      "requiredService": "Catalyst Slate or Web Client Hosting",
+      "prototypeEvidence": "React + Vite command center with HashRouter. Repository build command emits the deployable app to dist.",
+      "status": "Ready"
+    },
+    {
+      "capability": "Serverless functions/backend logic",
+      "requiredService": "Catalyst Serverless Functions",
+      "prototypeEvidence": "functions/api contains the Node.js API handler, route contract, and smoke tests.",
+      "status": "Ready"
+    },
+    {
+      "capability": "API routing, throttling, and auth in front of Functions",
+      "requiredService": "Catalyst API Gateway",
+      "prototypeEvidence": "All backend capabilities are exposed under /api/* and can be fronted by Catalyst API Gateway after project binding.",
+      "status": "Console Config"
+    },
+    {
+      "capability": "User auth / login/signup",
+      "requiredService": "Catalyst Authentication",
+      "prototypeEvidence": "Role-based demo login is implemented. Production login should replace demo credentials with Catalyst Authentication identities and roles.",
+      "status": "Console Config"
+    },
+    {
+      "capability": "Relational database",
+      "requiredService": "Catalyst Data Store",
+      "prototypeEvidence": "data/import_instructions.md maps Users, PoliceStations, Cases, Accused, Relations, AuditLogs, and Reports tables.",
+      "status": "Schema Ready"
+    },
+    {
+      "capability": "Unstructured / semi-structured data",
+      "requiredService": "Catalyst NoSQL",
+      "prototypeEvidence": "Agent traces, chat transcripts, risk flags, and investigation session metadata are identified for NoSQL storage.",
+      "status": "Roadmap"
+    },
+    {
+      "capability": "Object / blob storage",
+      "requiredService": "Catalyst Stratus",
+      "prototypeEvidence": "PDF briefs, evidence media, generated screenshots, and pipeline artifacts have a Stratus handoff path.",
+      "status": "Roadmap"
+    },
+    {
+      "capability": "Cache",
+      "requiredService": "Catalyst Cache",
+      "prototypeEvidence": "Hotspot, diffusion, graph, and similar-case outputs can be cached by district, crime type, and FIR ID.",
+      "status": "Roadmap"
+    },
+    {
+      "capability": "Text LLMs / RAG / knowledge bases",
+      "requiredService": "Catalyst QuickML",
+      "prototypeEvidence": "The deterministic query engine demonstrates the workflow. Production RAG over FIR, legal, and SOP knowledge should use QuickML.",
+      "status": "Roadmap"
+    },
+    {
+      "capability": "OCR / Face / Text Analytics / Image Mod / Object Recognition / Barcode / ID Scanner",
+      "requiredService": "Catalyst Zia Services",
+      "prototypeEvidence": "Digital evidence and legal extraction screens define the intake points for Zia OCR, text analytics, ID scanning, and image recognition.",
+      "status": "Roadmap"
+    },
+    {
+      "capability": "Voice services / models",
+      "requiredService": "Catalyst Zia Services",
+      "prototypeEvidence": "Browser speech input is available for demo reliability. Production STT, TTS, and translation should move to Zia Services.",
+      "status": "Roadmap"
+    },
+    {
+      "capability": "PDF / image-based report generation, screenshots, headless browser",
+      "requiredService": "Catalyst SmartBrowz",
+      "prototypeEvidence": "Investigation briefs export in-browser today. Scheduled/headless official report rendering should use SmartBrowz.",
+      "status": "Roadmap"
+    },
+    {
+      "capability": "Scheduled jobs/cron/job pools",
+      "requiredService": "Catalyst Cron or Catalyst Job Scheduling",
+      "prototypeEvidence": "Nightly hotspot recomputation, stale-case alerts, and report cleanup jobs are identified.",
+      "status": "Roadmap"
+    },
+    {
+      "capability": "Reacting to in-project events",
+      "requiredService": "Catalyst Signals + Event Functions",
+      "prototypeEvidence": "Audit events can be emitted on data import, file upload, login, report generation, and supervisor approval.",
+      "status": "Roadmap"
+    },
+    {
+      "capability": "Multi-step workflow/orchestration",
+      "requiredService": "Catalyst Circuits",
+      "prototypeEvidence": "Detective, Data, Network, Skeptic, and Report agent sequence is already modeled and ready for Circuits orchestration.",
+      "status": "Roadmap"
+    },
+    {
+      "capability": "Transactional email",
+      "requiredService": "Catalyst Mail",
+      "prototypeEvidence": "Supervisor report notifications, approval prompts, and escalation digests can be sent by Catalyst Mail.",
+      "status": "Roadmap"
+    },
+    {
+      "capability": "CI/CD",
+      "requiredService": "Catalyst Pipelines",
+      "prototypeEvidence": "catalyst-pipelines.yaml installs dependencies, validates the app, builds dist, runs API smoke tests, and deploys through Catalyst CLI.",
+      "status": "Pipeline Ready"
+    }
+  ],
+  "githubFlow": [
+    {
+      "step": "01",
+      "name": "Push repository to GitHub",
+      "detail": "Keep .env files, .zcatalystrc, .catalyst, node_modules, and dist out of Git. Commit source, docs, seed data, catalyst.json, and catalyst-pipelines.yaml."
+    },
+    {
+      "step": "02",
+      "name": "Connect Catalyst Pipelines to GitHub",
+      "detail": "Create a Catalyst Pipeline, choose GitHub as the integration source, select the repository and branch, and commit the root catalyst-pipelines.yaml."
+    },
+    {
+      "step": "03",
+      "name": "Set Catalyst pipeline variables",
+      "detail": "Configure PROJECT_NAME, CATALYST_ORG, CATALYST_TOKEN, USER_NAME, and USER_PASSWORD in Catalyst Pipelines before first deploy."
+    },
+    {
+      "step": "04",
+      "name": "Auto-build and deploy on push",
+      "detail": "On every push to the linked branch, Catalyst fetches the repository, runs validation, builds the Vite app to dist, and executes catalyst deploy."
+    }
+  ],
+  "readinessGates": [
+    "Synthetic data only; no real PII committed.",
+    "Root npm run build emits frontend output to dist.",
+    "API smoke tests cover chat, graph, hotspot, diffusion, patrol, report, Legal XAI, and Catalyst readiness.",
+    "Catalyst Authentication, API Gateway, Data Store, and Pipelines are explicitly mapped for production handoff.",
+    "Manual owner login/project binding remains the only non-code deployment step."
+  ]
+}

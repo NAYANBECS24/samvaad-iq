@@ -1,0 +1,31 @@
+version: 1
+runners:
+  Machine:
+    config-id: 2
+images:
+  DeployMachine:
+    image: ubuntu
+    auth:
+      username: << env.USER_NAME >>
+      password: << env.USER_PASSWORD >>
+jobs:
+  Build_Test_Deploy:
+    steps:
+      - apt-get update
+      - apt-get -y install curl ca-certificates
+      - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+      - apt-get install -y nodejs
+      - node --version
+      - npm --version
+      - npm ci
+      - npm run client:lint
+      - npm run build
+      - npm run api:smoke
+      - npm i -g zcatalyst-cli
+      - catalyst -v
+      - catalyst deploy --project << env.PROJECT_NAME >> --org << env.CATALYST_ORG >> --token << env.CATALYST_TOKEN >>
+stages:
+  - name: build-test-deploy
+    image: DeployMachine
+    jobs:
+      - Build_Test_Deploy

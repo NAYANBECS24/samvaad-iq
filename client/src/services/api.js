@@ -67,6 +67,7 @@ export const api = {
       body: JSON.stringify({ firId }),
     }),
   auditLogs: () => request('/audit/logs'),
+  catalystReadiness: () => request('/catalyst/readiness'),
   buildReport: (payload) =>
     request('/report', {
       method: 'POST',

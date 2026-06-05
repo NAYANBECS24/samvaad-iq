@@ -38,6 +38,53 @@ All case records, users, identifiers, and evidence references are synthetic demo
 - API routes for auth, dashboard summary, chat, similar cases, hotspots, diffusion, Legal XAI, audit, patrol simulation, and reports
 - API routes for Evidence Lab profiles, evidence analysis, SmartBrowz-style report handoff, and cache precompute readiness
 
+## Next-Level Prototype Layer
+
+The latest build adds **NETRA Evidence Lab**, an end-to-end evidence intelligence workflow designed to match the required Zoho Catalyst services while staying safe for a synthetic hackathon demo.
+
+Evidence Lab flow:
+
+```text
+Upload Evidence -> Zia Extraction -> QuickML RAG -> Crime DNA Match -> SmartBrowz Report -> Signals Audit
+```
+
+Supported simulated evidence types:
+
+- FIR PDF intake with OCR-style extraction
+- CCTV image analysis with object recognition and plate OCR
+- ID/document scan with masked entity extraction
+- Audio clip intake with speech-to-text and translation-style transcript extraction
+
+What the workflow shows:
+
+- Extracted vehicle number, phone hash, location, time window, legal hints, and suspect/entity mentions
+- Linked synthetic FIR records with confidence scores
+- KAVACH Crime DNA match results against related FIRs
+- QuickML-style RAG source chunks from FIR text, evidence metadata, legal support notes, and SOP guardrails
+- SmartBrowz-style official report staging
+- Stratus object metadata for evidence and generated reports
+- Catalyst Signals + Circuits style supervisor review timeline
+- Catalyst Cache precompute cards for hotspot, graph, dashboard, and similar-case outputs
+- Audit log entries for evidence upload, extraction, entity matching, review, report render, and notification
+
+## Catalyst Service Alignment
+
+| Capability | Catalyst Service Used In Prototype |
+| --- | --- |
+| Frontend / SPA | Catalyst Slate or Web Client Hosting |
+| Serverless API | Catalyst Serverless Functions |
+| Evidence upload/object storage | Catalyst Stratus |
+| OCR, STT, image/object recognition, ID extraction | Catalyst Zia Services |
+| FIR/legal/SOP knowledge retrieval | Catalyst QuickML RAG |
+| FIR tables, audit tables, report metadata | Catalyst Data Store |
+| Agent traces and evidence session metadata | Catalyst NoSQL |
+| Repeated graph, hotspot, dashboard, and Crime DNA lookups | Catalyst Cache |
+| Upload/extraction/match/report events | Catalyst Signals + Event Functions |
+| Supervisor review workflow | Catalyst Circuits |
+| Official PDF rendering path | Catalyst SmartBrowz |
+| Supervisor notification | Catalyst Mail |
+| GitHub auto-fetch deployment | Catalyst Pipelines |
+
 ## Repository Layout
 
 ```text
@@ -46,6 +93,7 @@ samvaad-iq/
   functions/api/          Local Node API used for prototype testing
   functions/samvaad-api/  Catalyst-name compatibility wrapper
   data/                   Synthetic source data and import notes
+  data/evidence-intelligence.json  Evidence Lab profiles, workflow events, cache plan, and RAG corpus
   docs/                   Architecture images, environment notes, submission bundle
   demo/                   Demo script for judges
   catalyst.json           Catalyst deploy map for generated client and API function
@@ -106,6 +154,15 @@ Useful routes:
 - `GET /api/cache/precompute`
 - `POST /api/report`
 
+Example Evidence Lab API check:
+
+```powershell
+Invoke-RestMethod -Method Post `
+  -Uri http://127.0.0.1:3001/api/evidence/analyze `
+  -ContentType application/json `
+  -Body '{"profileId":"cctv-image","fileName":"judge-cctv.png"}'
+```
+
 ## Judge Demo Flow
 
 Detailed steps are in `demo/demo-script.md`. Recommended short flow:
@@ -113,10 +170,11 @@ Detailed steps are in `demo/demo-script.md`. Recommended short flow:
 1. Login as `investigator@ksp.demo` / `demo123`.
 2. Open Investigation and ask: `Saar, Mysuru alli last 6 months motorcycle theft pattern show maadi`.
 3. Show Detective Room, source FIRs, and linked dossier evidence.
-4. Open Evidence Lab, choose CCTV Image or FIR PDF, stage the SmartBrowz report, then open Reports.
-5. Open Hotspots and Diffusion for Mysuru motorcycle theft.
-6. Ask whether `FIR-2025-BLR-001` and `FIR-2025-BLR-014` are connected.
-7. Open Network Graph, Crime DNA, Patrol What-If, Governance Audit, and Pipeline.
+4. Open Evidence Lab, choose CCTV Image or FIR PDF, show extracted entities, FIR matches, RAG chunks, Signals/Circuits workflow, and cache cards.
+5. Click `Stage Report`, then open Reports to show the SmartBrowz, Stratus, and Mail handoff path.
+6. Open Hotspots and Diffusion for Mysuru motorcycle theft.
+7. Ask whether `FIR-2025-BLR-001` and `FIR-2025-BLR-014` are connected.
+8. Open Network Graph, Crime DNA, Patrol What-If, Governance Audit, and Pipeline.
 
 ## Submission Bundle
 

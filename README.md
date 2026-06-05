@@ -11,6 +11,7 @@ All case records, users, identifiers, and evidence references are synthetic demo
 - Frontend prototype: React + Vite
 - Local API prototype: Node.js HTTP server
 - Deployment target: Zoho Catalyst compatible function structure
+- Slate Git deployment: build from repository root with output path `dist`
 - Data mode: bundled synthetic JSON fallback
 - Secrets: no real `.env` file is committed; only `.env.example` is provided
 - Submission documents: included in `docs/submission/`
@@ -122,6 +123,7 @@ Architecture and workflow images are available in `docs/` and are also used by t
 ```powershell
 npm run client:lint
 npm run client:build
+npm run build
 npm run api:smoke
 ```
 
@@ -141,6 +143,13 @@ catalyst init --force
 catalyst serve
 catalyst deploy
 ```
+
+For Git-based Slate deployment, set the Slate app to build from the repository root:
+
+- Framework: React + Vite, or Vite
+- Install command: `npm install`
+- Build command: `npm run build`
+- Output path: `dist`
 
 Keep Catalyst local state, generated deploy output, and real environment files out of GitHub. This repository intentionally tracks `.env.example` only.
 

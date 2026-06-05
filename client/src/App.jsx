@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
 import AppLayout from './components/AppLayout.jsx'
 import { LanguageProvider } from './i18n.js'
@@ -47,7 +47,7 @@ function App() {
 
   return (
     <LanguageProvider>
-      <BrowserRouter>
+      <HashRouter>
         <Routes>
           <Route
             path="/login"
@@ -89,7 +89,7 @@ function App() {
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
     </LanguageProvider>
   )
 }

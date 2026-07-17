@@ -107,7 +107,7 @@ npm --prefix client audit --omit=dev
 npm --prefix functions/api audit --omit=dev
 ```
 
-Offline demo credentials are injected only through `VITE_OFFLINE_DEMO_PASSWORD` in the hosting/test environment. Local API demo authentication additionally requires `ALLOW_DEMO_AUTH=true`, `DEMO_PASSWORD`, and `DEMO_AUTH_SECRET`; production uses Catalyst Auth and keeps demo authentication disabled. Judging credentials are distributed out of band, never committed.
+Offline mode is read-only: when `VITE_OFFLINE_DEMO_PASSWORD` is unset, selecting a role profile grants a clearly labeled local demo persona without pretending that it is police authentication. Hosts may set that environment variable to add a presentation gate. Local API demo authentication additionally requires `ALLOW_DEMO_AUTH=true`, `DEMO_PASSWORD`, and `DEMO_AUTH_SECRET`; production uses Catalyst Auth and keeps demo authentication disabled. Live judging credentials are distributed out of band, never committed.
 
 ## API contract
 

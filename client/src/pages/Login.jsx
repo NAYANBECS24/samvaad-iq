@@ -46,6 +46,8 @@ function Login({ onLogin }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const navigate = useNavigate()
   const { runtime, login } = useRuntime()
+  const passwordRequired = runtime.mode === 'catalyst-live' || Boolean(offlineDemoPassword)
+  const checkingRuntime = runtime.mode === 'checking'
 
   async function submit(event) {
     event.preventDefault()
@@ -142,7 +144,11 @@ function Login({ onLogin }) {
             <div className="login-form-heading">
               <p className="eyebrow">Secure Demo Gateway</p>
               <h2>Role-Based Access</h2>
-              <p>{runtime.mode === 'catalyst-live' ? 'Catalyst session controls are active.' : 'Offline demo identities are active; data and changes are not persisted.'}</p>
+              <p>{runtime.mode === 'catalyst-live'
+                ? 'Catalyst session controls are active.'
+                : offlineDemoPassword
+                  ? 'Offline demo access uses the password configured by the host; changes are not persisted.'
+                  : 'Select a profile for read-only offline access. This is a demo persona, not an authenticated police account.'}</p>
             </div>
 
             <form className="login-form" onSubmit={submit}>
@@ -158,12 +164,15 @@ function Login({ onLogin }) {
                 />
               </label>
               <label>
-                Password
+                {passwordRequired ? 'Password' : 'Password (not required for read-only demo)'}
                 <input
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   type="password"
                   autoComplete="current-password"
+                  disabled={!passwordRequired}
+                  required={passwordRequired}
+                  placeholder={passwordRequired ? 'Enter password' : 'Profile selection only'}
                 />
               </label>
               {error ? (
@@ -171,9 +180,9 @@ function Login({ onLogin }) {
                   {error}
                 </p>
               ) : null}
-              <button type="submit" className="primary-button" disabled={isSubmitting}>
+              <button type="submit" className="primary-button" disabled={isSubmitting || checkingRuntime}>
                 <LogIn size={18} />
-                {isSubmitting ? 'Verifying session…' : 'Enter Command Workspace'}
+                {checkingRuntime ? 'Checking runtime…' : isSubmitting ? 'Opening workspace…' : 'Enter Command Workspace'}
               </button>
             </form>
 

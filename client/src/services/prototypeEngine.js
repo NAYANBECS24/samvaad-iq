@@ -106,9 +106,8 @@ export function storeUser(user) {
 
 export function login(email, password) {
   const normalizedEmail = normalizeDemoEmail(email)
-  if (!offlineDemoPassword) throw new Error('Offline demo login is not configured in this environment.')
   const user = demoUsers.find((item) => item.email === normalizedEmail)
-  if (password !== offlineDemoPassword) throw new Error('Invalid demo credentials')
+  if (offlineDemoPassword && password !== offlineDemoPassword) throw new Error('Invalid demo credentials')
   if (!user) {
     throw new Error('Invalid demo credentials')
   }

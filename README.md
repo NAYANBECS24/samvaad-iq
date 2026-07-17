@@ -1,236 +1,179 @@
-# SAMVAAD-IQ / NETRA
+# SAMVAAD-IQ
 
-Conversational Crime Intelligence OS prototype for Karnataka Police hackathon submission.
+SAMVAAD-IQ is the conversational investigation workspace for **NETRA**, with the explainable **KAVACH Crime DNA** engine providing case-similarity reasoning.
 
-NETRA means **Neural Evidence-based Threat Reasoning Architecture**. In this prototype, NETRA is the wider crime-intelligence concept, SAMVAAD-IQ is the conversational interface, and KAVACH is the Crime DNA reasoning engine.
+It addresses **Datathon 2026 Challenge 1 — Intelligent Conversational AI for the KSP Crime Database**.
 
-All case records, users, identifiers, and evidence references are synthetic demo data. The system is built for investigative lead generation only; it does not predict guilt, accuse a person, or automate enforcement decisions.
+> This public build contains synthetic demonstration data only. Every result is an investigative lead that requires human verification and, where applicable, supervisory approval.
 
-## Submission Status
+## What the winner build demonstrates
 
-- Frontend prototype: React + Vite
-- Local API prototype: Node.js HTTP server
-- Deployment target: Zoho Catalyst compatible function structure
-- Slate Git deployment: build from repository root with output path `dist`
-- Catalyst Pipelines: root `catalyst-pipelines.yaml` prepared for GitHub auto-fetch deployment
-- Catalyst service map: visible in the app and available at `GET /api/catalyst/readiness`
-- Data mode: bundled synthetic JSON fallback
-- Secrets: no real `.env` file is committed; only `.env.example` is provided
-- Submission documents: included in `docs/submission/`
+The product follows one evidence-grounded loop:
 
-## Key Features
+1. Ask in English, Kannada, or Kanglish.
+2. Retrieve synthetic FIR evidence and show exact citations.
+3. Open the case workspace and inspect source fields.
+4. Run KAVACH similarity, network, area-hotspot, or patrol-scenario analysis.
+5. Validate and hash an evidence file in Evidence Lab.
+6. Accept, reject, or escalate the lead through a human review action.
+7. Produce an auditable supervisor-approved evidence brief.
 
-- Role-based demo login for Admin, Investigator, Analyst, and Supervisor
-- Dashboard with synthetic FIR counts, charts, latest cases, and live field-condition metrics
-- FIR Case Explorer with filters, table view, and quick links into investigation workflows
-- FIR Dossier with Overview, Evidence, Crime DNA, Legal XAI, Action Plan, and Audit tabs
-- English/Kanglish investigation chat with deterministic responses for demo reliability
-- Browser speech input on supported browsers
-- NETRA Evidence Lab: upload-style evidence intake, Zia-style OCR/STT/entity extraction, FIR linking, Crime DNA matching, QuickML RAG chunks, SmartBrowz report staging, Signals/Circuits audit trail, and Catalyst Cache precompute view
-- Detective Room reasoning cards with source FIRs and evidence chips
-- Hotspot Map with Leaflet risk markers
-- Crime Contagion Diffusion page with Rc-style area risk and repeated-identifier corridors
-- Network Graph using React Flow
-- KAVACH Crime DNA similar-case scoring
-- Patrol What-If simulation with ACSE-style displacement risk and recommended time windows
-- Governance Audit page with RBAC matrix, audit trail, evidence controls, and skeptic guardrails
-- PDF-ready investigation brief export
-- API routes for auth, dashboard summary, chat, similar cases, hotspots, diffusion, Legal XAI, audit, patrol simulation, and reports
-- API routes for Evidence Lab profiles, evidence analysis, SmartBrowz-style report handoff, and cache precompute readiness
+The application never presents a person-level risk score, automated guilt label, or unsupported legal conclusion.
 
-## Next-Level Prototype Layer
+## Runtime modes
 
-The latest build adds **NETRA Evidence Lab**, an end-to-end evidence intelligence workflow designed to match the required Zoho Catalyst services while staying safe for a synthetic hackathon demo.
-
-Evidence Lab flow:
-
-```text
-Upload Evidence -> Zia Extraction -> QuickML RAG -> Crime DNA Match -> SmartBrowz Report -> Signals Audit
-```
-
-Supported simulated evidence types:
-
-- FIR PDF intake with OCR-style extraction
-- CCTV image analysis with object recognition and plate OCR
-- ID/document scan with masked entity extraction
-- Audio clip intake with speech-to-text and translation-style transcript extraction
-
-What the workflow shows:
-
-- Extracted vehicle number, phone hash, location, time window, legal hints, and suspect/entity mentions
-- Linked synthetic FIR records with confidence scores
-- KAVACH Crime DNA match results against related FIRs
-- QuickML-style RAG source chunks from FIR text, evidence metadata, legal support notes, and SOP guardrails
-- SmartBrowz-style official report staging
-- Stratus object metadata for evidence and generated reports
-- Catalyst Signals + Circuits style supervisor review timeline
-- Catalyst Cache precompute cards for hotspot, graph, dashboard, and similar-case outputs
-- Audit log entries for evidence upload, extraction, entity matching, review, report render, and notification
-
-## Catalyst Service Alignment
-
-| Capability | Catalyst Service Used In Prototype |
+| Mode | Meaning |
 | --- | --- |
-| Frontend / SPA | Catalyst Slate or Web Client Hosting |
-| Serverless API | Catalyst Serverless Functions |
-| Evidence upload/object storage | Catalyst Stratus |
-| OCR, STT, image/object recognition, ID extraction | Catalyst Zia Services |
-| FIR/legal/SOP knowledge retrieval | Catalyst QuickML RAG |
-| FIR tables, audit tables, report metadata | Catalyst Data Store |
-| Agent traces and evidence session metadata | Catalyst NoSQL |
-| Repeated graph, hotspot, dashboard, and Crime DNA lookups | Catalyst Cache |
-| Upload/extraction/match/report events | Catalyst Signals + Event Functions |
-| Supervisor review workflow | Catalyst Circuits |
-| Official PDF rendering path | Catalyst SmartBrowz |
-| Supervisor notification | Catalyst Mail |
-| GitHub auto-fetch deployment | Catalyst Pipelines |
+| `Catalyst Live` | The versioned API is reachable and the configured Catalyst capabilities are verified at runtime. |
+| `Offline Demo` | The shared deterministic engine is running locally against a smaller synthetic dataset. Changes are not persisted. |
+| `Capability Unavailable` | A specific provider such as OCR, object storage, or server PDF rendering is not enabled. The UI does not simulate success. |
 
-## Repository Layout
+The public UI displays the current mode at all times. Provider availability comes from `GET /api/v1/capabilities`; it is not hard-coded into presentation labels.
+
+## Architecture
 
 ```text
-samvaad-iq/
-  client/                 React + Vite frontend
-  functions/api/          Local Node API used for prototype testing
-  functions/samvaad-api/  Catalyst-name compatibility wrapper
-  data/                   Synthetic source data and import notes
-  data/evidence-intelligence.json  Evidence Lab profiles, workflow events, cache plan, and RAG corpus
-  docs/                   Architecture images, environment notes, submission bundle
-  demo/                   Demo script for judges
-  catalyst.json           Catalyst deploy map for generated client and API function
-  catalyst-pipelines.yaml Catalyst Pipelines GitHub auto-fetch workflow
+React/Vite client
+  ├── Catalyst runtime and capability probe
+  ├── Ask SAMVAAD evidence workspace
+  ├── Case and intelligence workspaces
+  ├── Real browser evidence parsers
+  └── Read-only offline repository
+             │
+             ▼
+Versioned /api/v1 contract
+  ├── Advanced I/O request handler
+  ├── server-side validation, role checks, CORS and rate limits
+  ├── tamper-evident audit hash chain
+  └── Catalyst provider adapters
+             │
+             ▼
+Shared explainable intelligence core
+  ├── deterministic synthetic generator
+  ├── multilingual intent and filter extraction
+  ├── evidence retrieval and citations
+  ├── KAVACH factor-level similarity
+  ├── graph, area hotspots and scenarios
+  └── insufficient-evidence and out-of-scope refusals
 ```
 
-## Quick Start
+The same shared core runs in the API and in the labeled offline fallback, preventing frontend/backend scoring drift.
 
-Use Node.js 20 or newer.
+## Verified baseline
 
-```powershell
-npm --prefix client install
-npm start
+The current automated evaluation uses 1,000 deterministic synthetic FIRs and 30 English, Kannada, and Kanglish queries.
+
+| Metric | Measured result |
+| --- | ---: |
+| Intent accuracy | 100% |
+| Citation coverage for supported evaluation queries | 100% |
+| Refusal queries with fabricated citations | 0 |
+| Reference-run deterministic p95 evaluation time | 67 ms |
+| Initial application JavaScript | ~98 KB gzip |
+
+Run `npm run evaluate` to reproduce the intelligence metrics. Claims in submission materials must be updated if the measured output changes.
+`npm run validate` also runs the four role-aware browser checks and the complete judge journey.
+
+## Local development
+
+Requirements:
+
+- Node.js 24
+- npm
+- Zoho Catalyst CLI for Catalyst validation/deployment
+
+Install dependencies:
+
+```bash
+npm ci
+npm --prefix client ci
+npm --prefix functions/api ci
 ```
 
-The Vite app will print a local URL, usually `http://localhost:5173/`.
+Start the API and client in separate terminals:
 
-## Demo Login
-
-Use any of these accounts with password `demo123`:
-
-- `admin@ksp.demo`
-- `investigator@ksp.demo`
-- `analyst@ksp.demo`
-- `supervisor@ksp.demo`
-
-The implementation guide aliases are also accepted, for example `investigator@samvaad.local` with `demo123`.
-
-## Local API
-
-The frontend can run with bundled local data, but the Node API is available for API-backed checks.
-
-```powershell
+```bash
 npm run api:dev
+npm run client:dev
 ```
 
-Useful routes:
+The Vite development server proxies `/api/v1` to `http://127.0.0.1:3001`.
 
-- `GET /api/health`
-- `GET /api/seed/summary`
-- `GET /api/dashboard/summary`
-- `POST /api/auth/login`
-- `GET /api/cases`
-- `POST /api/chat`
-- `GET /api/similar/FIR-2025-BLR-027`
-- `GET /api/graph/FIR-2025-BLR-001`
-- `GET /api/hotspots?district=Mysuru&crimeType=Chain%20Snatching`
-- `GET /api/diffusion?district=Mysuru&crimeType=Motorcycle%20Theft`
-- `POST /api/whatif`
-- `POST /api/simulate/patrol`
-- `POST /api/crime-dna/similar`
-- `POST /api/legal/map`
-- `GET /api/audit/logs`
-- `GET /api/catalyst/readiness`
-- `GET /api/evidence/profiles`
-- `POST /api/evidence/analyze`
-- `POST /api/evidence/report`
-- `GET /api/cache/precompute`
-- `POST /api/report`
+Validate everything:
 
-Example Evidence Lab API check:
-
-```powershell
-Invoke-RestMethod -Method Post `
-  -Uri http://127.0.0.1:3001/api/evidence/analyze `
-  -ContentType application/json `
-  -Body '{"profileId":"cctv-image","fileName":"judge-cctv.png"}'
+```bash
+npm run validate
+npm --prefix client audit --omit=dev
+npm --prefix functions/api audit --omit=dev
 ```
 
-## Judge Demo Flow
+Offline demo credentials are injected only through `VITE_OFFLINE_DEMO_PASSWORD` in the hosting/test environment. Local API demo authentication additionally requires `ALLOW_DEMO_AUTH=true`, `DEMO_PASSWORD`, and `DEMO_AUTH_SECRET`; production uses Catalyst Auth and keeps demo authentication disabled. Judging credentials are distributed out of band, never committed.
 
-Detailed steps are in `demo/demo-script.md`. Recommended short flow:
+## API contract
 
-1. Login as `investigator@ksp.demo` / `demo123`.
-2. Open Investigation and ask: `Saar, Mysuru alli last 6 months motorcycle theft pattern show maadi`.
-3. Show Detective Room, source FIRs, and linked dossier evidence.
-4. Open Evidence Lab, choose CCTV Image or FIR PDF, show extracted entities, FIR matches, RAG chunks, Signals/Circuits workflow, and cache cards.
-5. Click `Stage Report`, then open Reports to show the SmartBrowz, Stratus, and Mail handoff path.
-6. Open Hotspots and Diffusion for Mysuru motorcycle theft.
-7. Ask whether `FIR-2025-BLR-001` and `FIR-2025-BLR-014` are connected.
-8. Open Network Graph, Crime DNA, Patrol What-If, Governance Audit, and Pipeline.
+The versioned interface includes:
 
-## Submission Bundle
+- `GET /api/v1/health`
+- `GET /api/v1/capabilities`
+- `GET /api/v1/cases` and `/cases/:firId`
+- `POST /api/v1/query`
+- `POST /api/v1/analytics/similarity`
+- `POST /api/v1/analytics/graph`
+- `POST /api/v1/analytics/hotspots`
+- `POST /api/v1/scenarios`
+- `POST /api/v1/evidence/uploads`
+- `POST /api/v1/evidence/:id/analyze`
+- `POST /api/v1/reports`
+- `GET /api/v1/audit`
+- `POST /api/v1/feedback`
 
-The following judge-facing materials are committed under `docs/submission/`:
+Successful query responses contain `requestId`, `mode`, `intent`, `filters`, `answer`, `citations`, `confidence`, `evidence`, `visualizations`, `limitations`, `nextActions`, and `auditRef`.
 
-- `SAMVAAD-IQ_Complete_Prototype_Document.pdf`
-- `SAMVAAD-IQ_Complete_Prototype_Document.docx`
-- `SAMVAAD-IQ_Chapter_Wise_Build_Process_Document.docx`
-- `SAMVAAD-IQ_Prototype_Seed_Data.json`
-- `SAMVAAD-IQ_Test_Query_Response_Set.json`
+## Catalyst configuration
 
-Architecture and workflow images are available in `docs/` and are also used by the frontend.
+The Advanced I/O function is under `functions/api` and includes a Node 24 `catalyst-config.json`.
 
-## Validation
+Capabilities are opt-in environment flags and become `available` only when both the Catalyst runtime and the relevant service flag are enabled:
 
-```powershell
-npm run client:lint
-npm run client:build
-npm run build
-npm run api:smoke
-```
+- `CATALYST_AUTH_ENABLED`
+- `CATALYST_DATASTORE_ENABLED`
+- `CATALYST_SMARTBROWZ_ENABLED`
+- `CATALYST_STRATUS_ENABLED` or `CATALYST_FILESTORE_ENABLED`
+- `CATALYST_CIRCUITS_ENABLED`
+- `CATALYST_ZIA_ENABLED`
+- `CATALYST_QUICKML_ENABLED`
 
-## Live Metrics
+The canonical Catalyst-hosted client should build with `VITE_API_BASE=/server/api/api/v1` unless API Gateway maps `/api/v1/*` to the Advanced I/O function. Slate uses the full approved API origin or the Gateway path configured for that site.
 
-Dashboard and Patrol views fetch current field weather context from Open-Meteo, which does not require an API key for this prototype. If the network is slow or unavailable, the app falls back to synthetic field-condition metrics so the demo remains usable.
+See [Catalyst deployment](docs/catalyst-deployment.md), [capability matrix](docs/capability-matrix.md), and [Data Store schema](data/catalyst-schema.md).
 
-## Catalyst Deployment Notes
+## Evidence Lab
 
-The working API lives in `functions/api`. `functions/samvaad-api` is kept as a Catalyst-name compatibility wrapper matching the implementation guide.
+Accepted files are PDF, DOCX, XLSX, CSV, JSON, PNG, and JPEG up to 10 MB.
 
-The root `catalyst.json` deploys the generated React client from `dist` and the `functions/api` serverless target. The root `catalyst-pipelines.yaml` is prepared for Catalyst Pipelines so a linked GitHub repository can be fetched and deployed on push.
+- SHA-256 is calculated from the actual file bytes.
+- PDF, DOCX, first-sheet XLSX, CSV, and JSON text is extracted in the browser.
+- Images expose verified dimensions and provenance; OCR is not inferred unless a live OCR capability is enabled.
+- Extracted facts remain distinct from matched cases and analyst decisions.
+- Offline analysis is not persisted and says so explicitly.
 
-Account-owner steps for final Catalyst deployment:
+## Safety and privacy
 
-```powershell
-catalyst login
-catalyst init --force
-catalyst serve
-catalyst deploy
-```
+- All public identifiers are synthetic or illustrative hashes.
+- No real KSP FIR, complainant, accused, phone, bank, or location-level personal data belongs in this repository.
+- Hotspots are area/time/category summaries, not person-level predictions.
+- Legal mappings are review support only.
+- Reports require Supervisor or Admin approval.
+- API roles are derived from an authenticated session, never a request body.
+- CORS uses an allowlist and API responses include security headers and request IDs.
 
-For Git-based Slate deployment, set the Slate app to build from the repository root:
+See the [data card](docs/data-card.md) and [privacy and threat model](docs/privacy-threat-model.md).
 
-- Framework: React + Vite, or Vite
-- Install command: `npm install`
-- Build command: `npm run build`
-- Output path: `dist`
+## Submission assets
 
-Detailed GitHub-to-Catalyst steps are in `docs/catalyst-github-deployment.md`.
+- [Master project document](docs/submission/SAMVAAD-IQ_Master_Project_Document.md)
+- [Technical appendix](docs/submission/SAMVAAD-IQ_Technical_Appendix.md)
+- [Three-minute judge demo](docs/judge-demo.md)
+- Editable PowerPoint deck in `docs/submission/`
 
-Keep Catalyst local state, generated deploy output, and real environment files out of GitHub. This repository intentionally tracks `.env.example` only.
-
-## Safety And Governance
-
-- Synthetic records only
-- Human review required for every investigative lead
-- Legal XAI maps sections and evidence context but does not provide legal determination
-- RBAC and audit screens are included for accountability demonstration
-- Reports include source FIR references and confidence notes
+Earlier prototype documents are retained under `docs/submission/archive/` for traceability and are not the source of current deployment claims.

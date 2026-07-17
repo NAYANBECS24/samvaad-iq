@@ -6,7 +6,7 @@ import { cases, findSimilarCases } from '../services/prototypeEngine.js'
 
 function SimilarCases() {
   const { firId } = useParams()
-  const [selected, setSelected] = useState(firId || 'FIR-2025-BLR-027')
+  const [selected, setSelected] = useState(firId || 'SYN-2025-BLR-027')
   const result = useMemo(() => findSimilarCases(selected), [selected])
 
   return (

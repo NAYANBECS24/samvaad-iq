@@ -13,14 +13,16 @@ jobs:
     steps:
       - apt-get update
       - apt-get -y install curl ca-certificates
-      - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+      - curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
       - apt-get install -y nodejs
       - node --version
       - npm --version
       - npm ci
+      - npm --prefix client ci
+      - npm --prefix functions/api ci
       - npm run client:lint
       - npm run build
-      - npm run api:smoke
+      - npm test
       - npm i -g zcatalyst-cli
       - catalyst -v
       - catalyst deploy --project << env.PROJECT_NAME >> --org << env.CATALYST_ORG >> --token << env.CATALYST_TOKEN >>

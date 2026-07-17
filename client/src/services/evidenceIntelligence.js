@@ -183,8 +183,8 @@ export function buildEvidenceChatResponse(analysis) {
       { id: 'STEP-4', text: 'Write audit log and notify assigned reviewer through Catalyst Mail' },
     ],
     suggestedQuestions: [
-      `Open network graph for ${sources[0] || 'FIR-2025-BLR-001'}`,
-      `Find similar cases to ${sources[0] || 'FIR-2025-BLR-027'}`,
+      `Open network graph for ${sources[0] || 'SYN-2025-BLR-001'}`,
+      `Find similar cases to ${sources[0] || 'SYN-2025-BLR-027'}`,
       'Generate official evidence review brief',
     ],
     riskFlags: [

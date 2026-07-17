@@ -1,13 +1,25 @@
 import seed from '../data/demoSeed.json'
+import { createIntelligenceCore, toSyntheticFirId } from '../../../functions/api/core/index.mjs'
 
 const STORAGE_KEY = 'samvaad_user'
 const DISCLAIMER = 'Investigative lead only. Requires human verification and legal review.'
+const offlineDemoPassword = import.meta.env.VITE_OFFLINE_DEMO_PASSWORD || ''
+
+const sharedOfflineCore = createIntelligenceCore(seed, { total: 250 })
 
 export const demoUsers = seed.users
-export const stations = seed.police_stations
-export const cases = seed.cases
+export const stations = [
+  ...seed.police_stations,
+  ...sharedOfflineCore.dataset.stations.filter((station) => !seed.police_stations.some((existing) => existing.station_id === station.station_id)),
+]
+export const cases = sharedOfflineCore.cases
 export const accused = seed.accused
-export const relations = seed.relations
+const legacyCaseIds = new Set(seed.cases.map((item) => item.fir_id))
+export const relations = seed.relations.map((item) => ({
+  ...item,
+  source: legacyCaseIds.has(item.source) ? toSyntheticFirId(item.source) : item.source,
+  target: legacyCaseIds.has(item.target) ? toSyntheticFirId(item.target) : item.target,
+}))
 
 const stationById = Object.fromEntries(stations.map((station) => [station.station_id, station]))
 const accusedById = Object.fromEntries(accused.map((person) => [person.accused_id, person]))
@@ -16,7 +28,7 @@ const roleLanding = {
   Admin: '/dashboard',
   Investigator: '/chat',
   Analyst: '/dashboard',
-  Supervisor: '/patrol',
+  Supervisor: '/analytics',
 }
 
 function normalizeDemoEmail(email) {
@@ -94,7 +106,9 @@ export function storeUser(user) {
 
 export function login(email, password) {
   const normalizedEmail = normalizeDemoEmail(email)
-  const user = demoUsers.find((item) => item.email === normalizedEmail && item.password === password)
+  if (!offlineDemoPassword) throw new Error('Offline demo login is not configured in this environment.')
+  const user = demoUsers.find((item) => item.email === normalizedEmail)
+  if (password !== offlineDemoPassword) throw new Error('Invalid demo credentials')
   if (!user) {
     throw new Error('Invalid demo credentials')
   }
@@ -291,7 +305,7 @@ export function findSimilarCases(firId) {
   return { source, matches }
 }
 
-export function buildGraph(seedFirId = 'FIR-2025-BLR-001') {
+export function buildGraph(seedFirId = 'SYN-2025-BLR-001') {
   const rootCase = cases.find((caseRecord) => caseRecord.fir_id === seedFirId) || cases[0]
   const related = cases.filter((caseRecord) => {
     if (caseRecord.fir_id === rootCase.fir_id) return true
@@ -739,7 +753,7 @@ function agentSteps(intent, detail) {
 export function findColdCaseMatches() {
   const syntheticColdCases = [
     {
-      fir_id: 'FIR-2019-MYS-044',
+      fir_id: 'SYN-2019-MYS-044',
       district: 'Mysuru',
       station_id: 'PS-MYS-LKR',
       crime_type: 'Motorcycle Theft',
@@ -757,7 +771,7 @@ export function findColdCaseMatches() {
       phone_hash: 'PH-HASH-901',
     },
     {
-      fir_id: 'FIR-2020-BLR-018',
+      fir_id: 'SYN-2020-BLR-018',
       district: 'Bengaluru South',
       station_id: 'PS-BLR-JYN',
       crime_type: 'House Burglary',
@@ -822,8 +836,8 @@ function nextStepsForIntent(intent, sources) {
 }
 
 function suggestedQuestionsForIntent(intent, sources) {
-  const first = sources[0] || 'FIR-2025-BLR-001'
-  const bank = sources.find((source) => source.includes('HUB') || source.includes('MNG')) || 'FIR-2025-HUB-009'
+  const first = sources[0] || 'SYN-2025-BLR-001'
+  const bank = sources.find((source) => source.includes('HUB') || source.includes('MNG')) || 'SYN-2025-HUB-009'
   const suggestions = {
     HOTSPOT_QUERY: [
       'Show the network graph for this hotspot cluster',
@@ -978,7 +992,7 @@ function answerConnection(query) {
 
 function answerSimilar(query) {
   const [firId] = extractFirIds(query)
-  const sourceId = firId || 'FIR-2025-BLR-027'
+  const sourceId = firId || 'SYN-2025-BLR-027'
   const result = findSimilarCases(sourceId)
   const top = result.matches[0]
 

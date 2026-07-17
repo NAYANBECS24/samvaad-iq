@@ -1,435 +1,206 @@
-import { AlertTriangle, BrainCircuit, ClipboardCheck, FileText, GitBranch, Loader2, Map, Mic, Search, Sparkles, Volume2, VolumeX } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { AlertTriangle, CheckCircle2, FileSearch, GitBranch, Loader2, Mic, Search, ShieldCheck, Sparkles, ThumbsDown, ThumbsUp, Volume2, VolumeX } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import CaseCard from '../components/CaseCard.jsx'
-import DetectiveRoom from '../components/DetectiveRoom.jsx'
-import EvidencePanel from '../components/EvidencePanel.jsx'
 import { useLanguage } from '../i18n.js'
-import { answerQuery, cases } from '../services/prototypeEngine.js'
+import { api } from '../services/api.js'
+import { getStoredUser } from '../services/prototypeEngine.js'
+import { useRuntime } from '../services/runtime.jsx'
 
 const starterQueries = [
-  'Saar, Mysuru alli last 6 months motorcycle theft pattern show maadi',
-  'Last 6 months alli Mysuru division chain snatching hotspots show maadi',
-  'Are FIR-2025-BLR-001 and FIR-2025-BLR-014 connected?',
-  'Show financial fraud links across districts',
-  'Find similar cases to FIR-2025-BLR-027',
-  'What if 3 patrol units are added to Jayanagar and Banashankari from 9 PM to 12 AM?',
-  'Generate PDF report for the motorcycle theft cluster',
+  'Mysuru alli motorcycle theft hotspot show maadi',
+  'ಮೈಸೂರು ಬೈಕ್ ಕಳ್ಳತನ ಹಾಟ್‌ಸ್ಪಾಟ್ ತೋರಿಸಿ',
+  'Are SYN-2025-BLR-001 and SYN-2025-BLR-014 connected?',
+  'Find similar cases to SYN-2025-BLR-001 using Crime DNA',
+  'What if 3 patrol units are added in Mysuru?',
+  'What is the cricket score?',
 ]
 
-function TypeWriter({ text, speed = 12 }) {
-  const [displayed, setDisplayed] = useState('')
-
-  useEffect(() => {
-    let idx = 0
-    const id = setInterval(() => {
-      idx += 1
-      setDisplayed(text.slice(0, idx))
-      if (idx >= text.length) clearInterval(id)
-    }, speed)
-
-    // Reset on first tick
-    const resetId = setTimeout(() => setDisplayed(''), 0)
-    return () => { clearInterval(id); clearTimeout(resetId) }
-  }, [text, speed])
-
-  return (
-    <span>
-      {displayed}
-      {displayed.length < text.length && (
-        <span style={{
-          display: 'inline-block',
-          width: 2,
-          height: '1em',
-          background: 'var(--cyan)',
-          marginLeft: 2,
-          animation: 'blink 0.8s step-end infinite',
-          verticalAlign: 'text-bottom',
-        }} />
-      )}
-      <style>{`@keyframes blink { 50% { opacity: 0; } }`}</style>
-    </span>
-  )
-}
-
-function ConfidenceRing({ value }) {
-  const percent = Math.round(value * 100)
-  const color = percent >= 80 ? 'var(--emerald)' : percent >= 60 ? 'var(--amber)' : 'var(--red)'
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <svg width="36" height="36" viewBox="0 0 36 36">
-        <circle cx="18" cy="18" r="15" fill="none" stroke="var(--line)" strokeWidth="3" />
-        <circle
-          cx="18" cy="18" r="15"
-          fill="none"
-          stroke={color}
-          strokeWidth="3"
-          strokeLinecap="round"
-          strokeDasharray={`${percent * 0.942} 94.2`}
-          style={{ transform: 'rotate(-90deg)', transformOrigin: 'center', filter: `drop-shadow(0 0 4px ${color})` }}
-        />
-      </svg>
-      <span className="confidence-badge">{percent}%</span>
-    </div>
-  )
+function Confidence({ confidence }) {
+  const score = Math.round((confidence?.score || 0) * 100)
+  return <div className={`confidence-summary is-${confidence?.band || 'low'}`}><strong>{score}%</strong><span>{confidence?.band || 'low'} confidence</span></div>
 }
 
 function InvestigationChat() {
   const { language, t } = useLanguage()
+  const { runtime, runQuery } = useRuntime()
+  const user = useMemo(() => getStoredUser(), [])
   const [query, setQuery] = useState(starterQueries[0])
-  const [history, setHistory] = useState(() => [answerQuery(starterQueries[0], 'Investigator')])
-  const [isListening, setIsListening] = useState(false)
-  const [voiceStatus, setVoiceStatus] = useState({ key: 'chat.voiceReady' })
-  const [speechStatus, setSpeechStatus] = useState({ key: 'chat.speechReady' })
-  const [isSpeaking, setIsSpeaking] = useState(false)
+  const [history, setHistory] = useState([])
   const [isProcessing, setIsProcessing] = useState(false)
-  const latest = history[0]
+  const [isListening, setIsListening] = useState(false)
+  const [isSpeaking, setIsSpeaking] = useState(false)
+  const [status, setStatus] = useState('Ask a question to start an evidence-grounded investigation.')
+  const [feedback, setFeedback] = useState(null)
+  const initialized = useRef(false)
+  const latest = history[0] || null
 
-  useEffect(() => {
-    localStorage.setItem('samvaad_last_chat', JSON.stringify(latest))
-  }, [latest])
-
-  useEffect(() => {
-    return () => {
-      window.speechSynthesis?.cancel()
+  async function execute(nextQuery) {
+    const trimmed = nextQuery.trim()
+    if (!trimmed || isProcessing) return
+    setIsProcessing(true)
+    setFeedback(null)
+    setStatus('Retrieving and checking cited evidence…')
+    try {
+      const result = await runQuery(trimmed, {
+        previousRequestId: latest?.requestId || null,
+        previousIntent: latest?.intent || null,
+        interfaceLanguage: language,
+      })
+      setHistory((current) => [{ ...result, query: trimmed }, ...current].slice(0, 8))
+      setStatus(result.mode === 'catalyst-live' ? 'Catalyst response completed.' : 'Offline demo response completed; no changes were persisted.')
+    } catch (error) {
+      setStatus(`Unable to complete the query: ${error.message}`)
+    } finally {
+      setIsProcessing(false)
     }
+  }
+
+  useEffect(() => {
+    if (initialized.current) return
+    initialized.current = true
+    execute(starterQueries[0])
+    // execute is intentionally called once for the guided opening query.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const selectedCases = useMemo(() => {
-    const sourceSet = new Set(latest.sources)
-    return cases.filter((caseRecord) => sourceSet.has(caseRecord.fir_id)).slice(0, 4)
+  useEffect(() => () => window.speechSynthesis?.cancel(), [])
+
+  useEffect(() => {
+    if (latest) window.localStorage.setItem('samvaad_last_chat', JSON.stringify(latest))
   }, [latest])
 
-  function resetVoiceOutput() {
-    window.speechSynthesis?.cancel()
-    setIsSpeaking(false)
-    setSpeechStatus({ key: 'chat.speechReady' })
-  }
-
-  function runQuery(event) {
-    event?.preventDefault()
-    if (!query.trim()) return
-    resetVoiceOutput()
-    setIsProcessing(true)
-    setTimeout(() => {
-      setHistory((current) => [answerQuery(query, 'Investigator'), ...current].slice(0, 6))
-      setIsProcessing(false)
-    }, 600)
-  }
-
-  function runStarter(nextQuery) {
-    setQuery(nextQuery)
-    resetVoiceOutput()
-    setIsProcessing(true)
-    setTimeout(() => {
-      setHistory((current) => [answerQuery(nextQuery, 'Investigator'), ...current].slice(0, 6))
-      setIsProcessing(false)
-    }, 600)
+  function submit(event) {
+    event.preventDefault()
+    execute(query)
   }
 
   function startVoiceInput() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
     if (!SpeechRecognition) {
-      setVoiceStatus({ key: 'chat.voiceUnavailable' })
+      setStatus('Voice input is unavailable in this browser; text input remains available.')
       return
     }
-
     const recognition = new SpeechRecognition()
-    recognition.lang = 'en-IN'
+    recognition.lang = language === 'kn' ? 'kn-IN' : 'en-IN'
     recognition.interimResults = false
     recognition.maxAlternatives = 1
-    setIsListening(true)
-    setVoiceStatus({ key: 'chat.voiceListening' })
-
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript
-      setQuery(transcript)
-      setVoiceStatus({ key: 'chat.voiceCaptured', value: transcript })
-    }
-    recognition.onerror = () => {
-      setVoiceStatus({ key: 'chat.voiceStopped' })
-      setIsListening(false)
-    }
-    recognition.onend = () => {
-      setIsListening(false)
-    }
+    recognition.onstart = () => { setIsListening(true); setStatus('Listening…') }
+    recognition.onresult = (event) => { setQuery(event.results[0][0].transcript); setStatus('Voice query captured. Review it before asking.') }
+    recognition.onerror = () => setStatus('Voice capture stopped; use text input if needed.')
+    recognition.onend = () => setIsListening(false)
     recognition.start()
   }
 
-  function toggleVoiceOutput() {
-    if (!('speechSynthesis' in window) || typeof window.SpeechSynthesisUtterance === 'undefined') {
-      setSpeechStatus({ key: 'chat.speechUnsupported' })
-      return
-    }
-
+  function toggleSpeech() {
+    if (!latest || !window.speechSynthesis || typeof window.SpeechSynthesisUtterance === 'undefined') return
     if (isSpeaking) {
       window.speechSynthesis.cancel()
       setIsSpeaking(false)
-      setSpeechStatus({ key: 'chat.speechStopped' })
       return
     }
-
-    const utterance = new window.SpeechSynthesisUtterance(latest.answer)
+    const utterance = new SpeechSynthesisUtterance(latest.answer)
     utterance.lang = language === 'kn' ? 'kn-IN' : 'en-IN'
     utterance.rate = 0.94
-    utterance.pitch = 0.95
-
-    utterance.onstart = () => {
-      setIsSpeaking(true)
-      setSpeechStatus({ key: 'chat.speechSpeaking' })
-    }
-    utterance.onend = () => {
-      setIsSpeaking(false)
-      setSpeechStatus({ key: 'chat.speechDone' })
-    }
-    utterance.onerror = () => {
-      setIsSpeaking(false)
-      setSpeechStatus({ key: 'chat.speechError' })
-    }
-
-    window.speechSynthesis.cancel()
-    setIsSpeaking(true)
-    setSpeechStatus({ key: 'chat.speechStarting' })
+    utterance.onstart = () => setIsSpeaking(true)
+    utterance.onend = () => setIsSpeaking(false)
+    utterance.onerror = () => setIsSpeaking(false)
     window.speechSynthesis.speak(utterance)
   }
 
-  const voiceStatusText = voiceStatus.value
-    ? `${t(voiceStatus.key)} ${voiceStatus.value}`
-    : t(voiceStatus.key)
+  async function recordDecision(decision) {
+    if (!latest) return
+    setFeedback('Saving review…')
+    if (runtime.mode === 'catalyst-live') {
+      try {
+        await api.feedback({ requestId: latest.requestId, decision })
+        setFeedback(`Review recorded: ${decision}`)
+      } catch (error) {
+        setFeedback(`Review was not persisted: ${error.message}`)
+      }
+    } else {
+      window.localStorage.setItem(`samvaad_feedback_${latest.requestId}`, decision)
+      setFeedback(`Local-only review recorded: ${decision}`)
+    }
+  }
+
+  const dna = latest?.visualizations?.crimeDna || latest?.visualizations?.similar?.[0] || null
 
   return (
     <div className="page-stack">
       <header className="page-header">
-        <div>
-          <p className="eyebrow">{t('chat.eyebrow')}</p>
-          <h1>{t('chat.title')}</h1>
-        </div>
-        <div className="intent-pill">{latest.intent}</div>
+        <div><p className="eyebrow">{t('chat.eyebrow')} · Challenge 1</p><h1>{t('chat.title')}</h1><p>Ask in English, Kannada, or Kanglish. Every supported answer includes traceable synthetic evidence.</p></div>
+        <span className="data-label">SYNTHETIC DEMO DATA</span>
       </header>
 
-      <section className="query-console">
-        <form className="query-form" onSubmit={runQuery}>
-          <Search size={19} />
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t('chat.placeholder')} />
-          <button className="secondary-button" type="button" onClick={startVoiceInput}>
-            <Mic size={18} />
-            {isListening ? t('chat.listening') : t('chat.voice')}
-          </button>
-          <button className="primary-button" type="submit" disabled={isProcessing}>
-            {isProcessing ? <Loader2 size={18} className="spin" /> : <Sparkles size={18} />}
-            {isProcessing ? t('chat.processing') : t('chat.ask')}
-          </button>
-        </form>
-        <p className="voice-status">{voiceStatusText}</p>
-        <div className="starter-grid">
-          {starterQueries.map((item) => (
-            <button key={item} type="button" onClick={() => runStarter(item)}>
-              {item}
-            </button>
-          ))}
-        </div>
+      <section className="guided-query-strip" aria-label="Guided demonstration queries">
+        {starterQueries.map((item) => <button type="button" key={item} onClick={() => { setQuery(item); execute(item) }}>{item}</button>)}
       </section>
 
-      {isProcessing && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          padding: '16px 20px',
-          borderRadius: 14,
-          border: '1px solid var(--line)',
-          background: 'var(--surface)',
-          backdropFilter: 'blur(16px)',
-          animation: 'agent-enter 0.3s ease both',
-        }}>
-          <Loader2 size={20} className="spin" style={{ color: 'var(--cyan)' }} />
-          <span style={{ color: 'var(--muted)' }}>{t('chat.agentAnalyzing')}</span>
-        </div>
-      )}
+      <form className="query-form evidence-query" onSubmit={submit}>
+        <Search size={21} aria-hidden="true" />
+        <label className="sr-only" htmlFor="investigation-query">Investigation query</label>
+        <textarea id="investigation-query" rows="2" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t('chat.placeholder')} maxLength="4000" />
+        <button type="button" className="voice-button" onClick={startVoiceInput} aria-pressed={isListening}><Mic size={18} />{isListening ? t('chat.listening') : t('chat.voice')}</button>
+        <button type="submit" className="primary-button" disabled={isProcessing}>{isProcessing ? <Loader2 className="spin" size={18} /> : <Sparkles size={18} />}{isProcessing ? t('chat.processing') : t('chat.ask')}</button>
+      </form>
+      <p className="query-status" role="status">{status}</p>
 
-      <section className="answer-layout">
-        <article className="panel answer-panel">
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">{t('chat.answer')}</p>
-              <h2>{latest.intent.replace(/_/g, ' ')}</h2>
+      {latest ? (
+        <section className="answer-layout grounded-answer">
+          <article className="panel answer-panel">
+            <div className="section-heading">
+              <div><p className="eyebrow">{latest.intent.replaceAll('_', ' ')}</p><h2>Evidence-grounded answer</h2></div>
+              <Confidence confidence={latest.confidence} />
             </div>
-            <ConfidenceRing value={latest.confidence} />
-          </div>
-          <div className="lead-banner">
-            <strong>{latest.leadStrength}</strong>
-            <span>{latest.conversationId}</span>
-          </div>
-          <p className="answer-text">
-            <TypeWriter text={latest.answer} key={latest.conversationId} />
-          </p>
-          {latest.sourceChunks?.length ? (
-            <div className="quickml-rag-panel">
-              <div className="section-heading">
-                <div>
-                  <p className="eyebrow">QuickML RAG</p>
-                  <h2>Retrieved Source Chunks</h2>
-                </div>
-                <BrainCircuit size={18} />
-              </div>
-              <div className="rag-source-grid compact-rag">
-                {latest.sourceChunks.slice(0, 3).map((chunk) => (
-                  <div key={chunk.id} className="rag-source-card">
-                    <span>{chunk.id}</span>
-                    <strong>{chunk.title}</strong>
-                    <p>{chunk.text}</p>
-                    <small>
-                      {chunk.service} | {Math.round(chunk.confidence * 100)}%
-                    </small>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-          <div className={`voice-output-strip ${isSpeaking ? 'is-speaking' : ''}`}>
-            <button className="secondary-button voice-output-button" type="button" onClick={toggleVoiceOutput}>
-              {isSpeaking ? <VolumeX size={17} /> : <Volume2 size={17} />}
-              {isSpeaking ? t('chat.stopVoice') : t('chat.speakSummary')}
-            </button>
-            <div>
-              <strong>{t('chat.kavachVoice')}</strong>
-              <span>{t(speechStatus.key)}</span>
-            </div>
-            <div className="voice-wave" aria-hidden="true">
-              <span />
-              <span />
-              <span />
-              <span />
-            </div>
-          </div>
-          <div className="action-row">
-            <Link className="secondary-button" to="/map">
-              <Map size={17} />
-              {t('chat.map')}
-            </Link>
-            <Link className="secondary-button" to={`/network/${latest.sources[0] || 'FIR-2025-BLR-001'}`}>
-              <GitBranch size={17} />
-              {t('chat.graph')}
-            </Link>
-            <Link className="secondary-button" to={`/similar/${latest.sources[0] || 'FIR-2025-BLR-027'}`}>
-              <Sparkles size={17} />
-              {t('chat.dna')}
-            </Link>
-            <Link className="secondary-button" to="/report">
-              <FileText size={17} />
-              {t('chat.report')}
-            </Link>
-          </div>
-          <div className="suggestion-strip">
-            {latest.suggestedQuestions.map((item) => (
-              <button key={item} type="button" onClick={() => runStarter(item)}>
-                {item}
-              </button>
-            ))}
-          </div>
-        </article>
+            <p className="answer-copy">{latest.answer}</p>
+            <div className="answer-meta-row"><span>{latest.requestId}</span><span>{latest.mode}</span><span>{latest.auditRef || 'No persisted audit reference'}</span></div>
+            <button type="button" className="secondary-button" onClick={toggleSpeech}>{isSpeaking ? <VolumeX size={17} /> : <Volume2 size={17} />}{isSpeaking ? 'Stop brief' : 'Speak brief'}</button>
+          </article>
 
-        <EvidencePanel
-          evidence={latest.evidence}
-          sources={latest.sources}
-          confidence={latest.confidence}
-          disclaimer={latest.disclaimer}
-        />
-      </section>
-
-      <DetectiveRoom agents={latest.agents} />
-
-      <section className="decision-grid">
-        <article className="panel">
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">{t('chat.nextActions')}</p>
-              <h2>{t('chat.followUp')}</h2>
+          <aside className="panel">
+            <div className="section-heading"><div><p className="eyebrow">Human review</p><h2>Accept or challenge the lead</h2></div><ShieldCheck size={20} /></div>
+            <div className="review-actions">
+              <button type="button" onClick={() => recordDecision('accept')}><ThumbsUp size={17} />Accept for review</button>
+              <button type="button" onClick={() => recordDecision('reject')}><ThumbsDown size={17} />Reject lead</button>
             </div>
-            <ClipboardCheck size={19} />
-          </div>
-          <div className="next-step-list">
-            {latest.nextSteps.map((item) => (
-              <div key={item.id} className="next-step">
-                <span>{item.id}</span>
-                <p>{item.text}</p>
-              </div>
-            ))}
-          </div>
-        </article>
+            {feedback ? <p className="query-status" role="status">{feedback}</p> : null}
+            <small>Role: {user?.role}. Acceptance does not establish guilt or authorize action.</small>
+          </aside>
+        </section>
+      ) : null}
 
-        <article className="panel">
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">{t('chat.skepticNotes')}</p>
-              <h2>{t('chat.guardrails')}</h2>
-            </div>
-            <AlertTriangle size={19} />
-          </div>
-          <div className="risk-list">
-            {latest.riskFlags.map((flag) => (
-              <span key={flag}>{flag}</span>
-            ))}
-          </div>
-        </article>
-      </section>
-
-      {history.length > 1 && (
-        <section className="panel" style={{ padding: 16 }}>
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">{t('chat.sessionHistory')}</p>
-              <h2>{t('chat.recentQueries')}</h2>
-            </div>
-          </div>
-          <div style={{ display: 'grid', gap: 8 }}>
-            {history.slice(1, 4).map((item) => (
-              <div key={item.conversationId} style={{
-                display: 'grid',
-                gridTemplateColumns: '86px minmax(0,1fr) auto',
-                gap: 12,
-                alignItems: 'center',
-                padding: '10px 14px',
-                borderRadius: 10,
-                border: '1px solid var(--line)',
-                background: 'var(--surface-2)',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-              onClick={() => runStarter(item.query)}
-              >
-                <span style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: '0.72rem',
-                  fontWeight: 800,
-                  color: 'var(--cyan)',
-                }}>
-                  {item.intent.split('_')[0]}
-                </span>
-                <p style={{
-                  color: 'var(--muted)',
-                  fontSize: '0.84rem',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}>
-                  {item.query}
-                </p>
-                <span className="confidence-badge" style={{ fontSize: '0.7rem', padding: '3px 8px' }}>
-                  {Math.round(item.confidence * 100)}%
-                </span>
-              </div>
+      {latest?.citations?.length ? (
+        <section className="panel">
+          <div className="section-heading"><div><p className="eyebrow">Source citations</p><h2>Why this answer can be checked</h2></div><FileSearch size={20} /></div>
+          <div className="citation-grid">
+            {latest.citations.map((item) => (
+              <Link to={`/cases/${item.firId}`} className="citation-card" key={item.id}>
+                <strong>{item.firId}</strong><span>{item.field}</span><p>{item.excerpt}</p><small>{item.dataLabel}</small>
+              </Link>
             ))}
           </div>
         </section>
-      )}
+      ) : null}
 
-      <section className="case-grid">
-        {selectedCases.map((caseRecord) => (
-          <CaseCard key={caseRecord.fir_id} caseRecord={caseRecord} compact />
-        ))}
-      </section>
+      {dna?.factors?.length ? (
+        <section className="panel">
+          <div className="section-heading"><div><p className="eyebrow">KAVACH Crime DNA</p><h2>Factor-level explanation</h2></div><GitBranch size={20} /></div>
+          <div className="factor-table" role="table" aria-label="Crime DNA factors">
+            {dna.factors.map((factor) => (
+              <div role="row" key={factor.key}><strong role="cell">{factor.label}</strong><span role="cell">Weight {Math.round(factor.weight * 100)}%</span><span role="cell">Contribution {Math.round(factor.contribution * 100)}%</span><small role="cell">{factor.evidence}</small></div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {latest ? (
+        <section className="decision-grid">
+          <article className="panel"><div className="section-heading"><div><p className="eyebrow">Next actions</p><h2>Human-led follow-up</h2></div><CheckCircle2 size={20} /></div><ol className="action-list">{latest.nextActions.map((item) => <li key={item}>{item}</li>)}</ol></article>
+          <article className="panel warning-panel"><div className="section-heading"><div><p className="eyebrow">Limitations</p><h2>Do not over-interpret</h2></div><AlertTriangle size={20} /></div><ul className="action-list">{latest.limitations.map((item) => <li key={item}>{item}</li>)}</ul></article>
+        </section>
+      ) : null}
+
+      {history.length > 1 ? <section className="panel"><div className="section-heading"><div><p className="eyebrow">Session context</p><h2>Recent evidence requests</h2></div></div><div className="history-list">{history.slice(1).map((item) => <button type="button" key={item.requestId} onClick={() => { setQuery(item.query); execute(item.query) }}><strong>{item.intent.replaceAll('_', ' ')}</strong><span>{item.query}</span></button>)}</div></section> : null}
     </div>
   )
 }

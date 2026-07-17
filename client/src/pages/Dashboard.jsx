@@ -203,7 +203,7 @@ function Dashboard() {
           <p className="eyebrow">SAMVAAD-IQ Live Prototype</p>
           <h2>Conversational intelligence, graph reasoning, hotspot context, and report-ready evidence in one workspace.</h2>
           <p>
-            Built for the PS2 flow: login, ask, retrieve, reason, visualize, simulate, and export. All FIR records are
+            Built for Challenge 1: login, ask, retrieve, reason, visualize, run scenarios, and export. All FIR records are
             synthetic and cite source IDs.
           </p>
           <div className="mini-action-row">

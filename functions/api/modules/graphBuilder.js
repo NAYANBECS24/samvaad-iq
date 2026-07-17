@@ -4,7 +4,7 @@ function intersects(a, b) {
   return a.some((item) => b.includes(item))
 }
 
-function buildGraph(firId = 'FIR-2025-BLR-001') {
+function buildGraph(firId = 'SYN-2025-BLR-001') {
   const rootCase = cases.find((caseRecord) => caseRecord.fir_id === firId) || cases[0]
   const related = cases.filter((caseRecord) => {
     if (caseRecord.fir_id === rootCase.fir_id) return true

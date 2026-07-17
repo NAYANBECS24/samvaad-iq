@@ -2,25 +2,21 @@
   "users": [
     {
       "email": "admin@ksp.demo",
-      "password": "demo123",
       "role": "Admin",
       "access": "All modules, data seeding, user audit logs"
     },
     {
       "email": "investigator@ksp.demo",
-      "password": "demo123",
       "role": "Investigator",
       "access": "Case search, similar cases, network graph, report generation"
     },
     {
       "email": "analyst@ksp.demo",
-      "password": "demo123",
       "role": "Analyst",
       "access": "Dashboard, maps, trend analysis, model outputs"
     },
     {
       "email": "supervisor@ksp.demo",
-      "password": "demo123",
       "role": "Supervisor",
       "access": "All insights, approval notes, patrol simulation, exports"
     }

@@ -1,348 +1,132 @@
-import {
-  BadgeCheck,
-  BrainCircuit,
-  CheckCircle2,
-  ClipboardCheck,
-  Cloud,
-  Database,
-  FileSearch,
-  FileText,
-  GitBranch,
-  Image,
-  Mail,
-  Mic,
-  RadioTower,
-  ShieldCheck,
-  Sparkles,
-  Upload,
-  Workflow,
-  Zap,
-} from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { AlertTriangle, CheckCircle2, FileCheck2, FileUp, Fingerprint, Loader2, ScanSearch, ShieldCheck } from 'lucide-react'
+import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import {
-  buildEvidenceAnalysis,
-  buildEvidenceChatResponse,
-  evidenceBlueprint,
-  readEvidenceAudit,
-  writeEvidenceAudit,
-} from '../services/evidenceIntelligence.js'
+import { prepareEvidenceFile } from '../services/fileAnalysis.js'
+import { useRuntime } from '../services/runtime.jsx'
 
-const profileIcons = {
-  'fir-pdf': FileText,
-  'cctv-image': Image,
-  'id-document': FileSearch,
-  'audio-clip': Mic,
-}
+const accepted = '.pdf,.docx,.xlsx,.csv,.json,.png,.jpg,.jpeg'
 
-function ExtractionCard({ label, value }) {
-  return (
-    <div className="evidence-lab-fact">
-      <span>{label}</span>
-      <strong>{Array.isArray(value) ? value.join(', ') : value}</strong>
-    </div>
-  )
+function formatBytes(value) {
+  if (value < 1024) return `${value} B`
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`
 }
 
 function EvidenceLab() {
-  const [profileId, setProfileId] = useState('fir-pdf')
-  const [file, setFile] = useState(null)
-  const [analysis, setAnalysis] = useState(() => buildEvidenceAnalysis({ profileId: 'fir-pdf' }))
-  const [audit, setAudit] = useState(() => readEvidenceAudit())
-  const [reportResponse, setReportResponse] = useState(null)
-  const activeProfile = useMemo(
-    () => evidenceBlueprint.evidenceProfiles.find((profile) => profile.id === profileId) || evidenceBlueprint.evidenceProfiles[0],
-    [profileId],
-  )
+  const { runtime, analyzeEvidence } = useRuntime()
+  const inputRef = useRef(null)
+  const [prepared, setPrepared] = useState(null)
+  const [analysis, setAnalysis] = useState(null)
+  const [status, setStatus] = useState('Select a synthetic evidence file. Nothing is uploaded until analysis is requested.')
+  const [error, setError] = useState('')
+  const [isPreparing, setIsPreparing] = useState(false)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
 
-  function selectProfile(nextProfileId) {
-    setProfileId(nextProfileId)
-    setFile(null)
-    setReportResponse(null)
-    setAnalysis(buildEvidenceAnalysis({ profileId: nextProfileId }))
+  async function selectFile(event) {
+    const file = event.target.files?.[0]
+    if (!file) return
+    setPrepared(null)
+    setAnalysis(null)
+    setError('')
+    setIsPreparing(true)
+    setStatus('Validating, hashing, and extracting readable content locally…')
+    try {
+      const result = await prepareEvidenceFile(file)
+      setPrepared(result)
+      setStatus(`Prepared ${file.name}. Verify its hash and request grounded analysis.`)
+    } catch (nextError) {
+      setError(nextError.message)
+      setStatus('The file was rejected before analysis.')
+    } finally {
+      setIsPreparing(false)
+    }
   }
 
-  function handleFile(event) {
-    const nextFile = event.target.files?.[0] || null
-    setFile(nextFile)
-    setReportResponse(null)
-    setAnalysis(buildEvidenceAnalysis({ profileId, file: nextFile }))
+  async function runAnalysis() {
+    if (!prepared) return
+    setIsAnalyzing(true)
+    setError('')
+    setStatus(runtime.mode === 'catalyst-live' ? 'Sending extracted text and provenance metadata to Catalyst…' : 'Running the shared engine locally; no evidence will be persisted…')
+    try {
+      const result = await analyzeEvidence(prepared)
+      setAnalysis(result)
+      setStatus(result.mode === 'catalyst-live' ? 'Catalyst analysis completed and audited.' : 'Offline analysis completed; results remain local to this browser session.')
+    } catch (nextError) {
+      setError(nextError.message)
+      setStatus('Evidence analysis failed safely; no match was asserted.')
+    } finally {
+      setIsAnalyzing(false)
+    }
   }
-
-  function stageReport() {
-    const response = buildEvidenceChatResponse(analysis)
-    localStorage.setItem('samvaad_last_chat', JSON.stringify(response))
-    setAudit(writeEvidenceAudit(analysis))
-    setReportResponse(response)
-  }
-
-  const generatedReport = reportResponse?.visuals?.report || analysis.report
-  const topMatch = analysis.matchedCases[0]
 
   return (
     <div className="page-stack">
       <header className="page-header">
-        <div>
-          <p className="eyebrow">NETRA Evidence Lab</p>
-          <h1>Evidence Intelligence Layer</h1>
-        </div>
-        <div className="intent-pill">
-          <Workflow size={16} />
-          Evidence to report
-        </div>
+        <div><p className="eyebrow">NETRA Evidence Lab</p><h1>Verifiable Evidence Intake</h1><p>Actual file parsing, SHA-256 provenance, grounded case matches, and explicit capability limits.</p></div>
+        <span className="data-label">SYNTHETIC FILES ONLY</span>
       </header>
 
-      <section className="kpi-grid compact-kpis">
-        {[
-          ['Extraction Confidence', `${Math.round(analysis.extracted.confidence * 100)}%`, Sparkles],
-          ['Linked FIRs', analysis.matchedCases.length, GitBranch],
-          ['QuickML Sources', analysis.sourceChunks.length, BrainCircuit],
-          ['Audit Signals', analysis.auditTrail.length, RadioTower],
-        ].map(([label, value, Icon]) => (
-          <article key={label} className="kpi-card">
-            <Icon size={22} />
-            <span>{label}</span>
-            <strong>{value}</strong>
-          </article>
-        ))}
-      </section>
-
       <section className="evidence-lab-layout">
-        <article className="panel evidence-intake-panel">
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">Upload Evidence</p>
-              <h2>Zia Intake And Stratus Object</h2>
-            </div>
-            <Upload size={20} />
-          </div>
-
-          <div className="evidence-profile-grid">
-            {evidenceBlueprint.evidenceProfiles.map((profile) => {
-              const Icon = profileIcons[profile.id] || FileText
-              return (
-                <button
-                  key={profile.id}
-                  className={profile.id === profileId ? 'active' : ''}
-                  type="button"
-                  onClick={() => selectProfile(profile.id)}
-                >
-                  <Icon size={18} />
-                  <span>{profile.label}</span>
-                  <small>{profile.kind}</small>
-                </button>
-              )
-            })}
-          </div>
-
-          <label className="upload-dropzone">
-            <input type="file" accept={activeProfile.accepted} onChange={handleFile} />
-            <Upload size={22} />
-            <strong>{file?.name || activeProfile.sampleFileName}</strong>
-            <span>{activeProfile.extractionMode}</span>
-          </label>
-
-          <div className="evidence-object-card">
-            <div>
-              <p className="eyebrow">Stratus Object</p>
-              <strong>{analysis.uploaded.checksum}</strong>
-              <span>{analysis.uploaded.objectKey}</span>
-            </div>
-            <Cloud size={22} />
-          </div>
-
-          <div className="risk-list">
-            {activeProfile.requiredServices.map((service) => (
-              <span key={service}>{service}</span>
-            ))}
-          </div>
+        <article className="panel evidence-drop-panel">
+          <div className="section-heading"><div><p className="eyebrow">Step 1</p><h2>Validate and hash</h2></div><FileUp size={22} /></div>
+          <button type="button" className="evidence-drop-zone" onClick={() => inputRef.current?.click()} disabled={isPreparing}>
+            {isPreparing ? <Loader2 className="spin" size={30} /> : <FileCheck2 size={30} />}
+            <strong>{isPreparing ? 'Preparing evidence…' : 'Choose evidence file'}</strong>
+            <span>PDF, DOCX, XLSX, CSV, JSON, PNG, or JPEG · maximum 10 MB</span>
+          </button>
+          <input ref={inputRef} className="sr-only" type="file" accept={accepted} onChange={selectFile} />
+          <p className="query-status" role="status">{status}</p>
+          {error ? <p className="form-error" role="alert">{error}</p> : null}
         </article>
 
         <article className="panel">
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">Zia Extraction</p>
-              <h2>Normalized Evidence Entities</h2>
-            </div>
-            <BadgeCheck size={20} />
-          </div>
-          <div className="evidence-lab-fact-grid">
-            <ExtractionCard label="Crime Type" value={analysis.extracted.crimeType} />
-            <ExtractionCard label="District" value={analysis.extracted.district} />
-            <ExtractionCard label="Location" value={analysis.extracted.location} />
-            <ExtractionCard label="Time Window" value={analysis.extracted.timeWindow} />
-            <ExtractionCard label="Vehicle" value={analysis.extracted.vehicle} />
-            <ExtractionCard label="Phone Hash" value={analysis.extracted.phoneHash} />
-            <ExtractionCard label="Entity Mentions" value={analysis.extracted.suspectMentions} />
-            <ExtractionCard label="Legal Hints" value={analysis.extracted.legalHints} />
-          </div>
-          <p className="evidence-transcript">{activeProfile.sourceText}</p>
+          <div className="section-heading"><div><p className="eyebrow">Runtime boundary</p><h2>{runtime.label}</h2></div><ShieldCheck size={22} /></div>
+          <p>{runtime.mode === 'catalyst-live' ? 'Live provider capabilities determine persistence, OCR, and report rendering.' : 'The browser can parse supported files and calculate provenance, but storage and server audit are unavailable.'}</p>
+          <ul className="capability-list">
+            <li><CheckCircle2 size={16} />SHA-256 and structured-text extraction</li>
+            <li><CheckCircle2 size={16} />Grounded matching against synthetic FIRs</li>
+            <li className={runtime.capabilities?.storage?.available ? '' : 'is-unavailable'}><AlertTriangle size={16} />Catalyst evidence persistence</li>
+            <li className={runtime.capabilities?.intelligence?.available ? '' : 'is-unavailable'}><AlertTriangle size={16} />Zia/QuickML OCR or model enrichment</li>
+          </ul>
         </article>
       </section>
 
-      <section className="evidence-lab-layout">
-        <article className="panel">
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">Crime DNA Match</p>
-              <h2>Evidence To FIR Links</h2>
-            </div>
-            <GitBranch size={20} />
+      {prepared ? (
+        <section className="panel provenance-panel">
+          <div className="section-heading"><div><p className="eyebrow">Provenance</p><h2>Prepared file record</h2></div><Fingerprint size={22} /></div>
+          <div className="provenance-grid">
+            <div><span>File</span><strong>{prepared.file.name}</strong></div>
+            <div><span>Type</span><strong>{prepared.file.type}</strong></div>
+            <div><span>Size</span><strong>{formatBytes(prepared.file.size)}</strong></div>
+            <div className="hash-cell"><span>SHA-256</span><code>{prepared.file.sha256}</code></div>
+            <div><span>Extracted text</span><strong>{prepared.text.length.toLocaleString('en-IN')} characters</strong></div>
+            <div><span>Parser limits</span><strong>{prepared.limitations.length || 'None reported'}</strong></div>
           </div>
-          <div className="evidence-match-list">
-            {analysis.matchedCases.map((match) => (
-              <div key={match.caseRecord.fir_id} className="evidence-match-card">
-                <div className="match-score">
-                  <ShieldCheck size={18} />
-                  <strong>{Math.round(match.score * 100)}</strong>
-                </div>
-                <div>
-                  <p className="eyebrow">{match.caseRecord.crime_type}</p>
-                  <h3>{match.caseRecord.fir_id}</h3>
-                  <span>{match.station}</span>
-                  <p>{match.caseRecord.case_summary}</p>
-                  <div className="risk-list">
-                    {match.reasons.map((reason) => (
-                      <span key={reason}>{reason}</span>
-                    ))}
-                  </div>
-                </div>
-                <div className="mini-action-row">
-                  <Link to={`/cases/${match.caseRecord.fir_id}`}>Dossier</Link>
-                  <Link to={`/network/${match.caseRecord.fir_id}`}>Graph</Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        </article>
+          <button type="button" className="primary-button" onClick={runAnalysis} disabled={isAnalyzing}>{isAnalyzing ? <Loader2 className="spin" size={18} /> : <ScanSearch size={18} />}{isAnalyzing ? 'Analyzing evidence…' : 'Run grounded analysis'}</button>
+        </section>
+      ) : null}
 
-        <article className="panel">
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">QuickML RAG</p>
-              <h2>Source Chunks</h2>
+      {analysis ? (
+        <>
+          <section className="panel">
+            <div className="section-heading"><div><p className="eyebrow">Extracted facts</p><h2>Facts separated from interpretation</h2></div><ScanSearch size={22} /></div>
+            <div className="fact-grid">
+              {Object.entries(analysis.facts || {}).map(([key, values]) => <div key={key}><span>{key.replace(/([A-Z])/g, ' $1')}</span><strong>{values.length ? values.join(', ') : 'None extracted'}</strong></div>)}
             </div>
-            <BrainCircuit size={20} />
-          </div>
-          <div className="rag-source-grid">
-            {analysis.sourceChunks.map((chunk) => (
-              <div key={chunk.id} className="rag-source-card">
-                <span>{chunk.id}</span>
-                <strong>{chunk.title}</strong>
-                <p>{chunk.text}</p>
-                <small>
-                  {chunk.service} | {Math.round(chunk.confidence * 100)}%
-                </small>
-              </div>
-            ))}
-          </div>
-        </article>
-      </section>
+            <div className="answer-meta-row"><span>{analysis.analysisId}</span><span>{analysis.mode}</span><span>{analysis.auditRef || 'Not persisted'}</span></div>
+          </section>
 
-      <section className="evidence-lab-layout">
-        <article className="panel">
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">Signals + Circuits</p>
-              <h2>Supervisor Workflow</h2>
-            </div>
-            <RadioTower size={20} />
-          </div>
-          <div className="circuits-flow">
-            {analysis.workflowEvents.map((event) => (
-              <div key={event.id} className="circuit-step">
-                <span>{event.id}</span>
-                <div>
-                  <strong>{event.name}</strong>
-                  <p>{event.detail}</p>
-                  <small>{event.service}</small>
-                </div>
-              </div>
-            ))}
-          </div>
-        </article>
+          <section className="panel">
+            <div className="section-heading"><div><p className="eyebrow">Grounded matches</p><h2>Cases supported by extracted content</h2></div><FileCheck2 size={22} /></div>
+            {analysis.citations?.length ? <div className="citation-grid">{analysis.citations.map((item) => <Link className="citation-card" to={`/cases/${item.firId}`} key={item.id}><strong>{item.firId}</strong><span>{item.field}</span><p>{item.excerpt}</p><small>{item.dataLabel}</small></Link>)}</div> : <div className="empty-state"><AlertTriangle size={24} /><strong>No grounded match</strong><p>The system did not invent a link from unsupported content.</p></div>}
+          </section>
 
-        <article className="panel">
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">SmartBrowz Report</p>
-              <h2>Official Brief Handoff</h2>
-            </div>
-            <ClipboardCheck size={20} />
-          </div>
-          {[
-            ['Render Job', generatedReport.smartBrowz.renderJobId, generatedReport.smartBrowz.service, Zap],
-            ['Storage Object', generatedReport.stratusObject.key, generatedReport.stratusObject.service, Database],
-            ['Notification', generatedReport.mailEvent.template, generatedReport.mailEvent.service, Mail],
-            ['Top FIR', topMatch?.caseRecord.fir_id || 'NA', 'Supervisor review required', ShieldCheck],
-          ].map(([label, value, detail, Icon]) => (
-            <div key={label} className="evidence-link-row">
-              <Icon size={17} />
-              <span>{label}</span>
-              <strong>{value}</strong>
-              <small>{detail}</small>
-            </div>
-          ))}
-          <div className="action-row">
-            <button className="primary-button" type="button" onClick={stageReport}>
-              <CheckCircle2 size={18} />
-              Stage Report
-            </button>
-            <Link className="secondary-button" to="/report">
-              <FileText size={17} />
-              Open Report
-            </Link>
-          </div>
-          <p className="disclaimer">
-            {reportResponse
-              ? `${reportResponse.conversationId} staged with ${analysis.auditTrail.length} audit events.`
-              : evidenceBlueprint.summary.disclaimer}
-          </p>
-        </article>
-      </section>
-
-      <section className="dossier-grid">
-        <article className="panel">
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">Catalyst Cache</p>
-              <h2>Precomputed Intelligence</h2>
-            </div>
-            <Zap size={20} />
-          </div>
-          <div className="cache-grid">
-            {analysis.cachePlan.map((entry) => (
-              <div key={entry.key} className="cache-card">
-                <strong>{entry.key}</strong>
-                <span>{entry.scope}</span>
-                <small>
-                  {entry.service} | TTL {entry.ttl} | {entry.status}
-                </small>
-              </div>
-            ))}
-          </div>
-        </article>
-
-        <article className="panel">
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">Audit Log</p>
-              <h2>Latest Evidence Events</h2>
-            </div>
-            <Database size={20} />
-          </div>
-          {(audit.length ? audit : analysis.auditTrail).slice(0, 6).map((event) => (
-            <div key={`${event.id}-${event.timestamp || event.actor}`} className="audit-row">
-              <span>{event.id.replace('AUD-EV-', '')}</span>
-              <p>
-                <strong>{event.actor}</strong>
-                <br />
-                {event.event}
-              </p>
-            </div>
-          ))}
-        </article>
-      </section>
+          <section className="decision-grid">
+            <article className="panel"><div className="section-heading"><div><p className="eyebrow">Next actions</p><h2>Human verification</h2></div></div><ol className="action-list">{analysis.nextActions.map((item) => <li key={item}>{item}</li>)}</ol></article>
+            <article className="panel warning-panel"><div className="section-heading"><div><p className="eyebrow">Limitations</p><h2>Capability-aware boundaries</h2></div><AlertTriangle size={20} /></div><ul className="action-list">{analysis.limitations.map((item) => <li key={item}>{item}</li>)}</ul></article>
+          </section>
+        </>
+      ) : null}
     </div>
   )
 }

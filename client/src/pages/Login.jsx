@@ -1,23 +1,26 @@
 import { Bot, FileText, GitBranch, KeyRound, Languages, LogIn, MapPinned, RadioTower, ShieldCheck } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import loginWallpaper from '../assets/ksr-police-command-wallpaper.png'
-import { demoUsers, login } from '../services/prototypeEngine.js'
+import loginWallpaper from '../assets/ksp-police-command-wallpaper.png'
+import { demoUsers } from '../services/prototypeEngine.js'
+import { useRuntime } from '../services/runtime.jsx'
 
 const loginCapabilities = [
   { label: 'Natural-language FIR search', Icon: Bot },
-  { label: 'English + Kanglish demo prompts', Icon: Languages },
-  { label: 'Network + Crime DNA reasoning', Icon: GitBranch },
+  { label: 'English + Kannada + Kanglish', Icon: Languages },
+  { label: 'Cited KAVACH explanations', Icon: GitBranch },
   { label: 'Hotspot map + patrol what-if', Icon: MapPinned },
-  { label: 'Legal-style PDF brief', Icon: FileText },
-  { label: 'Live field context', Icon: RadioTower },
+  { label: 'Auditable evidence brief', Icon: FileText },
+  { label: 'Human-in-the-loop safeguards', Icon: RadioTower },
 ]
 
 const loginSignals = [
   { value: '4', label: 'role profiles' },
   { value: '24/7', label: 'command view' },
-  { value: 'KSR', label: 'police theme' },
+  { value: 'KSP', label: 'Challenge 1' },
 ]
+
+const offlineDemoPassword = import.meta.env.VITE_OFFLINE_DEMO_PASSWORD || ''
 
 function CredentialCard({ user, isSelected, onSelect }) {
   return (
@@ -37,17 +40,20 @@ function CredentialCard({ user, isSelected, onSelect }) {
 
 function Login({ onLogin }) {
   const [email, setEmail] = useState(demoUsers[1].email)
-  const [password, setPassword] = useState('demo123')
+  const [password, setPassword] = useState(offlineDemoPassword)
   const [error, setError] = useState('')
   const [accessGranted, setAccessGranted] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const navigate = useNavigate()
+  const { runtime, login } = useRuntime()
 
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault()
     setError('')
+    setIsSubmitting(true)
 
     try {
-      const user = login(email, password)
+      const user = await login(email, password)
       setAccessGranted(true)
       setTimeout(() => {
         onLogin(user)
@@ -55,12 +61,13 @@ function Login({ onLogin }) {
       }, 800)
     } catch (err) {
       setError(err.message)
+      setIsSubmitting(false)
     }
   }
 
   function fillDemo(user) {
     setEmail(user.email)
-    setPassword(user.password)
+    setPassword(offlineDemoPassword)
     setError('')
   }
 
@@ -108,7 +115,7 @@ function Login({ onLogin }) {
               <div>
                 <p className="eyebrow">NETRA Intelligence Command</p>
                 <h1 id="login-title">SAMVAAD-IQ</h1>
-                <p>Karnataka-focused crime intelligence workspace powered by KAVACH Crime DNA engine.</p>
+              <p>NETRA's evidence-grounded conversational workspace, powered by the explainable KAVACH Crime DNA engine.</p>
               </div>
             </div>
 
@@ -135,7 +142,7 @@ function Login({ onLogin }) {
             <div className="login-form-heading">
               <p className="eyebrow">Secure Demo Gateway</p>
               <h2>Role-Based Access</h2>
-              <p>Prototype identities are scoped for investigator, analyst, supervisor, and admin workflows.</p>
+              <p>{runtime.mode === 'catalyst-live' ? 'Catalyst session controls are active.' : 'Offline demo identities are active; data and changes are not persisted.'}</p>
             </div>
 
             <form className="login-form" onSubmit={submit}>
@@ -164,9 +171,9 @@ function Login({ onLogin }) {
                   {error}
                 </p>
               ) : null}
-              <button type="submit" className="primary-button">
+              <button type="submit" className="primary-button" disabled={isSubmitting}>
                 <LogIn size={18} />
-                Enter Command Workspace
+                {isSubmitting ? 'Verifying session…' : 'Enter Command Workspace'}
               </button>
             </form>
 

@@ -1,142 +1,95 @@
 {
   "summary": {
-    "project": "SAMVAAD-IQ / NETRA",
-    "deploymentMode": "Catalyst Slate or Web Client Hosting for React, Catalyst Serverless Functions for API",
-    "githubAutoFetch": "Catalyst Pipelines can link this GitHub repository and trigger on push.",
+    "project": "NETRA / SAMVAAD-IQ / KAVACH",
+    "challenge": "Datathon 2026 Challenge 1",
+    "deploymentMode": "Blue-green Catalyst candidate with the existing Slate site retained as rollback",
     "buildOutput": "dist",
-    "ownerAction": "Create/connect the Catalyst project, set pipeline variables, then push to the linked GitHub branch."
+    "truthPolicy": "Provider availability is reported by /api/v1/capabilities; this file describes targets, not live entitlement."
   },
   "serviceMap": [
     {
-      "capability": "Frontend / SPA / static site",
-      "requiredService": "Catalyst Slate or Web Client Hosting",
-      "prototypeEvidence": "React + Vite command center with HashRouter. Repository build command emits the deployable app to dist.",
-      "status": "Ready"
+      "capability": "Frontend and offline fallback",
+      "requiredService": "Catalyst Web Client Hosting or Slate",
+      "prototypeEvidence": "React/Vite build, route-level chunks, runtime badge, labeled read-only fallback.",
+      "status": "Implemented"
     },
     {
-      "capability": "Serverless functions/backend logic",
-      "requiredService": "Catalyst Serverless Functions",
-      "prototypeEvidence": "functions/api contains the Node.js API handler, route contract, and smoke tests.",
-      "status": "Ready"
+      "capability": "Versioned backend API",
+      "requiredService": "Catalyst Advanced I/O",
+      "prototypeEvidence": "Node 24 function with catalyst-config.json, validation, tests, security headers and /api/v1 contract.",
+      "status": "Implemented"
     },
     {
-      "capability": "API routing, throttling, and auth in front of Functions",
-      "requiredService": "Catalyst API Gateway",
-      "prototypeEvidence": "All backend capabilities are exposed under /api/* and can be fronted by Catalyst API Gateway after project binding.",
-      "status": "Console Config"
+      "capability": "Routing, throttling and authentication",
+      "requiredService": "Catalyst API Gateway and Auth",
+      "prototypeEvidence": "Server enforcement and adapters are implemented; console mapping and invited users require live verification.",
+      "status": "Runtime-Detected"
     },
     {
-      "capability": "User auth / login/signup",
-      "requiredService": "Catalyst Authentication",
-      "prototypeEvidence": "Role-based demo login is implemented. Production login should replace demo credentials with Catalyst Authentication identities and roles.",
-      "status": "Console Config"
-    },
-    {
-      "capability": "Relational database",
+      "capability": "Synthetic case persistence",
       "requiredService": "Catalyst Data Store",
-      "prototypeEvidence": "data/import_instructions.md maps Users, PoliceStations, Cases, Accused, Relations, AuditLogs, and Reports tables.",
-      "status": "Schema Ready"
+      "prototypeEvidence": "Normalized schema and Data Store adapter are implemented; tables must be provisioned before enabling.",
+      "status": "Runtime-Detected"
     },
     {
-      "capability": "Unstructured / semi-structured data",
-      "requiredService": "Catalyst NoSQL",
-      "prototypeEvidence": "Agent traces, chat transcripts, risk flags, and investigation session metadata are identified for NoSQL storage.",
-      "status": "Prototype Ready"
+      "capability": "Evidence object persistence",
+      "requiredService": "Catalyst Stratus or File Store",
+      "prototypeEvidence": "File validation, hash and extraction are implemented; storage remains unavailable until a real bucket/folder passes verification.",
+      "status": "Runtime-Detected"
     },
     {
-      "capability": "Object / blob storage",
-      "requiredService": "Catalyst Stratus",
-      "prototypeEvidence": "PDF briefs, evidence media, generated screenshots, and pipeline artifacts have a Stratus handoff path.",
-      "status": "Prototype Ready"
-    },
-    {
-      "capability": "Cache",
-      "requiredService": "Catalyst Cache",
-      "prototypeEvidence": "Hotspot, diffusion, graph, and similar-case outputs can be cached by district, crime type, and FIR ID.",
-      "status": "Prototype Ready"
-    },
-    {
-      "capability": "Text LLMs / RAG / knowledge bases",
-      "requiredService": "Catalyst QuickML",
-      "prototypeEvidence": "The deterministic query engine demonstrates the workflow. Production RAG over FIR, legal, and SOP knowledge should use QuickML.",
-      "status": "Prototype Ready"
-    },
-    {
-      "capability": "OCR / Face / Text Analytics / Image Mod / Object Recognition / Barcode / ID Scanner",
-      "requiredService": "Catalyst Zia Services",
-      "prototypeEvidence": "Digital evidence and legal extraction screens define the intake points for Zia OCR, text analytics, ID scanning, and image recognition.",
-      "status": "Prototype Ready"
-    },
-    {
-      "capability": "Voice services / models",
-      "requiredService": "Catalyst Zia Services",
-      "prototypeEvidence": "Browser speech input is available for demo reliability. Production STT, TTS, and translation should move to Zia Services.",
-      "status": "Prototype Ready"
-    },
-    {
-      "capability": "PDF / image-based report generation, screenshots, headless browser",
+      "capability": "Server PDF rendering",
       "requiredService": "Catalyst SmartBrowz",
-      "prototypeEvidence": "Investigation briefs export in-browser today. Scheduled/headless official report rendering should use SmartBrowz.",
-      "status": "Prototype Ready"
+      "prototypeEvidence": "Supervisor report endpoint uses SmartBrowz only when enabled and otherwise returns a labeled browser-print fallback.",
+      "status": "Runtime-Detected"
     },
     {
-      "capability": "Scheduled jobs/cron/job pools",
-      "requiredService": "Catalyst Cron or Catalyst Job Scheduling",
-      "prototypeEvidence": "Nightly hotspot recomputation, stale-case alerts, and report cleanup jobs are identified.",
-      "status": "Roadmap"
+      "capability": "OCR and model enrichment",
+      "requiredService": "Zia or QuickML",
+      "prototypeEvidence": "Optional adapter boundary. Deterministic retrieval remains the core and no model response is simulated.",
+      "status": "Runtime-Detected"
     },
     {
-      "capability": "Reacting to in-project events",
-      "requiredService": "Catalyst Signals + Event Functions",
-      "prototypeEvidence": "Audit events can be emitted on data import, file upload, login, report generation, and supervisor approval.",
-      "status": "Prototype Ready"
-    },
-    {
-      "capability": "Multi-step workflow/orchestration",
+      "capability": "Asynchronous evidence workflow",
       "requiredService": "Catalyst Circuits",
-      "prototypeEvidence": "Detective, Data, Network, Skeptic, and Report agent sequence is already modeled and ready for Circuits orchestration.",
-      "status": "Prototype Ready"
+      "prototypeEvidence": "Optional adapter boundary; synchronous bounded analysis remains available.",
+      "status": "Runtime-Detected"
     },
     {
-      "capability": "Transactional email",
-      "requiredService": "Catalyst Mail",
-      "prototypeEvidence": "Supervisor report notifications, approval prompts, and escalation digests can be sent by Catalyst Mail.",
-      "status": "Prototype Ready"
-    },
-    {
-      "capability": "CI/CD",
+      "capability": "Build, test and deploy",
       "requiredService": "Catalyst Pipelines",
-      "prototypeEvidence": "catalyst-pipelines.yaml installs dependencies, validates the app, builds dist, runs API smoke tests, and deploys through Catalyst CLI.",
-      "status": "Pipeline Ready"
+      "prototypeEvidence": "Pipeline installs Node 24 dependencies, lints, builds, tests, evaluates and deploys through Catalyst CLI.",
+      "status": "Implemented"
     }
   ],
   "githubFlow": [
     {
       "step": "01",
-      "name": "Push repository to GitHub",
-      "detail": "Keep .env files, .zcatalystrc, .catalyst, node_modules, and dist out of Git. Commit source, docs, seed data, catalyst.json, and catalyst-pipelines.yaml."
+      "name": "Validate feature branch",
+      "detail": "Run npm run validate and both production dependency audits."
     },
     {
       "step": "02",
-      "name": "Connect Catalyst Pipelines to GitHub",
-      "detail": "Create a Catalyst Pipeline, choose GitHub as the integration source, select the repository and branch, and commit the root catalyst-pipelines.yaml."
+      "name": "Deploy Catalyst Development candidate",
+      "detail": "Bind the existing project, configure environment values and deploy the Advanced I/O function plus dist client."
     },
     {
       "step": "03",
-      "name": "Set Catalyst pipeline variables",
-      "detail": "Configure PROJECT_NAME, CATALYST_ORG, CATALYST_TOKEN, USER_NAME, and USER_PASSWORD in Catalyst Pipelines before first deploy."
+      "name": "Verify providers",
+      "detail": "Enable each capability flag only after its real service call succeeds."
     },
     {
       "step": "04",
-      "name": "Auto-build and deploy on push",
-      "detail": "On every push to the linked branch, Catalyst fetches the repository, runs validation, builds the Vite app to dist, and executes catalyst deploy."
+      "name": "Promote and then update Slate",
+      "detail": "Promote the separate candidate, retain rollback, and configure Slate to build dist only after acceptance."
     }
   ],
   "readinessGates": [
-    "Synthetic data only; no real PII committed.",
-    "Root npm run build emits frontend output to dist.",
-    "API smoke tests cover chat, graph, hotspot, diffusion, patrol, report, Legal XAI, and Catalyst readiness.",
-    "Catalyst Authentication, API Gateway, Data Store, and Pipelines are explicitly mapped for production handoff.",
-    "Manual owner login/project binding remains the only non-code deployment step."
+    "Synthetic data only; no real police or citizen PII.",
+    "The deployed health path returns JSON rather than the SPA.",
+    "Every supported answer includes valid citations and refusal queries include none.",
+    "Roles are derived server-side and privileged endpoints reject unauthorized sessions.",
+    "Provider badges reflect runtime evidence rather than design intent.",
+    "The current Slate deployment remains untouched until the Catalyst candidate passes the judge journey."
   ]
 }

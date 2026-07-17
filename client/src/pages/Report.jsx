@@ -1,304 +1,79 @@
-import html2pdf from 'html2pdf.js'
-import { Cloud, Download, FileText, GitBranch, Mail, MapPinned, ShieldCheck, Stamp, Zap } from 'lucide-react'
-import { useMemo } from 'react'
-import DetectiveRoom from '../components/DetectiveRoom.jsx'
-import {
-  answerQuery,
-  buildGraph,
-  cases,
-  getStation,
-  legalExplainabilityForCase,
-} from '../services/prototypeEngine.js'
+import { AlertTriangle, CheckCircle2, FileDown, FileText, ShieldCheck } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { api } from '../services/api.js'
+import { getStoredUser } from '../services/prototypeEngine.js'
+import { useRuntime } from '../services/runtime.jsx'
 
-function getLastChatResponse() {
-  try {
-    const stored = localStorage.getItem('samvaad_last_chat')
-    return stored ? JSON.parse(stored) : null
-  } catch {
-    return null
-  }
+function lastResult() {
+  try { return JSON.parse(window.localStorage.getItem('samvaad_last_chat') || 'null') } catch { return null }
 }
 
-function buildReportFromResponse(response) {
-  if (response.visuals?.report) return response.visuals.report
-
-  const sourceIds = new Set(response.sources || [])
-  const selected = cases.filter((caseRecord) => sourceIds.has(caseRecord.fir_id))
-
-  return {
-    reportId: `RPT-${Date.now().toString().slice(-6)}`,
-    title: `${response.intent.replace(/_/g, ' ')} Investigation Brief`,
-    generatedAt: response.timestamp || new Date().toISOString(),
-    cases: selected,
-    smartBrowz: {
-      renderJobId: `SBZ-${Date.now().toString().slice(-6)}`,
-      status: 'browser-export-fallback',
-      service: 'Catalyst SmartBrowz',
-    },
-    stratusObject: {
-      bucket: 'samvaad-intelligence-briefs',
-      key: `reports/prototype-${Date.now().toString().slice(-6)}.pdf`,
-      service: 'Catalyst Stratus',
-    },
-    mailEvent: {
-      template: 'Supervisor evidence review',
-      status: 'ready-to-send',
-      service: 'Catalyst Mail',
-    },
-  }
-}
-
-function normalizePoint(caseRecord, reportCases) {
-  const lats = reportCases.map((item) => item.lat)
-  const lons = reportCases.map((item) => item.lon)
-  const minLat = Math.min(...lats)
-  const maxLat = Math.max(...lats)
-  const minLon = Math.min(...lons)
-  const maxLon = Math.max(...lons)
-  const latSpan = Math.max(0.001, maxLat - minLat)
-  const lonSpan = Math.max(0.001, maxLon - minLon)
-
-  return {
-    left: 12 + ((caseRecord.lon - minLon) / lonSpan) * 76,
-    top: 84 - ((caseRecord.lat - minLat) / latSpan) * 68,
-  }
-}
-
-function ReportMapPreview({ reportCases }) {
-  if (!reportCases.length) {
-    return <p className="disclaimer">No mappable source FIR records in this brief.</p>
-  }
-
-  return (
-    <div className="report-map-preview">
-      <div className="report-map-grid" />
-      {reportCases.map((caseRecord) => {
-        const point = normalizePoint(caseRecord, reportCases)
-        return (
-          <span
-            key={caseRecord.fir_id}
-            className="report-map-pin"
-            style={{ '--pin-left': `${point.left}%`, '--pin-top': `${point.top}%` }}
-            title={caseRecord.fir_id}
-          >
-            {caseRecord.fir_id.slice(-3)}
-          </span>
-        )
-      })}
-    </div>
-  )
-}
-
-function ReportNetworkPreview({ graph }) {
-  return (
-    <div className="report-network-preview">
-      <div className="report-network-stats">
-        <span>{graph.nodes.length} nodes</span>
-        <span>{graph.edges.length} links</span>
-      </div>
-      {graph.edges.slice(0, 7).map((edge) => (
-        <div key={edge.id} className="network-edge-row">
-          <strong>{edge.source}</strong>
-          <span>{edge.label}</span>
-          <strong>{edge.target}</strong>
-        </div>
-      ))}
-    </div>
-  )
+function savePdf(base64, fileName) {
+  const bytes = Uint8Array.from(atob(base64), (value) => value.charCodeAt(0))
+  const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }))
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = fileName
+  anchor.click()
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
 function Report() {
-  const response = useMemo(
-    () => getLastChatResponse() || answerQuery('Generate PDF report for the motorcycle theft cluster', 'Supervisor'),
-    [],
-  )
-  const report = useMemo(() => buildReportFromResponse(response), [response])
-  const graph = useMemo(
-    () => buildGraph(report.cases[0]?.fir_id || response.sources?.[0] || 'FIR-2025-BLR-001'),
-    [report.cases, response.sources],
-  )
-  const legalRows = useMemo(() => report.cases.map((caseRecord) => legalExplainabilityForCase(caseRecord)), [report.cases])
+  const user = useMemo(() => getStoredUser(), [])
+  const result = useMemo(() => lastResult(), [])
+  const { runtime } = useRuntime()
+  const [approved, setApproved] = useState(false)
+  const [status, setStatus] = useState('A supervisor must approve the evidence brief before export.')
+  const [isWorking, setIsWorking] = useState(false)
+  const canApprove = ['Supervisor', 'Admin'].includes(user?.role)
 
-  function exportPdf() {
-    const element = document.getElementById('report-preview')
-    if (!element) return
-    html2pdf()
-      .set({
-        margin: 0.45,
-        filename: 'SAMVAAD-IQ-Investigation-Brief.pdf',
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
-      })
-      .from(element)
-      .save()
+  async function exportReport() {
+    if (!result || !approved || !canApprove) return
+    setIsWorking(true)
+    try {
+      if (runtime.mode === 'catalyst-live') {
+        const report = await api.report({ answer: result.answer, citations: result.citations.map(({ firId, excerpt }) => ({ firId, excerpt })), approved: true })
+        if (report.pdf?.base64) {
+          savePdf(report.pdf.base64, `${report.reportId}.pdf`)
+          setStatus(`SmartBrowz report generated. Audit reference: ${report.auditRef}`)
+        } else {
+          const view = window.open('', '_blank', 'noopener,noreferrer')
+          if (view) { view.document.write(report.html); view.document.close(); view.print() }
+          setStatus(`Browser-print fallback opened. ${report.limitations.join(' ')}`)
+        }
+      } else {
+        window.print()
+        setStatus('Offline browser-print fallback opened. No server report or audit event was created.')
+      }
+    } catch (error) {
+      setStatus(`Report was not generated: ${error.message}`)
+    } finally {
+      setIsWorking(false)
+    }
   }
 
   return (
     <div className="page-stack">
-      <header className="page-header">
-        <div>
-          <p className="eyebrow">Reports</p>
-          <h1>Investigation Brief Export</h1>
-        </div>
-        <button className="primary-button" type="button" onClick={exportPdf}>
-          <Download size={18} />
-          Export PDF
-        </button>
-      </header>
-
-      <section id="report-preview" className="report-preview">
-        <div className="ksp-report-masthead">
-          <div className="ksp-seal">
-            <ShieldCheck size={30} />
-          </div>
-          <div>
-            <p>Karnataka State Police</p>
-            <h2>SAMVAAD-IQ Investigation Brief</h2>
-            <span>Prototype intelligence dossier | Synthetic FIR evidence only</span>
-          </div>
-          <div className="report-classification">
-            <Stamp size={18} />
-            REVIEW
-          </div>
-        </div>
-
-        <div className="report-header">
-          <FileText size={26} />
-          <div>
-            <p className="eyebrow">SAMVAAD-IQ Investigation Brief</p>
-            <h2>{report.title}</h2>
-            <p>
-              {report.reportId} | {new Date(report.generatedAt).toLocaleString()}
-            </p>
-          </div>
-        </div>
-
-        <section className="report-meta-grid">
-          {[
-            ['Synthetic Case IDs', report.cases.map((caseRecord) => caseRecord.fir_id).join(', ') || 'None'],
-            ['Source Count', `${report.cases.length} FIR records`],
-            ['Confidence', `${Math.round((response.confidence || 0) * 100)}%`],
-            ['Conversation', response.conversationId || 'CONV-DEMO'],
-            ['SmartBrowz', report.smartBrowz?.renderJobId || 'SBZ-DEMO'],
-            ['Stratus Object', report.stratusObject?.key || 'reports/prototype.pdf'],
-          ].map(([label, value]) => (
-            <div key={label}>
-              <span>{label}</span>
-              <strong>{value}</strong>
-            </div>
-          ))}
-        </section>
-
-        <section>
-          <h3>Catalyst Render And Delivery Path</h3>
-          <div className="report-delivery-grid">
-            {[
-              ['SmartBrowz PDF Render', report.smartBrowz?.status || 'queued', report.smartBrowz?.service || 'Catalyst SmartBrowz', Zap],
-              ['Stratus Storage', report.stratusObject?.bucket || 'samvaad-intelligence-briefs', report.stratusObject?.service || 'Catalyst Stratus', Cloud],
-              ['Supervisor Mail', report.mailEvent?.status || 'ready-to-send', report.mailEvent?.service || 'Catalyst Mail', Mail],
-            ].map(([label, value, detail, Icon]) => (
-              <div key={label}>
-                <Icon size={17} />
-                <strong>{label}</strong>
-                <span>{value}</span>
-                <p>{detail}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section>
-          <h3>Query</h3>
-          <p>{response.query}</p>
-        </section>
-
-        <section>
-          <h3>Answer</h3>
-          <p>{response.answer}</p>
-        </section>
-
-        <section>
-          <h3>Evidence Trail</h3>
-          <table>
-            <thead>
-              <tr>
-                <th>FIR</th>
-                <th>Crime</th>
-                <th>Station</th>
-                <th>BNS / Legal Mapping</th>
-              </tr>
-            </thead>
-            <tbody>
-              {report.cases.map((caseRecord) => (
-                <tr key={caseRecord.fir_id}>
-                  <td>{caseRecord.fir_id}</td>
-                  <td>{caseRecord.crime_type}</td>
-                  <td>{getStation(caseRecord)?.station_name || caseRecord.station_id}</td>
-                  <td>{caseRecord.bns_sections}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
-
-        <section>
-          <h3>Map & Network Snapshot</h3>
-          <div className="brief-visual-grid">
-            <div>
-              <div className="report-visual-heading">
-                <MapPinned size={18} />
-                <strong>Hotspot Context</strong>
-              </div>
-              <ReportMapPreview reportCases={report.cases} />
-            </div>
-            <div>
-              <div className="report-visual-heading">
-                <GitBranch size={18} />
-                <strong>Shared Entity Graph</strong>
-              </div>
-              <ReportNetworkPreview graph={graph} />
-            </div>
-          </div>
-        </section>
-
-        <section>
-          <h3>BNS / Privacy Review</h3>
-          <div className="legal-note-grid">
-            {legalRows.map((row, index) => (
-              <div key={`${row.crimeType}-${row.bns}-${index}`}>
-                <strong>{row.crimeType}</strong>
-                <span>BNS {row.bns}</span>
-                <p>{row.privacyTag}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section>
-          <h3>Human Review Note</h3>
-          <p>{response.disclaimer || 'Investigative lead only. Requires human verification and legal review.'}</p>
-        </section>
-
-        <section>
-          <h3>Recommended Follow-Up</h3>
-          <ul>
-            {(response.nextSteps || []).map((item, index) => (
-              <li key={item.id || item || index}>{typeof item === 'string' ? item : item.text}</li>
-            ))}
-          </ul>
-        </section>
-
-        <section>
-          <h3>Guardrails</h3>
-          <ul>
-            {(response.riskFlags || []).map((flag) => (
-              <li key={flag}>{flag}</li>
-            ))}
-          </ul>
-        </section>
+      <header className="page-header"><div><p className="eyebrow">Supervisor evidence brief</p><h1>Auditable Investigation Report</h1><p>Sources, confidence, runtime mode, analyst identity, limitations, and approval remain visible.</p></div><span className="data-label">SYNTHETIC DEMO DATA</span></header>
+      {!result ? <article className="panel empty-state"><FileText size={28} /><strong>No investigation result selected</strong><p>Run a question in Ask SAMVAAD before preparing a report.</p></article> : (
+        <article className="panel report-preview">
+          <div className="section-heading"><div><p className="eyebrow">{result.intent.replaceAll('_', ' ')}</p><h2>SAMVAAD-IQ Evidence Brief</h2></div><ShieldCheck size={22} /></div>
+          <p className="answer-copy">{result.answer}</p>
+          <div className="answer-meta-row"><span>{result.requestId}</span><span>{result.mode}</span><span>{result.auditRef || 'No server audit'}</span><span>{Math.round(result.confidence.score * 100)}% {result.confidence.band}</span></div>
+          <h3>Evidence citations</h3>
+          <ol className="action-list">{result.citations.map((item) => <li key={item.id}><strong>{item.firId}</strong> — {item.excerpt}</li>)}</ol>
+          <h3>Limitations</h3>
+          <ul className="action-list">{result.limitations.map((item) => <li key={item}>{item}</li>)}</ul>
+          <p className="disclaimer">Investigative lead only. Human verification and supervisory approval are required.</p>
+        </article>
+      )}
+      <section className="panel">
+        <div className="section-heading"><div><p className="eyebrow">Approval gate</p><h2>Human authorization</h2></div>{approved ? <CheckCircle2 size={20} /> : <AlertTriangle size={20} />}</div>
+        <label className="approval-check"><input type="checkbox" checked={approved} disabled={!canApprove || !result} onChange={(event) => setApproved(event.target.checked)} /><span>I reviewed the cited synthetic evidence and approve this brief for demonstration export.</span></label>
+        {!canApprove ? <p className="form-error">The {user?.role} role cannot approve reports. Sign in as Supervisor or Admin.</p> : null}
+        <button type="button" className="primary-button" disabled={!approved || !canApprove || !result || isWorking} onClick={exportReport}><FileDown size={18} />{isWorking ? 'Generating…' : runtime.mode === 'catalyst-live' ? 'Generate verified report' : 'Open local print fallback'}</button>
+        <p className="query-status" role="status">{status}</p>
       </section>
-
-      <DetectiveRoom agents={response.agents || []} />
     </div>
   )
 }

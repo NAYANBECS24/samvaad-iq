@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test'
 
 const roles = [
-  { role: 'Admin', landing: 'dashboard', nav: ['Command Center', 'Ask SAMVAAD', 'Case Workspace', 'Evidence Lab', 'Intelligence Analytics', 'Governance', 'Admin Data'] },
-  { role: 'Investigator', landing: 'chat', nav: ['Ask SAMVAAD', 'Case Workspace', 'Evidence Lab', 'Intelligence Analytics', 'Governance'] },
-  { role: 'Analyst', landing: 'dashboard', nav: ['Command Center', 'Ask SAMVAAD', 'Case Workspace', 'Intelligence Analytics', 'Governance'] },
-  { role: 'Supervisor', landing: 'analytics', nav: ['Command Center', 'Ask SAMVAAD', 'Case Workspace', 'Evidence Lab', 'Intelligence Analytics', 'Governance'] },
+  { role: 'Admin', landing: 'dashboard', nav: ['Command Center', 'Ask SAMVAAD', 'Case Workspace', 'Evidence Lab', 'Intelligence Analytics', 'Hotspots', 'Network', 'Digital Evidence', 'Crime DNA', 'Cold Cases', 'Diffusion', 'Patrol', 'Tablet Patrol', 'Reports', 'Pipeline', 'Governance', 'Admin Data'] },
+  { role: 'Investigator', landing: 'chat', nav: ['Ask SAMVAAD', 'Case Workspace', 'Evidence Lab', 'Intelligence Analytics', 'Hotspots', 'Network', 'Digital Evidence', 'Crime DNA', 'Cold Cases', 'Diffusion', 'Patrol', 'Tablet Patrol', 'Reports', 'Pipeline', 'Governance'] },
+  { role: 'Analyst', landing: 'dashboard', nav: ['Command Center', 'Ask SAMVAAD', 'Case Workspace', 'Intelligence Analytics', 'Hotspots', 'Network', 'Digital Evidence', 'Crime DNA', 'Cold Cases', 'Diffusion', 'Patrol', 'Reports', 'Pipeline', 'Governance'] },
+  { role: 'Supervisor', landing: 'analytics', nav: ['Command Center', 'Ask SAMVAAD', 'Case Workspace', 'Evidence Lab', 'Intelligence Analytics', 'Hotspots', 'Network', 'Digital Evidence', 'Crime DNA', 'Cold Cases', 'Diffusion', 'Patrol', 'Tablet Patrol', 'Reports', 'Pipeline', 'Governance'] },
 ]
 
 async function signIn(page, profile) {
@@ -23,7 +23,7 @@ for (const profile of roles) {
   test(`${profile.role} receives the correct role-aware workspace`, async ({ page }) => {
     await signIn(page, profile)
     const navigation = page.getByRole('navigation', { name: 'Primary workspace' })
-    for (const label of profile.nav) await expect(navigation.getByRole('link', { name: label })).toBeVisible()
+    for (const label of profile.nav) await expect(navigation.getByRole('link', { name: label, exact: true })).toBeVisible()
     if (profile.role !== 'Admin') {
       await page.goto('/#/admin-data')
       await expect(page).toHaveURL(/#\/chat$/)
@@ -39,7 +39,7 @@ test('three-minute judge journey remains cited, provenance-aware, and supervisor
   await expect(page.getByRole('heading', { name: 'Evidence-grounded answer' })).toBeVisible()
   await page.getByLabel('Investigation query').fill('Mysuru alli motorcycle theft hotspot show maadi')
   await page.locator('.query-form').getByRole('button', { name: 'Ask', exact: true }).click()
-  await expect(page.locator('.query-status').first()).toContainText(/Offline demo response completed|Catalyst response completed/)
+  await expect(page.locator('.query-status').first()).toContainText(/Offline (AI )?demo response completed|Catalyst response completed/)
   await expect(page.getByRole('heading', { name: 'Why this answer can be checked' })).toBeVisible()
   await expect(page.locator('.citation-card')).not.toHaveCount(0)
 
@@ -65,6 +65,36 @@ test('three-minute judge journey remains cited, provenance-aware, and supervisor
   await page.goto('/#/report')
   await expect(page.getByRole('heading', { name: 'Auditable Investigation Report' })).toBeVisible()
   await page.getByRole('checkbox').check()
-  await page.getByRole('button', { name: 'Open local print fallback' }).click()
+  await page.getByRole('button', { name: 'Print / Save as PDF' }).click()
   await expect(page.locator('.query-status')).toContainText('Offline browser-print fallback opened')
+})
+
+test('text and voice queries both return grounded AI demo replies', async ({ page }) => {
+  await page.addInitScript(() => {
+    class MockSpeechRecognition {
+      start() {
+        this.onstart?.()
+        setTimeout(() => {
+          this.onresult?.({ results: [[{ transcript: 'Find similar cases to SYN-2025-BLR-001 using Crime DNA' }]] })
+          this.onend?.()
+        }, 10)
+      }
+      stop() { this.onend?.() }
+      abort() { this.onend?.() }
+    }
+    window.SpeechRecognition = MockSpeechRecognition
+  })
+
+  await signIn(page, roles[1])
+  await expect(page.getByRole('heading', { name: 'Evidence-grounded answer' })).toBeVisible()
+
+  await page.getByLabel('Investigation query').fill('Are SYN-2025-BLR-001 and SYN-2025-BLR-014 connected?')
+  await page.locator('.query-form').getByRole('button', { name: 'Ask', exact: true }).click()
+  await expect(page.locator('.query-status').first()).toContainText(/AI demo response completed|Catalyst response completed/)
+  await expect(page.locator('.citation-card')).not.toHaveCount(0)
+
+  await page.locator('.query-form').getByRole('button', { name: 'Voice' }).click()
+  await expect(page.getByLabel('Investigation query')).toHaveValue('Find similar cases to SYN-2025-BLR-001 using Crime DNA')
+  await expect(page.locator('.query-status').first()).toContainText(/AI demo response completed|Catalyst response completed/)
+  await expect(page.getByRole('heading', { name: 'Factor-level explanation' })).toBeVisible()
 })

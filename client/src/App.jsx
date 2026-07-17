@@ -29,6 +29,10 @@ function PageLoader() {
   return <div className="page-loader" role="status">Loading secure workspace…</div>
 }
 
+function lazyPage(element) {
+  return <Suspense fallback={<PageLoader />}>{element}</Suspense>
+}
+
 function RequireUser({ user, roles, children }) {
   if (!user) return <Navigate to="/login" replace />
   if (roles?.length && !roles.includes(user.role)) return <Navigate to="/chat" replace />
@@ -56,35 +60,33 @@ function WorkspaceRouter() {
 
   return (
     <HashRouter>
-      <Suspense fallback={<PageLoader />}>
-        <Routes>
-          <Route path="/login" element={user ? <Navigate to={landing} replace /> : <Login onLogin={setUser} />} />
-          <Route path="/" element={<RequireUser user={user}><AppLayout appState={appState} /></RequireUser>}>
-            <Route index element={<Navigate to={landing} replace />} />
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="chat" element={<InvestigationChat />} />
-            <Route path="cases" element={<CaseExplorer />} />
-            <Route path="cases/:firId" element={<CaseDossier />} />
-            <Route path="evidence-lab" element={<EvidenceLab />} />
-            <Route path="analytics" element={<IntelligenceAnalytics />} />
-            <Route path="map" element={<HotspotMap />} />
-            <Route path="network" element={<NetworkGraph />} />
-            <Route path="network/:firId" element={<NetworkGraph />} />
-            <Route path="evidence" element={<DigitalEvidence />} />
-            <Route path="similar" element={<SimilarCases />} />
-            <Route path="similar/:firId" element={<SimilarCases />} />
-            <Route path="patrol" element={<PatrolWhatIf />} />
-            <Route path="tablet" element={<TabletPatrol />} />
-            <Route path="report" element={<Report />} />
-            <Route path="cold-cases" element={<ColdCases />} />
-            <Route path="diffusion" element={<DiffusionRisk />} />
-            <Route path="pipeline" element={<SystemPipeline />} />
-            <Route path="governance" element={<GovernanceAudit />} />
-            <Route path="admin-data" element={<RequireUser user={user} roles={['Admin']}><AdminData /></RequireUser>} />
-          </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
+      <Routes>
+        <Route path="/login" element={user ? <Navigate to={landing} replace /> : lazyPage(<Login onLogin={setUser} />)} />
+        <Route path="/" element={<RequireUser user={user}><AppLayout appState={appState} /></RequireUser>}>
+          <Route index element={<Navigate to={landing} replace />} />
+          <Route path="dashboard" element={lazyPage(<Dashboard />)} />
+          <Route path="chat" element={lazyPage(<InvestigationChat />)} />
+          <Route path="cases" element={lazyPage(<CaseExplorer />)} />
+          <Route path="cases/:firId" element={lazyPage(<CaseDossier />)} />
+          <Route path="evidence-lab" element={lazyPage(<EvidenceLab />)} />
+          <Route path="analytics" element={lazyPage(<IntelligenceAnalytics />)} />
+          <Route path="map" element={lazyPage(<HotspotMap />)} />
+          <Route path="network" element={lazyPage(<NetworkGraph />)} />
+          <Route path="network/:firId" element={lazyPage(<NetworkGraph />)} />
+          <Route path="evidence" element={lazyPage(<DigitalEvidence />)} />
+          <Route path="similar" element={lazyPage(<SimilarCases />)} />
+          <Route path="similar/:firId" element={lazyPage(<SimilarCases />)} />
+          <Route path="patrol" element={lazyPage(<PatrolWhatIf />)} />
+          <Route path="tablet" element={lazyPage(<TabletPatrol />)} />
+          <Route path="report" element={lazyPage(<Report />)} />
+          <Route path="cold-cases" element={lazyPage(<ColdCases />)} />
+          <Route path="diffusion" element={lazyPage(<DiffusionRisk />)} />
+          <Route path="pipeline" element={lazyPage(<SystemPipeline />)} />
+          <Route path="governance" element={lazyPage(<GovernanceAudit />)} />
+          <Route path="admin-data" element={<RequireUser user={user} roles={['Admin']}>{lazyPage(<AdminData />)}</RequireUser>} />
+        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </HashRouter>
   )
 }

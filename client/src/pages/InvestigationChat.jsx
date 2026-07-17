@@ -1,6 +1,26 @@
-import { AlertTriangle, CheckCircle2, FileSearch, GitBranch, Loader2, Mic, Search, ShieldCheck, Sparkles, ThumbsDown, ThumbsUp, Volume2, VolumeX } from 'lucide-react'
+import {
+  AlertTriangle,
+  CheckCircle2,
+  FileSearch,
+  FileText,
+  GitBranch,
+  Loader2,
+  Map,
+  Mic,
+  MicOff,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  ThumbsDown,
+  ThumbsUp,
+  Volume2,
+  VolumeX,
+} from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import CaseCard from '../components/CaseCard.jsx'
+import DetectiveRoom from '../components/DetectiveRoom.jsx'
+import EvidencePanel from '../components/EvidencePanel.jsx'
 import { useLanguage } from '../i18n.js'
 import { api } from '../services/api.js'
 import { getStoredUser } from '../services/prototypeEngine.js'
@@ -12,12 +32,58 @@ const starterQueries = [
   'Are SYN-2025-BLR-001 and SYN-2025-BLR-014 connected?',
   'Find similar cases to SYN-2025-BLR-001 using Crime DNA',
   'What if 3 patrol units are added in Mysuru?',
-  'What is the cricket score?',
+  'Summarize SYN-2025-BLR-014 with cited evidence',
 ]
 
-function Confidence({ confidence }) {
-  const score = Math.round((confidence?.score || 0) * 100)
-  return <div className={`confidence-summary is-${confidence?.band || 'low'}`}><strong>{score}%</strong><span>{confidence?.band || 'low'} confidence</span></div>
+function ConfidenceRing({ confidence }) {
+  const percent = Math.round((confidence?.score || 0) * 100)
+  const color = percent >= 80 ? 'var(--emerald)' : percent >= 60 ? 'var(--amber)' : 'var(--red)'
+
+  return (
+    <div className="confidence-ring" aria-label={`${percent}% ${confidence?.band || 'low'} confidence`}>
+      <svg width="42" height="42" viewBox="0 0 42 42" aria-hidden="true">
+        <circle cx="21" cy="21" r="17" fill="none" stroke="var(--line)" strokeWidth="4" />
+        <circle
+          cx="21"
+          cy="21"
+          r="17"
+          fill="none"
+          stroke={color}
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeDasharray={`${percent * 1.068} 106.8`}
+          style={{ transform: 'rotate(-90deg)', transformOrigin: 'center' }}
+        />
+      </svg>
+      <div><strong>{percent}%</strong><span>{confidence?.band || 'low'}</span></div>
+    </div>
+  )
+}
+
+function analysisStages(result) {
+  if (!result) return []
+  const filterText = [result.filters?.district, result.filters?.crimeType].filter(Boolean).join(' · ') || 'No narrow filter'
+  const hasNetwork = Boolean(result.visualizations?.graph || result.visualizations?.crimeDna || result.visualizations?.similar)
+
+  return [
+    { agent: 'Detective Agent', status: 'complete', note: `${result.intent.replaceAll('_', ' ')} selected. ${filterText}.` },
+    { agent: 'Data Agent', status: 'complete', note: `${result.citations?.length || 0} cited synthetic FIR excerpts retrieved and attached.` },
+    { agent: 'Network Agent', status: 'complete', note: hasNetwork ? 'Explainable graph or Crime DNA factors are ready for inspection.' : 'No network claim was needed for this answer.' },
+    { agent: 'Skeptic Agent', status: 'complete', note: `${result.limitations?.length || 0} limitation and safety notes remain visible.` },
+    { agent: 'Report Agent', status: 'complete', note: result.auditRef ? `Prepared audit reference ${result.auditRef}.` : 'Offline result is clearly marked as non-persisted.' },
+  ]
+}
+
+function followUpQuestions(result) {
+  const firstFir = result?.citations?.[0]?.firId || result?.evidence?.[0]?.fir_id
+  const district = result?.filters?.district || result?.evidence?.[0]?.district || 'Mysuru'
+  const crimeType = result?.filters?.crimeType || result?.evidence?.[0]?.crime_type || 'Motorcycle Theft'
+  return [
+    firstFir ? `Find similar cases to ${firstFir} using Crime DNA` : null,
+    firstFir ? `Summarize ${firstFir} with cited evidence` : null,
+    `${district} ${crimeType} hotspots show maadi`,
+    `What if 3 patrol units are added in ${district}?`,
+  ].filter(Boolean)
 }
 
 function InvestigationChat() {
@@ -30,26 +96,37 @@ function InvestigationChat() {
   const [isListening, setIsListening] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [status, setStatus] = useState('Ask a question to start an evidence-grounded investigation.')
+  const [voiceStatus, setVoiceStatus] = useState({ key: 'chat.voiceReady' })
+  const [speechStatus, setSpeechStatus] = useState({ key: 'chat.speechReady' })
   const [feedback, setFeedback] = useState(null)
   const initialized = useRef(false)
+  const recognitionRef = useRef(null)
   const latest = history[0] || null
 
   async function execute(nextQuery) {
-    const trimmed = nextQuery.trim()
-    if (!trimmed || isProcessing) return
+    const trimmed = String(nextQuery || '').trim()
+    if (!trimmed || isProcessing) return null
     setIsProcessing(true)
     setFeedback(null)
-    setStatus('Retrieving and checking cited evidence…')
+    setStatus('KAVACH is retrieving and checking cited evidence…')
+    window.speechSynthesis?.cancel()
+    setIsSpeaking(false)
+
     try {
       const result = await runQuery(trimmed, {
         previousRequestId: latest?.requestId || null,
         previousIntent: latest?.intent || null,
         interfaceLanguage: language,
       })
+      if (!result?.answer) throw new Error('The intelligence engine returned no grounded answer.')
       setHistory((current) => [{ ...result, query: trimmed }, ...current].slice(0, 8))
-      setStatus(result.mode === 'catalyst-live' ? 'Catalyst response completed.' : 'Offline demo response completed; no changes were persisted.')
+      setStatus(result.mode === 'catalyst-live'
+        ? 'Catalyst response completed with cited evidence.'
+        : 'Offline AI demo response completed with cited synthetic evidence; no changes were persisted.')
+      return result
     } catch (error) {
       setStatus(`Unable to complete the query: ${error.message}`)
+      return null
     } finally {
       setIsProcessing(false)
     }
@@ -59,11 +136,14 @@ function InvestigationChat() {
     if (initialized.current) return
     initialized.current = true
     execute(starterQueries[0])
-    // execute is intentionally called once for the guided opening query.
+    // The guided opening query is intentionally executed once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  useEffect(() => () => window.speechSynthesis?.cancel(), [])
+  useEffect(() => () => {
+    recognitionRef.current?.abort?.()
+    window.speechSynthesis?.cancel()
+  }, [])
 
   useEffect(() => {
     if (latest) window.localStorage.setItem('samvaad_last_chat', JSON.stringify(latest))
@@ -74,36 +154,87 @@ function InvestigationChat() {
     execute(query)
   }
 
+  function runStarter(nextQuery) {
+    setQuery(nextQuery)
+    execute(nextQuery)
+  }
+
   function startVoiceInput() {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-    if (!SpeechRecognition) {
-      setStatus('Voice input is unavailable in this browser; text input remains available.')
+    if (isListening) {
+      recognitionRef.current?.stop?.()
       return
     }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      setVoiceStatus({ key: 'chat.voiceUnavailable' })
+      setStatus('Voice input is unavailable in this browser. Type the same question and press Enter or Ask.')
+      return
+    }
+
     const recognition = new SpeechRecognition()
+    recognitionRef.current = recognition
     recognition.lang = language === 'kn' ? 'kn-IN' : 'en-IN'
+    recognition.continuous = false
     recognition.interimResults = false
     recognition.maxAlternatives = 1
-    recognition.onstart = () => { setIsListening(true); setStatus('Listening…') }
-    recognition.onresult = (event) => { setQuery(event.results[0][0].transcript); setStatus('Voice query captured. Review it before asking.') }
-    recognition.onerror = () => setStatus('Voice capture stopped; use text input if needed.')
-    recognition.onend = () => setIsListening(false)
-    recognition.start()
+    recognition.onstart = () => {
+      setIsListening(true)
+      setVoiceStatus({ key: 'chat.voiceListening' })
+      setStatus(`Listening in ${recognition.lang}…`)
+    }
+    recognition.onresult = (event) => {
+      const transcript = event.results?.[0]?.[0]?.transcript?.trim()
+      if (!transcript) return
+      setQuery(transcript)
+      setVoiceStatus({ key: 'chat.voiceCaptured', value: transcript })
+      setStatus('Voice captured. Running the evidence-grounded query…')
+      execute(transcript)
+    }
+    recognition.onerror = (event) => {
+      const detail = event.error === 'not-allowed'
+        ? 'Microphone permission was denied. Allow microphone access for this HTTPS site and try again.'
+        : `Voice capture stopped (${event.error || 'browser error'}); text input remains available.`
+      setVoiceStatus({ key: 'chat.voiceStopped' })
+      setStatus(detail)
+      setIsListening(false)
+    }
+    recognition.onend = () => {
+      setIsListening(false)
+      recognitionRef.current = null
+    }
+
+    try {
+      recognition.start()
+    } catch (error) {
+      setIsListening(false)
+      setVoiceStatus({ key: 'chat.voiceStopped' })
+      setStatus(`Voice input could not start: ${error.message}`)
+    }
   }
 
   function toggleSpeech() {
-    if (!latest || !window.speechSynthesis || typeof window.SpeechSynthesisUtterance === 'undefined') return
+    if (!latest) return
+    if (!window.speechSynthesis || typeof window.SpeechSynthesisUtterance === 'undefined') {
+      setSpeechStatus({ key: 'chat.speechUnsupported' })
+      return
+    }
     if (isSpeaking) {
       window.speechSynthesis.cancel()
       setIsSpeaking(false)
+      setSpeechStatus({ key: 'chat.speechStopped' })
       return
     }
-    const utterance = new SpeechSynthesisUtterance(latest.answer)
+
+    const utterance = new window.SpeechSynthesisUtterance(latest.answer)
     utterance.lang = language === 'kn' ? 'kn-IN' : 'en-IN'
     utterance.rate = 0.94
-    utterance.onstart = () => setIsSpeaking(true)
-    utterance.onend = () => setIsSpeaking(false)
-    utterance.onerror = () => setIsSpeaking(false)
+    utterance.pitch = 0.95
+    utterance.onstart = () => { setIsSpeaking(true); setSpeechStatus({ key: 'chat.speechSpeaking' }) }
+    utterance.onend = () => { setIsSpeaking(false); setSpeechStatus({ key: 'chat.speechDone' }) }
+    utterance.onerror = () => { setIsSpeaking(false); setSpeechStatus({ key: 'chat.speechError' }) }
+    setSpeechStatus({ key: 'chat.speechStarting' })
+    window.speechSynthesis.cancel()
     window.speechSynthesis.speak(utterance)
   }
 
@@ -123,49 +254,98 @@ function InvestigationChat() {
     }
   }
 
+  const firstFir = latest?.citations?.[0]?.firId || latest?.evidence?.[0]?.fir_id || 'SYN-2025-BLR-001'
   const dna = latest?.visualizations?.crimeDna || latest?.visualizations?.similar?.[0] || null
+  const sources = [...new Set((latest?.citations || []).map((item) => item.firId))]
+  const relatedCases = (latest?.evidence || []).filter((item) => item?.fir_id).slice(0, 4)
+  const voiceStatusText = voiceStatus.value ? `${t(voiceStatus.key)} ${voiceStatus.value}` : t(voiceStatus.key)
 
   return (
     <div className="page-stack">
       <header className="page-header">
-        <div><p className="eyebrow">{t('chat.eyebrow')} · Challenge 1</p><h1>{t('chat.title')}</h1><p>Ask in English, Kannada, or Kanglish. Every supported answer includes traceable synthetic evidence.</p></div>
+        <div>
+          <p className="eyebrow">{t('chat.eyebrow')} · Challenge 1</p>
+          <h1>{t('chat.title')}</h1>
+          <p>Ask in English, Kannada, or Kanglish by text or voice. Every supported answer includes traceable synthetic evidence.</p>
+        </div>
         <span className="data-label">SYNTHETIC DEMO DATA</span>
       </header>
 
-      <section className="guided-query-strip" aria-label="Guided demonstration queries">
-        {starterQueries.map((item) => <button type="button" key={item} onClick={() => { setQuery(item); execute(item) }}>{item}</button>)}
+      <section className="query-console">
+        <form className="query-form evidence-query" onSubmit={submit}>
+          <Search size={21} aria-hidden="true" />
+          <label className="sr-only" htmlFor="investigation-query">Investigation query</label>
+          <textarea
+            id="investigation-query"
+            rows="2"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && !event.shiftKey) submit(event)
+            }}
+            placeholder={t('chat.placeholder')}
+            maxLength="4000"
+          />
+          <button type="button" className="voice-button" onClick={startVoiceInput} disabled={isProcessing} aria-pressed={isListening}>
+            {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+            {isListening ? t('chat.listening') : t('chat.voice')}
+          </button>
+          <button type="submit" className="primary-button" disabled={isProcessing || !query.trim()}>
+            {isProcessing ? <Loader2 className="spin" size={18} /> : <Sparkles size={18} />}
+            {isProcessing ? t('chat.processing') : t('chat.ask')}
+          </button>
+        </form>
+        <div className="query-live-status" aria-live="polite">
+          <span className={isListening ? 'is-listening' : ''}>{voiceStatusText}</span>
+          <p className="query-status" role="status">{status}</p>
+        </div>
+        <div className="starter-grid" aria-label="Guided demonstration queries">
+          {starterQueries.map((item) => <button type="button" key={item} onClick={() => runStarter(item)} disabled={isProcessing}>{item}</button>)}
+        </div>
       </section>
 
-      <form className="query-form evidence-query" onSubmit={submit}>
-        <Search size={21} aria-hidden="true" />
-        <label className="sr-only" htmlFor="investigation-query">Investigation query</label>
-        <textarea id="investigation-query" rows="2" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t('chat.placeholder')} maxLength="4000" />
-        <button type="button" className="voice-button" onClick={startVoiceInput} aria-pressed={isListening}><Mic size={18} />{isListening ? t('chat.listening') : t('chat.voice')}</button>
-        <button type="submit" className="primary-button" disabled={isProcessing}>{isProcessing ? <Loader2 className="spin" size={18} /> : <Sparkles size={18} />}{isProcessing ? t('chat.processing') : t('chat.ask')}</button>
-      </form>
-      <p className="query-status" role="status">{status}</p>
+      {isProcessing ? (
+        <div className="agent-processing" role="status"><Loader2 size={20} className="spin" /><span>{t('chat.agentAnalyzing')}</span></div>
+      ) : null}
 
       {latest ? (
         <section className="answer-layout grounded-answer">
           <article className="panel answer-panel">
             <div className="section-heading">
               <div><p className="eyebrow">{latest.intent.replaceAll('_', ' ')}</p><h2>Evidence-grounded answer</h2></div>
-              <Confidence confidence={latest.confidence} />
+              <ConfidenceRing confidence={latest.confidence} />
             </div>
-            <p className="answer-copy">{latest.answer}</p>
-            <div className="answer-meta-row"><span>{latest.requestId}</span><span>{latest.mode}</span><span>{latest.auditRef || 'No persisted audit reference'}</span></div>
-            <button type="button" className="secondary-button" onClick={toggleSpeech}>{isSpeaking ? <VolumeX size={17} /> : <Volume2 size={17} />}{isSpeaking ? 'Stop brief' : 'Speak brief'}</button>
+            <div className="lead-banner"><strong>{latest.confidence?.band || 'low'} evidence strength</strong><span>{latest.requestId}</span></div>
+            <p className="answer-text">{latest.answer}</p>
+            <div className="answer-meta-row"><span>{latest.mode}</span><span>{latest.auditRef || 'No persisted audit reference'}</span><span>{latest.citations?.length || 0} citations</span></div>
+
+            <div className={`voice-output-strip ${isSpeaking ? 'is-speaking' : ''}`}>
+              <button className="secondary-button voice-output-button" type="button" onClick={toggleSpeech}>
+                {isSpeaking ? <VolumeX size={17} /> : <Volume2 size={17} />}
+                {isSpeaking ? t('chat.stopVoice') : t('chat.speakSummary')}
+              </button>
+              <div><strong>{t('chat.kavachVoice')}</strong><span>{t(speechStatus.key)}</span></div>
+              <div className="voice-wave" aria-hidden="true"><span /><span /><span /><span /></div>
+            </div>
+
+            <div className="action-row investigation-handoffs">
+              <Link className="secondary-button" to="/map"><Map size={17} />{t('chat.map')}</Link>
+              <Link className="secondary-button" to={`/network/${firstFir}`}><GitBranch size={17} />{t('chat.graph')}</Link>
+              <Link className="secondary-button" to={`/similar/${firstFir}`}><Sparkles size={17} />{t('chat.dna')}</Link>
+              <Link className="secondary-button" to="/report"><FileText size={17} />{t('chat.report')}</Link>
+            </div>
+
+            <div className="suggestion-strip">
+              {followUpQuestions(latest).map((item) => <button type="button" key={item} onClick={() => runStarter(item)}>{item}</button>)}
+            </div>
           </article>
 
-          <aside className="panel">
-            <div className="section-heading"><div><p className="eyebrow">Human review</p><h2>Accept or challenge the lead</h2></div><ShieldCheck size={20} /></div>
-            <div className="review-actions">
-              <button type="button" onClick={() => recordDecision('accept')}><ThumbsUp size={17} />Accept for review</button>
-              <button type="button" onClick={() => recordDecision('reject')}><ThumbsDown size={17} />Reject lead</button>
-            </div>
-            {feedback ? <p className="query-status" role="status">{feedback}</p> : null}
-            <small>Role: {user?.role}. Acceptance does not establish guilt or authorize action.</small>
-          </aside>
+          <EvidencePanel
+            evidence={latest.evidence}
+            sources={sources}
+            confidence={latest.confidence}
+            disclaimer={latest.confidence?.calibration || latest.limitations?.[0]}
+          />
         </section>
       ) : null}
 
@@ -193,14 +373,32 @@ function InvestigationChat() {
         </section>
       ) : null}
 
+      {latest ? <DetectiveRoom agents={analysisStages(latest)} /> : null}
+
       {latest ? (
         <section className="decision-grid">
-          <article className="panel"><div className="section-heading"><div><p className="eyebrow">Next actions</p><h2>Human-led follow-up</h2></div><CheckCircle2 size={20} /></div><ol className="action-list">{latest.nextActions.map((item) => <li key={item}>{item}</li>)}</ol></article>
-          <article className="panel warning-panel"><div className="section-heading"><div><p className="eyebrow">Limitations</p><h2>Do not over-interpret</h2></div><AlertTriangle size={20} /></div><ul className="action-list">{latest.limitations.map((item) => <li key={item}>{item}</li>)}</ul></article>
+          <article className="panel">
+            <div className="section-heading"><div><p className="eyebrow">Human review</p><h2>Accept or challenge the lead</h2></div><ShieldCheck size={20} /></div>
+            <div className="review-actions">
+              <button type="button" onClick={() => recordDecision('accept')}><ThumbsUp size={17} />Accept for review</button>
+              <button type="button" onClick={() => recordDecision('reject')}><ThumbsDown size={17} />Reject lead</button>
+            </div>
+            {feedback ? <p className="query-status" role="status">{feedback}</p> : null}
+            <small>Role: {user?.role}. Acceptance does not establish guilt or authorize action.</small>
+          </article>
+          <article className="panel"><div className="section-heading"><div><p className="eyebrow">Next actions</p><h2>Human-led follow-up</h2></div><CheckCircle2 size={20} /></div><ol className="action-list">{(latest.nextActions || []).map((item) => <li key={item}>{item}</li>)}</ol></article>
+          <article className="panel warning-panel"><div className="section-heading"><div><p className="eyebrow">Limitations</p><h2>Do not over-interpret</h2></div><AlertTriangle size={20} /></div><ul className="action-list">{(latest.limitations || []).map((item) => <li key={item}>{item}</li>)}</ul></article>
         </section>
       ) : null}
 
-      {history.length > 1 ? <section className="panel"><div className="section-heading"><div><p className="eyebrow">Session context</p><h2>Recent evidence requests</h2></div></div><div className="history-list">{history.slice(1).map((item) => <button type="button" key={item.requestId} onClick={() => { setQuery(item.query); execute(item.query) }}><strong>{item.intent.replaceAll('_', ' ')}</strong><span>{item.query}</span></button>)}</div></section> : null}
+      {relatedCases.length ? <section className="case-grid">{relatedCases.map((caseRecord) => <CaseCard key={caseRecord.fir_id} caseRecord={caseRecord} compact />)}</section> : null}
+
+      {history.length > 1 ? (
+        <section className="panel">
+          <div className="section-heading"><div><p className="eyebrow">Session context</p><h2>Recent evidence requests</h2></div></div>
+          <div className="history-list">{history.slice(1).map((item) => <button type="button" key={item.requestId} onClick={() => runStarter(item.query)}><strong>{item.intent.replaceAll('_', ' ')}</strong><span>{item.query}</span></button>)}</div>
+        </section>
+      ) : null}
     </div>
   )
 }

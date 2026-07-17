@@ -189,7 +189,32 @@ select:focus, input:focus, button:focus-visible, a:focus-visible {
 }
 
 /* ── Sidebar Navigation ── */
-.nav-list { display: grid; gap: 3px; }
+.nav-list { display: grid; gap: 14px; }
+
+.nav-group { display: grid; gap: 3px; }
+
+.nav-group-label {
+  padding: 0 12px 4px;
+  color: var(--dim);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.nav-badge {
+  min-width: 25px;
+  margin-left: auto;
+  padding: 2px 6px;
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  border-radius: 99px;
+  color: var(--cyan);
+  background: var(--cyan-soft);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.58rem;
+  font-weight: 800;
+  text-align: center;
+}
 
 .nav-link {
   display: flex;
@@ -1047,6 +1072,64 @@ select:focus, input:focus, button:focus-visible, a:focus-visible {
   border-color: var(--blue);
   background: rgba(96, 165, 250, 0.18);
   box-shadow: 0 0 12px rgba(96, 165, 250, 0.15);
+}
+
+.query-live-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.query-live-status > span {
+  flex: 0 1 auto;
+  overflow: hidden;
+  color: var(--cyan);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.query-live-status > span.is-listening {
+  color: var(--red);
+  animation: dot-pulse 1.2s ease-in-out infinite;
+}
+
+.query-live-status .query-status { margin: 0; text-align: right; }
+
+.agent-processing {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  color: var(--muted);
+  background: var(--surface);
+  animation: agent-enter 0.3s ease both;
+}
+
+.agent-processing svg { color: var(--cyan); }
+
+.confidence-ring {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.confidence-ring > div { display: grid; }
+.confidence-ring strong { color: var(--text-bright); font-size: 0.84rem; }
+.confidence-ring span { color: var(--muted); font-size: 0.65rem; text-transform: uppercase; }
+
+.investigation-handoffs { flex-wrap: wrap; margin-top: 14px; }
+
+.query-form button:disabled,
+.starter-grid button:disabled,
+.suggestion-strip button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .confidence-badge {
@@ -2898,7 +2981,8 @@ textarea {
     align-items: center;
   }
 
-  .nav-list { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .nav-list { width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .nav-group { align-content: start; }
   .session-panel { margin-top: 0; }
 
   .kpi-grid, .case-grid, .agent-grid, .credential-grid {
@@ -2967,6 +3051,8 @@ textarea {
   .compact-rag, .report-delivery-grid {
     grid-template-columns: 1fr;
   }
+
+  .nav-group-label { padding-top: 4px; }
 
   .query-form { grid-template-columns: 1fr; }
   .query-form svg { display: none; }

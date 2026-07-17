@@ -2,7 +2,19 @@
   "deployment": {
     "name": "api",
     "stack": "node24",
-    "type": "advancedio"
+    "type": "advancedio",
+    "env_variables": {
+      "SAMVAAD_AUTH_ENABLED": "true",
+      "SAMVAAD_DATASTORE_ENABLED": "false",
+      "SAMVAAD_SMARTBROWZ_ENABLED": "false",
+      "SAMVAAD_STRATUS_ENABLED": "false",
+      "SAMVAAD_FILESTORE_ENABLED": "false",
+      "SAMVAAD_CIRCUITS_ENABLED": "false",
+      "SAMVAAD_ZIA_ENABLED": "false",
+      "SAMVAAD_QUICKML_ENABLED": "false",
+      "ALLOW_DEMO_AUTH": "false",
+      "DATASTORE_CACHE_MS": "60000"
+    }
   },
   "execution": {
     "main": "index.js"

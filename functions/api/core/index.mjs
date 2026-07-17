@@ -186,8 +186,8 @@ export function generateSyntheticDataset(baseSeed, total = 1000, seedNumber = 20
 
   for (let index = cases.length; index < total; index += 1) {
     const district = DISTRICTS[index % DISTRICTS.length]
-    const profile = CRIME_PROFILES[(index * 7) % CRIME_PROFILES.length]
-    const groupIndex = index % 137 === 0 ? Math.floor(index / 137) % plantedGroups.length : -1
+    const groupIndex = index % 17 === 0 ? Math.floor(index / 17) % plantedGroups.length : -1
+    const profile = CRIME_PROFILES[groupIndex >= 0 ? groupIndex % CRIME_PROFILES.length : (index * 7) % CRIME_PROFILES.length]
     const truthGroup = groupIndex >= 0 ? plantedGroups[groupIndex] : null
     const dayOffset = index % 540
     const date = new Date(Date.UTC(2024, 7, 1 + dayOffset)).toISOString().slice(0, 10)

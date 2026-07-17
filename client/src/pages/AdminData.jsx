@@ -1,12 +1,16 @@
-import { CheckCircle2, DatabaseZap, ShieldCheck, TableProperties, Upload } from 'lucide-react'
+import { CheckCircle2, DatabaseZap, RefreshCw, ShieldCheck, TableProperties, Upload } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import seed from '../data/demoSeed.json'
 import { seedSummary } from '../services/prototypeEngine.js'
+import { api } from '../services/api.js'
+import { useRuntime } from '../services/runtime.jsx'
 
 function AdminData() {
   const [draft, setDraft] = useState(JSON.stringify(seed.cases.slice(0, 2), null, 2))
   const [message, setMessage] = useState('Ready for manual synthetic data validation.')
+  const [isSeeding, setIsSeeding] = useState(false)
   const summary = seedSummary()
+  const { runtime, probe } = useRuntime()
 
   const parsed = useMemo(() => {
     try {
@@ -26,6 +30,20 @@ function AdminData() {
       setMessage(`${data.length} synthetic FIR records validated. Catalyst Data Store import can use this shape.`)
     } catch (error) {
       setMessage(error.message)
+    }
+  }
+
+  async function seedCatalyst() {
+    setIsSeeding(true)
+    setMessage('Creating the reproducible 1,000-case synthetic corpus in Catalyst Data Store…')
+    try {
+      const result = await api.seedSyntheticData()
+      setMessage(`${result.inserted.cases} cases and ${result.inserted.stations} stations inserted. Audit: ${result.auditRef}.`)
+      await probe()
+    } catch (error) {
+      setMessage(error.message)
+    } finally {
+      setIsSeeding(false)
     }
   }
 
@@ -57,8 +75,13 @@ function AdminData() {
               <CheckCircle2 size={18} />
               Validate
             </button>
+            <button className="secondary-button" type="button" onClick={seedCatalyst} disabled={isSeeding || !runtime.capabilities?.datastore?.available}>
+              <RefreshCw size={18} className={isSeeding ? 'spin-icon' : ''} />
+              {isSeeding ? 'Seeding Catalyst…' : 'Seed 1,000 Cases'}
+            </button>
           </div>
           <p className="disclaimer">{message}</p>
+          {!runtime.capabilities?.datastore?.available ? <p className="disclaimer">Create the schema tables and enable `SAMVAAD_DATASTORE_ENABLED` in Development before using the safe one-time seed action.</p> : null}
         </article>
 
         <article className="panel">
@@ -90,7 +113,7 @@ function AdminData() {
               </tbody>
             </table>
           </div>
-          <p className="disclaimer">Prototype validation only. Real uploads should go through Catalyst Authentication and Data Store RBAC.</p>
+          <p className="disclaimer">The one-time server seed refuses to run when Cases already has rows, preventing accidental duplicate data.</p>
         </article>
       </section>
 

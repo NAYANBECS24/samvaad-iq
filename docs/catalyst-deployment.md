@@ -3,8 +3,15 @@
 ## 1. Preserve the current release
 
 - Keep `pre-winner-upgrade-92b19b7` as the rollback tag.
-- Deploy `feat/winner-catalyst-upgrade` to Catalyst Development first.
+- Develop and review through normal commits; never force-push the deployment branch.
 - Do not change the current Slate production source until the Catalyst candidate passes the judge journey.
+
+Verified Development deployment (17 July 2026):
+
+- Web Client: `https://project-rainfall-60073323871.development.catalystserverless.in/app/index.html`
+- Advanced I/O API: `https://project-rainfall-60073323871.development.catalystserverless.in/server/api/api/v1/health`
+- Deployed API version: `1.1.0` on Node 24
+- Current honest mode: `offline-demo` until the console-created Data Store schema and optional services are enabled
 
 ## 2. Configure the Catalyst candidate
 
@@ -15,6 +22,9 @@
 5. Build the client with `VITE_API_BASE=/server/api/api/v1`, or configure API Gateway to map `/api/v1/*` to `/server/api/api/v1/*`.
 6. Keep optional service flags false until each provider call is verified in Development.
 7. Store allowed origins, secrets, project IDs, bucket names, and tokens in Catalyst variables rather than Git.
+8. Create and publish the QuickML pipeline using `docs/quickml-pipeline.md`; keep `SAMVAAD_QUICKML_ENABLED=false` until a published endpoint call succeeds in Development.
+
+Data Store table creation and QuickML pipeline publication are Catalyst console operations. The repository supplies the complete schema, generated 1,000-case import, 1,452-row QuickML training file, and safe Admin-only seed route; it does not claim either capability is live before those console operations succeed.
 
 ## 3. Validate before promotion
 

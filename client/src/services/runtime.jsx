@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import seed from '../data/demoSeed.json'
 import { createIntelligenceCore } from '../../../functions/api/core/index.mjs'
 import { api, storeApiToken } from './api.js'
+import { catalystAccessToken, currentCatalystUser, registerCatalystUser, signOutCatalyst } from './catalystAuth.js'
 
 const RuntimeContext = createContext(null)
 const offlineCore = createIntelligenceCore(seed, { total: 250 })
@@ -98,9 +99,21 @@ export function RuntimeProvider({ children }) {
     }
   }, [runtime.mode])
 
-  const logout = useCallback(() => storeApiToken(null), [])
+  const completeCatalystLogin = useCallback(async () => {
+    const user = await currentCatalystUser()
+    const token = await catalystAccessToken().catch(() => null)
+    if (token) storeApiToken(token, 'Zoho-oauthtoken')
+    return user
+  }, [])
 
-  const value = useMemo(() => ({ runtime, probe, runQuery, analyzeEvidence, login, logout, offlineCore }), [runtime, probe, runQuery, analyzeEvidence, login, logout])
+  const register = useCallback((details) => registerCatalystUser(details), [])
+
+  const logout = useCallback((sessionMode) => {
+    storeApiToken(null)
+    if (sessionMode === 'catalyst-auth') signOutCatalyst().catch(() => null)
+  }, [])
+
+  const value = useMemo(() => ({ runtime, probe, runQuery, analyzeEvidence, login, completeCatalystLogin, register, logout, offlineCore }), [runtime, probe, runQuery, analyzeEvidence, login, completeCatalystLogin, register, logout])
   return <RuntimeContext.Provider value={value}>{children}</RuntimeContext.Provider>
 }
 

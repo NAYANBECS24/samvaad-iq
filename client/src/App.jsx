@@ -51,7 +51,7 @@ function WorkspaceRouter() {
     user,
     setUser,
     logout: () => {
-      clearApiSession()
+      clearApiSession(user?.sessionMode)
       setUser(null)
     },
   }), [user, clearApiSession])

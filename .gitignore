@@ -13,6 +13,7 @@ client/node_modules/
 client/dist/
 functions/**/node_modules/
 .catalyst/
+.catalystrc
 .zcatalystrc
 tmp/
 playwright-report/

@@ -68,11 +68,13 @@ The current automated evaluation uses 1,000 deterministic synthetic FIRs and 30 
 | Intent accuracy | 100% |
 | Citation coverage for supported evaluation queries | 100% |
 | Refusal queries with fabricated citations | 0 |
-| Reference-run deterministic p95 evaluation time | 67 ms |
-| Initial application JavaScript | ~98 KB gzip |
+| High-confidence planted-link precision | 95.5% |
+| Planted-link recall | 100% |
+| Reference-run deterministic p95 evaluation time | 120 ms |
+| Initial application JavaScript | ~101 KB gzip |
 
 Run `npm run evaluate` to reproduce the intelligence metrics. Claims in submission materials must be updated if the measured output changes.
-`npm run validate` also runs the four role-aware browser checks and the complete judge journey.
+`npm run validate` also runs role-aware browser checks, the complete judge journey, and text/voice grounded-response coverage.
 
 ## Local development
 
@@ -107,7 +109,7 @@ npm --prefix client audit --omit=dev
 npm --prefix functions/api audit --omit=dev
 ```
 
-Offline mode is read-only: when `VITE_OFFLINE_DEMO_PASSWORD` is unset, selecting a role profile grants a clearly labeled local demo persona without pretending that it is police authentication. Hosts may set that environment variable to add a presentation gate. Local API demo authentication additionally requires `ALLOW_DEMO_AUTH=true`, `DEMO_PASSWORD`, and `DEMO_AUTH_SECRET`; production uses Catalyst Auth and keeps demo authentication disabled. Live judging credentials are distributed out of band, never committed.
+Offline mode is read-only: when `VITE_OFFLINE_DEMO_PASSWORD` is unset, selecting a role profile grants a clearly labeled local demo persona without pretending that it is police authentication. Hosted builds load Catalyst Web SDK v4.6.1, embed Catalyst sign-in, derive the active role from Catalyst, and provide low-privilege App User registration when Public Signup is enabled. Hosts may set the offline password variable to add a presentation gate. Local API demo authentication additionally requires `ALLOW_DEMO_AUTH=true`, `DEMO_PASSWORD`, and `DEMO_AUTH_SECRET`; live deployments keep demo authentication disabled. Credentials and endpoint keys are distributed out of band, never committed.
 
 ## API contract
 
@@ -115,6 +117,7 @@ The versioned interface includes:
 
 - `GET /api/v1/health`
 - `GET /api/v1/capabilities`
+- `GET /api/v1/auth/me`
 - `GET /api/v1/cases` and `/cases/:firId`
 - `POST /api/v1/query`
 - `POST /api/v1/analytics/similarity`
@@ -124,6 +127,7 @@ The versioned interface includes:
 - `POST /api/v1/evidence/uploads`
 - `POST /api/v1/evidence/:id/analyze`
 - `POST /api/v1/reports`
+- `POST /api/v1/admin/seed` (Admin-only, safe one-time synthetic seed)
 - `GET /api/v1/audit`
 - `POST /api/v1/feedback`
 
@@ -135,17 +139,19 @@ The Advanced I/O function is under `functions/api` and includes a Node 24 `catal
 
 Capabilities are opt-in environment flags and become `available` only when both the Catalyst runtime and the relevant service flag are enabled:
 
-- `CATALYST_AUTH_ENABLED`
-- `CATALYST_DATASTORE_ENABLED`
-- `CATALYST_SMARTBROWZ_ENABLED`
-- `CATALYST_STRATUS_ENABLED` or `CATALYST_FILESTORE_ENABLED`
-- `CATALYST_CIRCUITS_ENABLED`
-- `CATALYST_ZIA_ENABLED`
-- `CATALYST_QUICKML_ENABLED`
+- `SAMVAAD_AUTH_ENABLED`
+- `SAMVAAD_DATASTORE_ENABLED`
+- `SAMVAAD_SMARTBROWZ_ENABLED`
+- `SAMVAAD_STRATUS_ENABLED` or `SAMVAAD_FILESTORE_ENABLED`
+- `SAMVAAD_CIRCUITS_ENABLED`
+- `SAMVAAD_ZIA_ENABLED`
+- `SAMVAAD_QUICKML_ENABLED`
 
 The canonical Catalyst-hosted client should build with `VITE_API_BASE=/server/api/api/v1` unless API Gateway maps `/api/v1/*` to the Advanced I/O function. Slate uses the full approved API origin or the Gateway path configured for that site.
 
 See [Catalyst deployment](docs/catalyst-deployment.md), [capability matrix](docs/capability-matrix.md), and [Data Store schema](data/catalyst-schema.md).
+
+The verified Development candidate is available at `https://project-rainfall-60073323871.development.catalystserverless.in/app/index.html`. Its versioned health endpoint returns JSON at `/server/api/api/v1/health`. It remains honestly labeled `Offline Demo` until the documented Data Store schema is created and the Data Store capability is enabled; this avoids presenting an unconfigured database or model as live.
 
 ## Evidence Lab
 

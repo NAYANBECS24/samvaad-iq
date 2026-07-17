@@ -1,5 +1,11 @@
-const API_BASE = (import.meta.env.VITE_API_BASE || '/api/v1').replace(/\/$/, '')
+const configuredBase = import.meta.env.VITE_API_BASE?.replace(/\/$/, '')
+const API_BASES = configuredBase
+  ? [configuredBase]
+  : ['127.0.0.1', 'localhost'].includes(window.location.hostname)
+    ? ['/api/v1']
+    : ['/server/api/api/v1', '/api/v1']
 const SESSION_KEY = 'samvaad_api_token'
+let activeApiBase = API_BASES[0]
 
 export class ApiError extends Error {
   constructor(message, payload = {}, status = 0) {
@@ -12,36 +18,54 @@ export class ApiError extends Error {
   }
 }
 
-export function storeApiToken(token) {
-  if (token) window.localStorage.setItem(SESSION_KEY, token)
+export function storeApiToken(token, scheme = 'Bearer') {
+  if (token) window.localStorage.setItem(SESSION_KEY, JSON.stringify({ token, scheme }))
   else window.localStorage.removeItem(SESSION_KEY)
 }
 
-function apiToken() {
-  return window.localStorage.getItem(SESSION_KEY)
+function apiSession() {
+  const stored = window.localStorage.getItem(SESSION_KEY)
+  if (!stored) return null
+  try {
+    const parsed = JSON.parse(stored)
+    return parsed?.token ? parsed : null
+  } catch {
+    return { token: stored, scheme: 'Bearer' }
+  }
 }
 
 async function request(path, options = {}) {
   const controller = new AbortController()
   const timeout = window.setTimeout(() => controller.abort(), options.timeout || 6000)
-  const token = apiToken()
+  const session = apiSession()
   try {
-    const response = await fetch(`${API_BASE}${path}`, {
-      ...options,
-      signal: controller.signal,
-      credentials: 'include',
-      headers: {
-        accept: 'application/json',
-        ...(options.body ? { 'content-type': 'application/json' } : {}),
-        ...(token ? { authorization: `Bearer ${token}` } : {}),
-        ...(options.headers || {}),
-      },
-    })
-    const contentType = response.headers.get('content-type') || ''
-    if (!contentType.includes('application/json')) throw new ApiError('The configured API returned a non-JSON response.', { code: 'NON_JSON_API' }, response.status)
-    const payload = await response.json()
-    if (!response.ok) throw new ApiError(payload.message || `API request failed with ${response.status}.`, payload, response.status)
-    return payload
+    let lastError
+    const bases = [activeApiBase, ...API_BASES.filter((base) => base !== activeApiBase)]
+    for (const base of bases) {
+      try {
+        const response = await fetch(`${base}${path}`, {
+          ...options,
+          signal: controller.signal,
+          credentials: 'include',
+          headers: {
+            accept: 'application/json',
+            ...(options.body ? { 'content-type': 'application/json' } : {}),
+            ...(session ? { authorization: `${session.scheme || 'Bearer'} ${session.token}` } : {}),
+            ...(options.headers || {}),
+          },
+        })
+        const contentType = response.headers.get('content-type') || ''
+        if (!contentType.includes('application/json')) throw new ApiError('The configured API returned the web application instead of JSON.', { code: 'NON_JSON_API' }, response.status)
+        const payload = await response.json()
+        if (!response.ok) throw new ApiError(payload.message || `API request failed with ${response.status}.`, payload, response.status)
+        activeApiBase = base
+        return payload
+      } catch (error) {
+        lastError = error
+        if (error instanceof ApiError && !['NON_JSON_API', 'ROUTE_NOT_FOUND'].includes(error.code)) throw error
+      }
+    }
+    throw lastError
   } catch (error) {
     if (error.name === 'AbortError') throw new ApiError('The API health window expired.', { code: 'API_TIMEOUT', retryable: true })
     throw error
@@ -54,6 +78,8 @@ export const api = {
   health: () => request('/health', { timeout: 3500 }),
   capabilities: () => request('/capabilities', { timeout: 3500 }),
   login: (email, password) => request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
+  currentUser: () => request('/auth/me'),
+  seedSyntheticData: () => request('/admin/seed', { method: 'POST', body: JSON.stringify({ confirm: true }), timeout: 60000 }),
   cases: (filters = {}) => {
     const params = new URLSearchParams()
     Object.entries(filters).forEach(([key, value]) => value && params.set(key, value))
@@ -72,4 +98,4 @@ export const api = {
   feedback: (payload) => request('/feedback', { method: 'POST', body: JSON.stringify(payload) }),
 }
 
-export { API_BASE }
+export { activeApiBase as API_BASE }

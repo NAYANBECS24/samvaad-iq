@@ -3,7 +3,8 @@ const crypto = require('crypto')
 let catalystSdk = null
 
 function envEnabled(name) {
-  return String(process.env[name] || '').toLowerCase() === 'true'
+  const fallbackName = name.replace(/^CATALYST_/, 'SAMVAAD_')
+  return String(process.env[name] || process.env[fallbackName] || '').toLowerCase() === 'true'
 }
 
 function getSdk() {
@@ -28,7 +29,8 @@ function initialize(req) {
 
 function capabilitySnapshot(req) {
   const app = initialize(req)
-  const catalystRuntime = Boolean(app) && envEnabled('CATALYST_RUNTIME')
+  const catalystRuntime = Boolean(app)
+  const quickMlAvailable = catalystRuntime && envEnabled('CATALYST_QUICKML_ENABLED') && Boolean(process.env.QUICKML_ENDPOINT_KEY)
   return {
     runtime: {
       available: catalystRuntime,
@@ -55,8 +57,9 @@ function capabilitySnapshot(req) {
       provider: 'Catalyst Circuits',
     },
     intelligence: {
-      available: catalystRuntime && (envEnabled('CATALYST_ZIA_ENABLED') || envEnabled('CATALYST_QUICKML_ENABLED')),
-      provider: envEnabled('CATALYST_QUICKML_ENABLED') ? 'Catalyst QuickML' : envEnabled('CATALYST_ZIA_ENABLED') ? 'Zia' : 'Explainable deterministic core',
+      available: quickMlAvailable || (catalystRuntime && envEnabled('CATALYST_ZIA_ENABLED')),
+      provider: quickMlAvailable ? 'Catalyst QuickML' : envEnabled('CATALYST_ZIA_ENABLED') ? 'Zia' : 'Explainable deterministic core',
+      model: quickMlAvailable ? process.env.QUICKML_MODEL_NAME || 'KAVACH Link Classifier' : null,
     },
   }
 }
@@ -66,10 +69,13 @@ async function currentUser(req) {
   if (!app || !envEnabled('CATALYST_AUTH_ENABLED')) return null
   try {
     const user = await app.userManagement().getCurrentUser()
+    const userId = user?.user_id || user?.zaaid || user?.zuid
+    const email = user?.email_id || user?.email
+    if (!userId || !email) return null
     const roleName = user?.role_details?.role_name || user?.role_name || user?.role || 'Investigator'
     return {
-      id: user?.user_id || user?.zaaid || user?.email_id || 'catalyst-user',
-      email: user?.email_id || user?.email || 'authenticated@catalyst',
+      id: userId,
+      email,
       role: ['Admin', 'Investigator', 'Analyst', 'Supervisor'].includes(roleName) ? roleName : 'Investigator',
       provider: 'catalyst-auth',
     }
@@ -78,14 +84,30 @@ async function currentUser(req) {
   }
 }
 
-async function loadCases(req) {
+async function loadRows(req, tableName, maxRows = 5000) {
   const app = initialize(req)
   if (!app || !envEnabled('CATALYST_DATASTORE_ENABLED')) return null
-  const rows = await app.datastore().table('Cases').getAllRows()
+  const table = app.datastore().table(tableName)
+  const rows = []
+  let nextToken
+  let moreRecords = true
+  while (moreRecords && rows.length < maxRows) {
+    const response = await table.getPagedRows({ nextToken, maxRows: Math.min(200, maxRows - rows.length) })
+    rows.push(...(response?.data || []))
+    nextToken = response?.next_token
+    moreRecords = Boolean(response?.more_records && nextToken)
+  }
+  return rows
+}
+
+async function loadCases(req) {
+  const rows = await loadRows(req, 'Cases')
   if (!Array.isArray(rows) || !rows.length) return null
   return rows.map((row) => ({
     ...row,
-    accused_ids: Array.isArray(row.accused_ids) ? row.accused_ids : JSON.parse(row.accused_ids || '[]'),
+    accused_ids: Array.isArray(row.accused_ids) ? row.accused_ids : (() => {
+      try { return JSON.parse(row.accused_ids || '[]') } catch { return [] }
+    })(),
     synthetic: true,
     data_label: 'SYNTHETIC DEMO DATA',
   }))
@@ -95,6 +117,24 @@ async function appendRow(req, tableName, payload) {
   const app = initialize(req)
   if (!app || !envEnabled('CATALYST_DATASTORE_ENABLED')) return null
   return app.datastore().table(tableName).insertRow(payload)
+}
+
+async function insertRows(req, tableName, payloads, batchSize = 100) {
+  const app = initialize(req)
+  if (!app || !envEnabled('CATALYST_DATASTORE_ENABLED')) return null
+  const table = app.datastore().table(tableName)
+  const inserted = []
+  for (let index = 0; index < payloads.length; index += batchSize) {
+    const batch = payloads.slice(index, index + batchSize)
+    inserted.push(...await table.insertRows(batch))
+  }
+  return inserted
+}
+
+async function quickMlPredict(req, input) {
+  const app = initialize(req)
+  if (!app || !envEnabled('CATALYST_QUICKML_ENABLED') || !process.env.QUICKML_ENDPOINT_KEY) return null
+  return app.quickML().predict(process.env.QUICKML_ENDPOINT_KEY, input)
 }
 
 async function renderPdf(req, html) {
@@ -139,7 +179,10 @@ module.exports = {
   capabilitySnapshot,
   currentUser,
   initialize,
+  insertRows,
   loadCases,
+  loadRows,
+  quickMlPredict,
   renderPdf,
   signLocalToken,
   verifyLocalToken,

@@ -15,6 +15,7 @@
     "api:smoke": "node functions/api/scripts/smoke-test.js",
     "api:test": "npm --prefix functions/api test",
     "evaluate": "npm --prefix functions/api run evaluate",
+    "generate:data": "npm --prefix functions/api run generate:data",
     "browser:test": "playwright test",
     "test": "npm run api:test && npm run api:smoke && npm run evaluate",
     "validate": "npm run client:lint && npm run build && npm test && npm run browser:test"

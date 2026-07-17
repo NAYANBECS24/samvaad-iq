@@ -8,6 +8,7 @@ const catalyst = require('./providers/catalyst')
 const corePromise = import('./core/index.mjs')
 let memoryCorePromise = null
 let catalystCoreCache = null
+let catalystCoreCacheExpiresAt = 0
 const auditEvents = []
 const feedbackEvents = []
 const rateWindows = new Map()
@@ -119,6 +120,9 @@ async function runtime(req) {
   const capabilities = catalyst.capabilitySnapshot(req)
   if (capabilities.datastore.available) {
     try {
+      if (catalystCoreCache && catalystCoreCacheExpiresAt > Date.now()) {
+        return { core: catalystCoreCache.core, mode: 'catalyst-live', capabilities, limitations: [] }
+      }
       const rows = await catalyst.loadCases(req)
       if (rows?.length) {
         const dataVersion = `${rows.length}-${rows[0]?.MODIFIEDTIME || ''}`
@@ -126,6 +130,7 @@ async function runtime(req) {
           const { createIntelligenceCore } = await corePromise
           catalystCoreCache = { version: dataVersion, core: createIntelligenceCore({ ...seed, cases: rows }, { total: rows.length }) }
         }
+        catalystCoreCacheExpiresAt = Date.now() + Number(process.env.DATASTORE_CACHE_MS || 60_000)
         return { core: catalystCoreCache.core, mode: 'catalyst-live', capabilities, limitations: [] }
       }
       return { core: await baseCore(), mode: 'offline-demo', capabilities, limitations: ['Catalyst Data Store is enabled but contains no Cases rows; using the labeled synthetic fallback.'] }
@@ -136,10 +141,16 @@ async function runtime(req) {
   return { core: await baseCore(), mode: 'offline-demo', capabilities, limitations: ['Catalyst Data Store is not enabled; using the labeled deterministic demo dataset.'] }
 }
 
-function appendAudit({ actor, action, resource, requestId: id, mode, details = {} }) {
-  const previousHash = auditEvents.at(-1)?.hash || 'GENESIS'
+async function appendAudit(req, { actor, action, resource, requestId: id, mode, details = {} }) {
+  let previous = auditEvents.at(-1)
+  const datastoreAvailable = catalyst.capabilitySnapshot(req).datastore.available
+  if (!previous && datastoreAvailable) {
+    const persisted = await catalyst.loadRows(req, 'AuditEvents').catch(() => [])
+    previous = persisted?.sort((left, right) => String(left.created_at).localeCompare(String(right.created_at))).at(-1)
+  }
+  const previousHash = previous?.hash || 'GENESIS'
   const event = {
-    id: `AUD-${String(auditEvents.length + 1).padStart(6, '0')}`,
+    id: `AUD-${crypto.randomUUID()}`,
     timestamp: new Date().toISOString(),
     actor,
     action,
@@ -151,7 +162,77 @@ function appendAudit({ actor, action, resource, requestId: id, mode, details = {
   }
   event.hash = crypto.createHash('sha256').update(JSON.stringify(event)).digest('hex')
   auditEvents.push(event)
+  if (datastoreAvailable) {
+    await catalyst.appendRow(req, 'AuditEvents', {
+      audit_id: event.id,
+      actor: event.actor,
+      action: event.action,
+      resource: event.resource,
+      request_id: event.requestId,
+      details_json: JSON.stringify(event.details),
+      previous_hash: event.previousHash,
+      hash: event.hash,
+      created_at: event.timestamp,
+    }).catch(() => null)
+  }
   return event
+}
+
+function quickMlFeatures(analysis) {
+  if (!analysis?.factors?.length) return null
+  const factors = Object.fromEntries(analysis.factors.map((factor) => [factor.key, factor.score]))
+  return {
+    crime_type_match: factors.crimeType || 0,
+    mo_similarity: factors.modusOperandi || 0,
+    geography_match: factors.geography || 0,
+    time_pattern_match: factors.timePattern || 0,
+    shared_entity_score: factors.sharedEntities || 0,
+    narrative_similarity: factors.summary || 0,
+    deterministic_score: analysis.score,
+  }
+}
+
+async function attachQuickMlSignal(req, active, result) {
+  const features = quickMlFeatures(result?.visualizations?.crimeDna)
+  if (!features || !active.capabilities.intelligence.available || active.capabilities.intelligence.provider !== 'Catalyst QuickML') return result
+  try {
+    const prediction = await catalyst.quickMlPredict(req, features)
+    result.modelSignals = {
+      provider: 'Catalyst QuickML',
+      model: active.capabilities.intelligence.model,
+      purpose: 'Secondary case-link classification; deterministic cited evidence remains authoritative.',
+      features,
+      prediction,
+    }
+  } catch (error) {
+    result.limitations.push(`QuickML enrichment was unavailable (${error.message}); the cited deterministic analysis remains valid.`)
+  }
+  return result
+}
+
+function caseToDataStoreRow(item) {
+  return {
+    fir_id: item.fir_id,
+    source_seed_id: item.source_seed_id || '',
+    district: item.district,
+    station_id: item.station_id,
+    crime_type: item.crime_type,
+    date: item.date,
+    time: item.time,
+    lat: item.lat,
+    lon: item.lon,
+    status: item.status,
+    mo: item.mo,
+    case_summary: item.case_summary,
+    bns_sections: item.bns_sections,
+    accused_ids: JSON.stringify(item.accused_ids || []),
+    victim_id: item.victim_id || '',
+    vehicle: item.vehicle || 'NA',
+    phone_hash: item.phone_hash || 'NA',
+    truth_group: item.truth_group || '',
+    synthetic: true,
+    data_label: 'SYNTHETIC DEMO DATA',
+  }
 }
 
 async function identity(req) {
@@ -194,7 +275,7 @@ async function handleRequest(req, res) {
     const active = await runtime(req)
 
     if (req.method === 'GET' && path === '/api/v1/health') {
-      return sendJson(req, res, 200, { requestId: id, status: 'ok', name: 'SAMVAAD-IQ API', version: '1.0.0', mode: active.mode, dataVersion: active.core.dataset.version, timestamp: new Date().toISOString() }, id)
+      return sendJson(req, res, 200, { requestId: id, status: 'ok', name: 'SAMVAAD-IQ API', version: '1.1.0', mode: active.mode, dataVersion: active.core.dataset.version, timestamp: new Date().toISOString() }, id)
     }
 
     if (req.method === 'GET' && path === '/api/v1/capabilities') {
@@ -213,6 +294,29 @@ async function handleRequest(req, res) {
       return sendJson(req, res, 200, { requestId: id, mode: active.mode, token, user: { ...candidate, landing: roleLanding[candidate.role] } }, id)
     }
 
+    if (req.method === 'GET' && path === '/api/v1/auth/me') {
+      const access = await requireIdentity(req)
+      if (access.error) return sendJson(req, res, access.error.status, errorPayload(id, access.error.code, access.error.message, false, active.mode), id)
+      return sendJson(req, res, 200, { requestId: id, mode: active.mode, user: { ...access.user, landing: roleLanding[access.user.role] || '/chat' } }, id)
+    }
+
+    if (req.method === 'POST' && path === '/api/v1/admin/seed') {
+      const access = await requireIdentity(req, ['Admin'])
+      if (access.error) return sendJson(req, res, access.error.status, errorPayload(id, access.error.code, access.error.message, false, active.mode), id)
+      if (!active.capabilities.datastore.available) return sendJson(req, res, 503, errorPayload(id, 'DATASTORE_UNAVAILABLE', 'Create the Catalyst Data Store tables and enable the Data Store capability before seeding.', false, active.mode), id)
+      const existing = await catalyst.loadCases(req)
+      if (existing?.length) return sendJson(req, res, 409, errorPayload(id, 'DATASET_ALREADY_SEEDED', `Cases already contains ${existing.length} rows; the safe seed operation will not create duplicates.`, false, active.mode), id)
+      const generated = await baseCore()
+      const caseRows = generated.cases.map(caseToDataStoreRow)
+      const stationRows = generated.dataset.stations.map((item) => ({ station_id: item.station_id, station_name: item.station_name, district: item.district, synthetic: true }))
+      await catalyst.insertRows(req, 'Stations', stationRows)
+      await catalyst.insertRows(req, 'Cases', caseRows)
+      catalystCoreCache = null
+      catalystCoreCacheExpiresAt = 0
+      const audit = await appendAudit(req, { actor: access.user.email, action: 'SEED_SYNTHETIC_DATA', resource: 'Cases', requestId: id, mode: 'catalyst-live', details: { cases: caseRows.length, stations: stationRows.length, seed: 20260717 } })
+      return sendJson(req, res, 201, { requestId: id, mode: 'catalyst-live', inserted: { cases: caseRows.length, stations: stationRows.length }, dataVersion: generated.dataset.version, auditRef: audit.id, label: generated.dataset.label }, id)
+    }
+
     if (req.method === 'GET' && path === '/api/v1/cases') {
       const filters = { district: url.searchParams.get('district'), crimeType: url.searchParams.get('crimeType') }
       const query = url.searchParams.get('q') || `${filters.district || ''} ${filters.crimeType || ''}`
@@ -229,17 +333,30 @@ async function handleRequest(req, res) {
 
     if (req.method === 'POST' && path === '/api/v1/query') {
       const body = QuerySchema.parse(await readJson(req))
-      const session = await identity(req)
-      const audit = appendAudit({ actor: session?.email || 'anonymous-demo', action: 'QUERY', resource: 'CaseIndex', requestId: id, mode: active.mode, details: { queryLength: body.query.length } })
+      const access = active.mode === 'catalyst-live' ? await requireIdentity(req) : { user: await identity(req) }
+      if (access.error) return sendJson(req, res, access.error.status, errorPayload(id, access.error.code, access.error.message, false, active.mode), id)
+      const session = access.user
+      const audit = await appendAudit(req, { actor: session?.email || 'anonymous-demo', action: 'QUERY', resource: 'CaseIndex', requestId: id, mode: active.mode, details: { queryLength: body.query.length } })
       const result = active.core.answer(body.query, { mode: active.mode, requestId: id, auditRef: audit.id })
       result.limitations = [...active.limitations, ...result.limitations]
-      if (active.capabilities.datastore.available) await catalyst.appendRow(req, 'QueryRuns', { request_id: id, actor: session?.email || 'anonymous-demo', intent: result.intent, mode: active.mode, created_at: new Date().toISOString() }).catch(() => null)
+      await attachQuickMlSignal(req, active, result)
+      if (active.capabilities.datastore.available) await catalyst.appendRow(req, 'QueryRuns', { request_id: id, conversation_id: body.context?.conversationId || `CONV-${crypto.randomUUID()}`, actor: session?.email || 'anonymous-demo', intent: result.intent, filters_json: JSON.stringify(result.filters || {}), mode: active.mode, created_at: new Date().toISOString() }).catch(() => null)
       return sendJson(req, res, 200, result, id)
     }
 
     if (req.method === 'POST' && path === '/api/v1/analytics/similarity') {
       const body = SimilarSchema.parse(await readJson(req))
-      return sendJson(req, res, 200, { requestId: id, mode: active.mode, ...active.core.similar(body.firId) }, id)
+      const similarity = active.core.similar(body.firId)
+      if (active.capabilities.intelligence.available && active.capabilities.intelligence.provider === 'Catalyst QuickML') {
+        await Promise.all(similarity.matches.slice(0, 3).map(async (match) => {
+          try {
+            match.modelSignal = await catalyst.quickMlPredict(req, quickMlFeatures(match))
+          } catch (error) {
+            match.modelLimitation = `QuickML unavailable: ${error.message}`
+          }
+        }))
+      }
+      return sendJson(req, res, 200, { requestId: id, mode: active.mode, model: active.capabilities.intelligence, ...similarity }, id)
     }
 
     if (req.method === 'POST' && path === '/api/v1/analytics/graph') {
@@ -269,8 +386,9 @@ async function handleRequest(req, res) {
       if (access.error && active.mode === 'catalyst-live') return sendJson(req, res, access.error.status, errorPayload(id, access.error.code, access.error.message, false, active.mode), id)
       const body = EvidenceSchema.parse(await readJson(req))
       const analysis = active.core.analyzeEvidence({ ...body, mode: active.mode, limitations: [...(body.limitations || []), ...active.limitations] })
-      const audit = appendAudit({ actor: access.user?.email || 'anonymous-demo', action: 'ANALYZE_EVIDENCE', resource: body.file.sha256, requestId: id, mode: active.mode, details: { fileName: body.file.name, size: body.file.size } })
+      const audit = await appendAudit(req, { actor: access.user?.email || 'anonymous-demo', action: 'ANALYZE_EVIDENCE', resource: body.file.sha256, requestId: id, mode: active.mode, details: { fileName: body.file.name, size: body.file.size } })
       analysis.auditRef = audit.id
+      if (active.capabilities.datastore.available) await catalyst.appendRow(req, 'EvidenceExtractions', { evidence_id: body.file.sha256, extractor: 'SAMVAAD deterministic evidence parser', facts_json: JSON.stringify(analysis.facts || analysis.evidence || []), limitations_json: JSON.stringify(analysis.limitations || []), review_status: 'machine-extracted' }).catch(() => null)
       return sendJson(req, res, 200, { requestId: id, ...analysis }, id)
     }
 
@@ -278,16 +396,20 @@ async function handleRequest(req, res) {
       const access = await requireIdentity(req, ['Supervisor', 'Admin'])
       if (access.error) return sendJson(req, res, access.error.status, errorPayload(id, access.error.code, access.error.message, false, active.mode), id)
       const body = z.object({ answer: z.string().max(10000), citations: z.array(z.object({ firId: z.string(), excerpt: z.string() })).max(30), approved: z.literal(true) }).parse(await readJson(req))
-      const audit = appendAudit({ actor: access.user.email, action: 'APPROVE_REPORT', resource: 'EvidenceBrief', requestId: id, mode: active.mode })
+      const audit = await appendAudit(req, { actor: access.user.email, action: 'APPROVE_REPORT', resource: 'EvidenceBrief', requestId: id, mode: active.mode })
       const html = reportHtml(body, access.user, audit.id)
       const pdf = active.capabilities.reports.available ? await catalyst.renderPdf(req, html).catch(() => null) : null
-      return sendJson(req, res, 200, { requestId: id, mode: active.mode, reportId: `RPT-${crypto.randomUUID()}`, auditRef: audit.id, renderer: pdf ? 'Catalyst SmartBrowz' : 'Browser print fallback', html, pdf, limitations: pdf ? [] : ['SmartBrowz is unavailable; the returned HTML must be printed locally and is labeled accordingly.'] }, id)
+      const reportId = `RPT-${crypto.randomUUID()}`
+      if (active.capabilities.datastore.available) await catalyst.appendRow(req, 'Reports', { report_id: reportId, request_id: id, approved_by: access.user.email, renderer: pdf ? 'Catalyst SmartBrowz' : 'Browser print fallback', storage_key: '', created_at: new Date().toISOString() }).catch(() => null)
+      return sendJson(req, res, 200, { requestId: id, mode: active.mode, reportId, auditRef: audit.id, renderer: pdf ? 'Catalyst SmartBrowz' : 'Browser print fallback', html, pdf, limitations: pdf ? [] : ['SmartBrowz is unavailable; the returned HTML must be printed locally and is labeled accordingly.'] }, id)
     }
 
     if (req.method === 'GET' && path === '/api/v1/audit') {
       const access = await requireIdentity(req, ['Supervisor', 'Admin'])
       if (access.error) return sendJson(req, res, access.error.status, errorPayload(id, access.error.code, access.error.message, false, active.mode), id)
-      return sendJson(req, res, 200, { requestId: id, mode: active.mode, events: auditEvents.slice(-100).reverse(), chainHead: auditEvents.at(-1)?.hash || 'GENESIS' }, id)
+      const persisted = active.capabilities.datastore.available ? await catalyst.loadRows(req, 'AuditEvents').catch(() => []) : []
+      const events = persisted.length ? persisted.sort((left, right) => String(right.created_at).localeCompare(String(left.created_at))).slice(0, 100) : auditEvents.slice(-100).reverse()
+      return sendJson(req, res, 200, { requestId: id, mode: active.mode, events, chainHead: events[0]?.hash || auditEvents.at(-1)?.hash || 'GENESIS' }, id)
     }
 
     if (req.method === 'POST' && path === '/api/v1/feedback') {
@@ -296,7 +418,8 @@ async function handleRequest(req, res) {
       const body = FeedbackSchema.parse(await readJson(req))
       const event = { id: `FDB-${feedbackEvents.length + 1}`, ...body, actor: access.user?.email || 'anonymous-demo', timestamp: new Date().toISOString() }
       feedbackEvents.push(event)
-      appendAudit({ actor: event.actor, action: 'REVIEW_LEAD', resource: body.requestId, requestId: id, mode: active.mode, details: { decision: body.decision } })
+      await appendAudit(req, { actor: event.actor, action: 'REVIEW_LEAD', resource: body.requestId, requestId: id, mode: active.mode, details: { decision: body.decision } })
+      if (active.capabilities.datastore.available) await catalyst.appendRow(req, 'Feedback', { feedback_id: event.id, request_id: body.requestId, actor: event.actor, decision: body.decision, note: body.note || '', created_at: event.timestamp }).catch(() => null)
       return sendJson(req, res, 201, { requestId: id, mode: active.mode, feedback: event }, id)
     }
 

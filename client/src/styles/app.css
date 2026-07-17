@@ -1074,6 +1074,10 @@ select:focus, input:focus, button:focus-visible, a:focus-visible {
   box-shadow: 0 0 12px rgba(96, 165, 250, 0.15);
 }
 
+.spin-icon { animation: samvaad-spin 0.9s linear infinite; }
+
+@keyframes samvaad-spin { to { transform: rotate(360deg); } }
+
 .query-live-status {
   display: flex;
   align-items: center;
@@ -2894,6 +2898,73 @@ textarea {
   font-size: 0.95rem;
 }
 
+.login-auth-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(2, 8, 23, 0.62);
+}
+
+.login-auth-tabs button {
+  min-height: 38px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
+.login-auth-tabs button:hover,
+.login-auth-tabs button.active {
+  color: #06121c;
+  background: linear-gradient(135deg, var(--cyan), #06b6d4);
+}
+
+.login-auth-tabs button:disabled { cursor: not-allowed; opacity: 0.45; }
+
+.catalyst-auth-panel { display: grid; gap: 12px; }
+
+.catalyst-signin-frame {
+  display: grid;
+  min-height: 210px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 240, 255, 0.18);
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.catalyst-signin-frame > p {
+  align-self: center;
+  padding: 24px;
+  color: #334155;
+  text-align: center;
+}
+
+.catalyst-signin-frame iframe { width: 100% !important; min-height: 430px !important; border: 0; }
+.catalyst-auth-panel .primary-button { width: 100%; min-height: 46px; }
+
+.auth-safety-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  color: var(--dim);
+  line-height: 1.45;
+}
+
+.auth-safety-note svg { flex: 0 0 auto; color: var(--emerald); margin-top: 2px; }
+
+.registration-name-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .form-error {
   min-height: 38px;
   padding: 9px 11px;
@@ -2901,6 +2972,16 @@ textarea {
   border-radius: 10px;
   background: var(--red-soft);
   color: var(--red);
+  font-weight: 700;
+}
+
+.form-notice {
+  min-height: 38px;
+  padding: 9px 11px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 10px;
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--emerald);
   font-weight: 700;
 }
 
@@ -3051,6 +3132,8 @@ textarea {
   .compact-rag, .report-delivery-grid {
     grid-template-columns: 1fr;
   }
+
+  .registration-name-grid { grid-template-columns: 1fr; }
 
   .nav-group-label { padding-top: 4px; }
 

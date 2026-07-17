@@ -1,0 +1,20 @@
+station_id,station_name,district,synthetic
+PS-BLR-JYN,PS-BLR-JYN,Bengaluru South,true
+PS-BLR-BSK,PS-BLR-BSK,Bengaluru South,true
+PS-MYS-LKR,PS-MYS-LKR,Mysuru,true
+PS-MYS-VVP,PS-MYS-VVP,Mysuru,true
+PS-HUB-KES,PS-HUB-KES,Hubballi-Dharwad,true
+PS-MNG-PAN,PS-MNG-PAN,Mangaluru,true
+PS-MYS-DVR,PS-MYS-DVR,Mysuru,true
+PS-BLR-SYN-01,Synthetic Station 01,Bengaluru South,true
+PS-MYS-SYN-02,Synthetic Station 02,Mysuru,true
+PS-HBL-SYN-03,Synthetic Station 03,Hubballi-Dharwad,true
+PS-MNG-SYN-04,Synthetic Station 04,Mangaluru,true
+PS-BLG-SYN-05,Synthetic Station 05,Belagavi,true
+PS-KLB-SYN-06,Synthetic Station 06,Kalaburagi,true
+PS-BLR-SYN-07,Synthetic Station 07,Bengaluru South,true
+PS-MYS-SYN-08,Synthetic Station 08,Mysuru,true
+PS-HBL-SYN-09,Synthetic Station 09,Hubballi-Dharwad,true
+PS-MNG-SYN-10,Synthetic Station 10,Mangaluru,true
+PS-BLG-SYN-11,Synthetic Station 11,Belagavi,true
+PS-KLB-SYN-12,Synthetic Station 12,Kalaburagi,true

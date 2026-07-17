@@ -39,7 +39,7 @@ test('health is versioned JSON and exposes the honest runtime mode', async () =>
   assert.match(response.headers.get('content-type'), /application\/json/)
   const payload = await response.json()
   assert.equal(payload.mode, 'offline-demo')
-  assert.equal(payload.version, '1.0.0')
+  assert.equal(payload.version, '1.1.0')
 })
 
 test('query returns the standardized evidence envelope', async () => {
@@ -84,6 +84,14 @@ test('server derives role from a signed session and protects audit', async () =>
   assert.equal(allowed.status, 200)
   const audit = await allowed.json()
   assert.ok(audit.chainHead)
+})
+
+test('anonymous requests never receive a placeholder Catalyst identity', async () => {
+  const response = await fetch(`${baseUrl}/api/v1/auth/me`)
+  const payload = await response.json()
+  assert.equal(response.status, 401)
+  assert.equal(payload.code, 'AUTH_REQUIRED')
+  assert.equal(payload.user, undefined)
 })
 
 test('CORS never reflects an unapproved origin', async () => {

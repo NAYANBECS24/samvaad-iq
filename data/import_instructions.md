@@ -1,5 +1,16 @@
 # Catalyst Data Store Import Notes
 
+## Generated Catalyst and QuickML assets
+
+Run `npm run generate:data`. The deterministic release assets are written to `data/generated/`:
+
+- `cases-1000.csv` for the Catalyst `Cases` table;
+- `stations.csv` for the Catalyst `Stations` table;
+- `quickml-case-link-training.csv` for the KAVACH QuickML classifier;
+- `manifest.json` for seed, scale, planted-pattern, and class-count verification.
+
+An authenticated Catalyst Administrator can also use Admin Data → **Seed 1,000 Cases** after the schema exists. The endpoint refuses to insert when `Cases` is non-empty.
+
 Use `data/seed-data.json` as the source of truth for the prototype.
 
 Create these Catalyst Data Store tables first:

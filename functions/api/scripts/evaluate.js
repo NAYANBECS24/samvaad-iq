@@ -36,7 +36,7 @@ const scenarios = [
 ]
 
 async function main() {
-  const { createIntelligenceCore } = await import('../core/index.mjs')
+  const { createIntelligenceCore, crimeDna } = await import('../core/index.mjs')
   const core = createIntelligenceCore(seed, { total: 1000 })
   let correct = 0
   let grounded = 0
@@ -64,6 +64,30 @@ async function main() {
   const intentAccuracy = correct / scenarios.length
   const citationCoverage = grounded / expectedGrounded
   const p95Ms = sorted[Math.ceil(sorted.length * 0.95) - 1]
+  let highConfidenceTruePositives = 0
+  let highConfidenceFalsePositives = 0
+  let plantedPositivePairs = 0
+  let detectedPlantedPairs = 0
+  for (let leftIndex = 0; leftIndex < core.cases.length; leftIndex += 1) {
+    const left = core.cases[leftIndex]
+    for (let rightIndex = leftIndex + 1; rightIndex < core.cases.length; rightIndex += 1) {
+      const right = core.cases[rightIndex]
+      const isPlantedLink = Boolean(left.truth_group && left.truth_group === right.truth_group)
+      if (!isPlantedLink && (leftIndex * 37 + rightIndex * 17) % 401 !== 0) continue
+      const isHighConfidence = crimeDna(left, right).score >= 0.72
+      if (isPlantedLink) {
+        plantedPositivePairs += 1
+        if (isHighConfidence) {
+          detectedPlantedPairs += 1
+          highConfidenceTruePositives += 1
+        }
+      } else if (isHighConfidence) {
+        highConfidenceFalsePositives += 1
+      }
+    }
+  }
+  const linkPrecision = highConfidenceTruePositives / Math.max(1, highConfidenceTruePositives + highConfidenceFalsePositives)
+  const plantedRecall = detectedPlantedPairs / Math.max(1, plantedPositivePairs)
   const metrics = {
     datasetCases: core.cases.length,
     evaluationQueries: scenarios.length,
@@ -71,6 +95,9 @@ async function main() {
     citationCoverage: Number(citationCoverage.toFixed(3)),
     refusalFabricationFailures: refusalFailures,
     deterministicP95Ms: Number(p95Ms.toFixed(2)),
+    highConfidenceLinkPrecision: Number(linkPrecision.toFixed(3)),
+    plantedLinkRecall: Number(plantedRecall.toFixed(3)),
+    evaluatedPlantedPairs: plantedPositivePairs,
     failures,
   }
 
@@ -79,6 +106,7 @@ async function main() {
   assert.equal(citationCoverage, 1)
   assert.equal(refusalFailures, 0)
   assert.ok(p95Ms < 2000)
+  assert.ok(linkPrecision >= 0.9, `high-confidence link precision ${linkPrecision}`)
 }
 
 main().catch((error) => {

@@ -1,0 +1,20 @@
+{
+  "generatedForRelease": "2026-07-17",
+  "seed": 20260717,
+  "label": "SYNTHETIC DEMO DATA — NOT AN OPERATIONAL POLICE RECORD",
+  "dataVersion": "synthetic-20260717-1000",
+  "cases": 1000,
+  "stations": 19,
+  "plantedPatterns": [
+    "RING-METRO-LOCK",
+    "RING-EVENING-CHAIN",
+    "RING-UPI-MULE",
+    "RING-REAR-ENTRY",
+    "RING-TRANSIT-PICK",
+    "COLD-MO-RETURN"
+  ],
+  "plantedCases": 58,
+  "quickMlRows": 1452,
+  "quickMlPositiveRows": 252,
+  "quickMlTarget": "linked"
+}

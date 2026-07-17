@@ -87,11 +87,15 @@ export function RuntimeProvider({ children }) {
       return session.user
     }
     const normalized = email.trim().toLowerCase().replace('@samvaad.local', '@ksp.demo')
-    if (!offlineDemoPassword) throw new Error('Offline demo login is not configured in this environment.')
     const user = seed.users.find((item) => item.email === normalized)
-    if (password !== offlineDemoPassword) throw new Error('Invalid offline demo credentials')
+    if (offlineDemoPassword && password !== offlineDemoPassword) throw new Error('Invalid offline demo credentials')
     if (!user) throw new Error('Invalid offline demo credentials')
-    return { ...user, landing: user.role === 'Analyst' || user.role === 'Admin' ? '/dashboard' : user.role === 'Supervisor' ? '/analytics' : '/chat', sessionMode: 'offline-demo' }
+    return {
+      ...user,
+      landing: user.role === 'Analyst' || user.role === 'Admin' ? '/dashboard' : user.role === 'Supervisor' ? '/analytics' : '/chat',
+      sessionMode: 'offline-demo',
+      authMethod: offlineDemoPassword ? 'environment-password' : 'read-only-profile',
+    }
   }, [runtime.mode])
 
   const logout = useCallback(() => storeApiToken(null), [])

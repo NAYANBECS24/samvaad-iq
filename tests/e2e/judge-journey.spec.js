@@ -10,6 +10,7 @@ const roles = [
 async function signIn(page, profile) {
   await page.goto('/#/login')
   await expect(page.getByRole('heading', { name: 'SAMVAAD-IQ' })).toBeVisible()
+  await expect(page.locator('input[type="password"]')).toBeDisabled()
   await page.locator('.credential-card').filter({ hasText: profile.role }).click()
   await page.getByRole('button', { name: 'Enter Command Workspace' }).click()
   await expect(page).toHaveURL(new RegExp(`#/${profile.landing}$`))

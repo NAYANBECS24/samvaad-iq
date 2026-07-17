@@ -15,7 +15,7 @@ const rateWindows = new Map()
 const demoUsers = seed.users
 const roleLanding = { Admin: '/dashboard', Investigator: '/chat', Analyst: '/dashboard', Supervisor: '/analytics' }
 const allowedOrigins = new Set(
-  (process.env.ALLOWED_ORIGINS || 'http://127.0.0.1:5173,http://localhost:5173,https://samvaad-iq-ziiputqp.onslate.in')
+  (process.env.ALLOWED_ORIGINS || 'http://127.0.0.1:5173,http://localhost:5173,https://samvaad-iq-jvzbeucy.onslate.in,https://samvaad-iq-ziiputqp.onslate.in')
     .split(',')
     .map((value) => value.trim())
     .filter(Boolean),

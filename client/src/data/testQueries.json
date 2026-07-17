@@ -8,14 +8,14 @@
     },
     {
       "role": "Investigator",
-      "query": "Are FIR-2025-BLR-001 and FIR-2025-BLR-014 connected?",
+      "query": "Are SYN-2025-BLR-001 and SYN-2025-BLR-014 connected?",
       "expected_answer": "Yes. Both are Bengaluru South motorcycle thefts after 9 PM, share accused A-112, phone hash PH-HASH-711, similar transit-location MO, and close time pattern. Treat this as an investigative lead, not final proof.",
       "visual_output": "Network graph: A-112 -> two FIR nodes -> shared phone hash -> two police stations."
     },
     {
       "role": "Analyst",
-      "query": "Find similar cases to FIR-2025-BLR-027",
-      "expected_answer": "FIR-2025-BLR-033 is the closest match. Similarity drivers: late-night timing, rear-window entry, independent-house target, same vehicle hash KA-03-SYN-7777, and Bengaluru South geography. Similarity score: 0.84.",
+      "query": "Find similar cases to SYN-2025-BLR-027",
+      "expected_answer": "SYN-2025-BLR-033 is the closest match. Similarity drivers: late-night timing, rear-window entry, independent-house target, same vehicle hash KA-03-SYN-7777, and Bengaluru South geography. Similarity score: 0.84.",
       "visual_output": "Similar-case panel with Crime DNA factors."
     },
     {

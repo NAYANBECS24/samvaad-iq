@@ -1,6 +1,6 @@
 # SAMVAAD-IQ / NETRA Demo Script
 
-1. Login as `investigator@ksp.demo` with `demo123`.
+1. Login as the pre-provisioned Investigator account using the credentials supplied privately to judges.
 2. Open Investigation and use text or the Voice button for: `Saar, Mysuru alli last 6 months motorcycle theft pattern show maadi`.
 3. Show Detective Room, source FIRs, evidence chips, and the linked FIR dossier for `FIR-1003`.
 4. In the FIR dossier, show Overview, Evidence, Crime DNA, Legal XAI, Action Plan, and Audit tabs.

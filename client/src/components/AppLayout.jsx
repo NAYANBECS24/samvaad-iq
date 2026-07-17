@@ -1,6 +1,7 @@
-import { Languages } from 'lucide-react'
+import { CloudOff, Languages, RefreshCw, ServerCog } from 'lucide-react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { useLanguage } from '../i18n.js'
+import { useRuntime } from '../services/runtime.jsx'
 import Sidebar from './Sidebar.jsx'
 
 function LanguageToggle() {
@@ -35,12 +36,18 @@ function LanguageToggle() {
 function AppLayout({ appState }) {
   const { pathname } = useLocation()
   const basePath = '/' + pathname.split('/')[1]
+  const { runtime, probe } = useRuntime()
 
   return (
     <div className="app-shell">
       <Sidebar user={appState.user} onLogout={appState.logout} />
       <main className="workspace" key={basePath}>
         <div className="workspace-command-bar">
+          <div className={`runtime-badge is-${runtime.tone}`} role="status" title={(runtime.limitations || []).join(' ')}>
+            {runtime.mode === 'catalyst-live' ? <ServerCog size={16} /> : <CloudOff size={16} />}
+            <span>{runtime.label}</span>
+            <button type="button" onClick={probe} aria-label="Recheck Catalyst connection"><RefreshCw size={14} /></button>
+          </div>
           <LanguageToggle />
         </div>
         <Outlet />

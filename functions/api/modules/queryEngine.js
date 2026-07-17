@@ -121,7 +121,7 @@ function answerQuery(query, role = 'Investigator') {
   const district = extractDistrict(query)
 
   if (q.includes('cold') || q.includes('unsolved') || q.includes('resurrect')) {
-    const result = findSimilarCases('FIR-2025-BLR-027')
+    const result = findSimilarCases('SYN-2025-BLR-027')
     const top = result.matches[0]
     const topFirId = top?.case?.fir_id || top?.fir_id || 'NA'
     return decorate({
@@ -184,7 +184,7 @@ function answerQuery(query, role = 'Investigator') {
 
   if (q.includes('similar') || q.includes('match')) {
     const [firId] = extractFirIds(query)
-    const result = findSimilarCases(firId || 'FIR-2025-BLR-027')
+    const result = findSimilarCases(firId || 'SYN-2025-BLR-027')
     const top = result.matches[0]
     return decorate({
       intent: 'SIMILAR_CASE_QUERY',
@@ -193,7 +193,7 @@ function answerQuery(query, role = 'Investigator') {
       evidence: result.source ? evidenceFromCases([result.source, ...result.matches.slice(0, 2).map((item) => item.case)]) : [],
       sources: result.source ? [result.source.fir_id, ...result.matches.slice(0, 3).map((item) => item.fir_id)] : [],
       visuals: { similar: result.matches },
-      agents: agentSteps({ detective: `Built Crime DNA fingerprint for ${firId || 'FIR-2025-BLR-027'}` }),
+      agents: agentSteps({ detective: `Built Crime DNA fingerprint for ${firId || 'SYN-2025-BLR-027'}` }),
       disclaimer: DISCLAIMER,
       role,
     })

@@ -13,7 +13,7 @@
       "sampleFileName": "FIR-2025-MYS-railway-theft.pdf",
       "requiredServices": ["Catalyst Stratus", "Catalyst Zia Services", "Catalyst Data Store", "Catalyst QuickML"],
       "extractionMode": "Zia OCR + text analytics",
-      "linkedCaseIds": ["FIR-1003", "FIR-1004", "FIR-1008", "FIR-1015"],
+      "linkedCaseIds": ["SYN-2026-LEG-1003", "SYN-2026-LEG-1004", "SYN-2026-LEG-1008", "SYN-2026-LEG-1015"],
       "extracted": {
         "crimeType": "Motorcycle Theft",
         "district": "Mysuru",
@@ -36,7 +36,7 @@
       "sampleFileName": "jayanagar-metro-cam-04.png",
       "requiredServices": ["Catalyst Stratus", "Catalyst Zia Services", "Catalyst Data Store", "Catalyst Cache"],
       "extractionMode": "Zia object recognition + plate OCR",
-      "linkedCaseIds": ["FIR-2025-BLR-001", "FIR-2025-BLR-014"],
+      "linkedCaseIds": ["SYN-2025-BLR-001", "SYN-2025-BLR-014"],
       "extracted": {
         "crimeType": "Motorcycle Theft",
         "district": "Bengaluru South",
@@ -59,7 +59,7 @@
       "sampleFileName": "bank-support-kyc-fragment.pdf",
       "requiredServices": ["Catalyst Stratus", "Catalyst Zia Services", "Catalyst NoSQL", "Catalyst QuickML"],
       "extractionMode": "Zia ID scanner + entity masking",
-      "linkedCaseIds": ["FIR-2025-HUB-009", "FIR-2025-MNG-004"],
+      "linkedCaseIds": ["SYN-2025-HUB-009", "SYN-2025-MNG-004"],
       "extracted": {
         "crimeType": "UPI Fraud",
         "district": "Hubballi-Dharwad",
@@ -82,7 +82,7 @@
       "sampleFileName": "market-chain-snatching-witness.wav",
       "requiredServices": ["Catalyst Stratus", "Catalyst Zia Services", "Catalyst QuickML", "Catalyst Mail"],
       "extractionMode": "Zia speech-to-text + translation",
-      "linkedCaseIds": ["FIR-2025-MYS-006", "FIR-2025-MYS-011"],
+      "linkedCaseIds": ["SYN-2025-MYS-006", "SYN-2025-MYS-011"],
       "extracted": {
         "crimeType": "Chain Snatching",
         "district": "Mysuru",
@@ -138,7 +138,7 @@
   ],
   "cachePlan": [
     {
-      "key": "crime-dna:fir:FIR-1003",
+      "key": "crime-dna:fir:SYN-2026-LEG-1003",
       "scope": "Similar-case ranking",
       "ttl": "30 min",
       "service": "Catalyst Cache",
@@ -152,7 +152,7 @@
       "status": "Warm"
     },
     {
-      "key": "graph:FIR-2025-BLR-001",
+      "key": "graph:SYN-2025-BLR-001",
       "scope": "Network graph nodes and edges",
       "ttl": "20 min",
       "service": "Catalyst Cache",

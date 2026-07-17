@@ -15,7 +15,7 @@ function CaseExplorer() {
   const [district, setDistrict] = useState(allValue)
   const [crimeType, setCrimeType] = useState(allValue)
   const [status, setStatus] = useState(allValue)
-  const [selectedFir, setSelectedFir] = useState('FIR-1003')
+  const [selectedFir, setSelectedFir] = useState('SYN-2026-LEG-1003')
 
   const filteredCases = useMemo(() => {
     const q = query.trim().toLowerCase()

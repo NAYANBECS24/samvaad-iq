@@ -15,7 +15,7 @@ const nodeColors = {
 
 function NetworkGraph() {
   const { firId } = useParams()
-  const [selected, setSelected] = useState(firId || 'FIR-2025-BLR-001')
+  const [selected, setSelected] = useState(firId || 'SYN-2025-BLR-001')
   const [activeFilters, setActiveFilters] = useState(new Set(Object.keys(nodeColors)))
   const graph = useMemo(() => buildGraph(selected), [selected])
 

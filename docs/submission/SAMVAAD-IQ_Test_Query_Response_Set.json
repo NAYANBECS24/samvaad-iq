@@ -1,34 +1,37 @@
 {
+  "data_label": "SYNTHETIC DEMO DATA",
+  "contract_version": "api/v1",
+  "evaluation_note": "Exact counts and scores are generated from the deterministic dataset; assertions focus on intent, citations, safety, and explanation fields.",
   "test_queries": [
     {
       "role": "Investigator",
-      "query": "Last 6 months alli Mysuru division chain snatching hotspots show maadi",
-      "expected_answer": "Two synthetic chain-snatching cases appear around Lashkar and VV Puram between 19:00 and 20:00. The repeated scooter vehicle KA-09-SYN-3001 and shared MO indicate a possible linked pattern. Confidence: 0.86.",
-      "visual_output": "Hotspot map with two Mysuru points and a case card list."
+      "query": "ಮೈಸೂರು ಬೈಕ್ ಕಳ್ಳತನ ಹಾಟ್‌ಸ್ಪಾಟ್ ತೋರಿಸಿ",
+      "expected_intent": "HOTSPOT_QUERY",
+      "required": ["one or more FIR citations", "area-level limitation", "human-verification next action"]
     },
     {
       "role": "Investigator",
-      "query": "Are FIR-2025-BLR-001 and FIR-2025-BLR-014 connected?",
-      "expected_answer": "Yes. Both are Bengaluru South motorcycle thefts after 9 PM, share accused A-112, phone hash PH-HASH-711, similar transit-location MO, and close time pattern. Treat this as an investigative lead, not final proof.",
-      "visual_output": "Network graph: A-112 -> two FIR nodes -> shared phone hash -> two police stations."
+      "query": "Are SYN-2025-BLR-001 and SYN-2025-BLR-014 connected?",
+      "expected_intent": "CASE_LINK_QUERY",
+      "required": ["PH-HASH-711", "KAVACH factor contributions", "investigative-lead disclaimer"]
     },
     {
       "role": "Analyst",
-      "query": "Find similar cases to FIR-2025-BLR-027",
-      "expected_answer": "FIR-2025-BLR-033 is the closest match. Similarity drivers: late-night timing, rear-window entry, independent-house target, same vehicle hash KA-03-SYN-7777, and Bengaluru South geography. Similarity score: 0.84.",
-      "visual_output": "Similar-case panel with Crime DNA factors."
+      "query": "Find similar cases to SYN-2025-BLR-001 using Crime DNA",
+      "expected_intent": "SIMILAR_CASE_QUERY",
+      "required": ["inclusion threshold", "factor-level evidence", "source and match citations"]
     },
     {
       "role": "Supervisor",
-      "query": "What if 3 patrol units are added to Jayanagar and Banashankari from 9 PM to 12 AM?",
-      "expected_answer": "Prototype simulation estimates higher coverage of motorcycle-theft hotspots from 56% to 82%. Recommended patrol focus: metro exit, bus stand, and outer ring road exit corridors. This is a resource-planning estimate, not a guarantee.",
-      "visual_output": "Before/after patrol coverage cards and route suggestion."
+      "query": "What if 3 patrol units are added in Mysuru?",
+      "expected_intent": "SCENARIO_QUERY",
+      "required": ["before and after area coverage", "no person-level prediction", "supervisor validation action"]
     },
     {
-      "role": "Supervisor",
-      "query": "Generate PDF report for the motorcycle theft cluster",
-      "expected_answer": "Report generated with case list, evidence links, graph image, BNS mapping, confidence notes, human-review disclaimer, and audit timestamp.",
-      "visual_output": "PDF export button and report preview."
+      "role": "Investigator",
+      "query": "What is the cricket score?",
+      "expected_intent": "OUT_OF_SCOPE",
+      "required": ["zero citations", "zero confidence", "crime-database scope guidance"]
     }
   ]
 }

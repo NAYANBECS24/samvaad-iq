@@ -2,25 +2,21 @@
   "users": [
     {
       "email": "admin@samvaad.local",
-      "password": "demo123",
       "role": "Admin",
       "access": "All modules, data seeding, user audit logs"
     },
     {
       "email": "investigator@samvaad.local",
-      "password": "demo123",
       "role": "Investigator",
       "access": "Case search, similar cases, network graph, report generation"
     },
     {
       "email": "analyst@samvaad.local",
-      "password": "demo123",
       "role": "Analyst",
       "access": "Dashboard, maps, trend analysis, model outputs"
     },
     {
       "email": "supervisor@samvaad.local",
-      "password": "demo123",
       "role": "Supervisor",
       "access": "All insights, approval notes, patrol simulation, exports"
     }

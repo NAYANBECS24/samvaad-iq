@@ -1,88 +1,75 @@
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:3001/api'
+const API_BASE = (import.meta.env.VITE_API_BASE || '/api/v1').replace(/\/$/, '')
+const SESSION_KEY = 'samvaad_api_token'
+
+export class ApiError extends Error {
+  constructor(message, payload = {}, status = 0) {
+    super(message)
+    this.name = 'ApiError'
+    this.code = payload.code || 'API_ERROR'
+    this.requestId = payload.requestId || null
+    this.retryable = Boolean(payload.retryable)
+    this.status = status
+  }
+}
+
+export function storeApiToken(token) {
+  if (token) window.localStorage.setItem(SESSION_KEY, token)
+  else window.localStorage.removeItem(SESSION_KEY)
+}
+
+function apiToken() {
+  return window.localStorage.getItem(SESSION_KEY)
+}
 
 async function request(path, options = {}) {
-  const response = await fetch(`${API_BASE}${path}`, {
-    headers: {
-      'content-type': 'application/json',
-      ...(options.headers || {}),
-    },
-    ...options,
-  })
-
-  const payload = await response.json().catch(() => ({}))
-  if (!response.ok) {
-    throw new Error(payload.error || `API request failed with ${response.status}`)
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), options.timeout || 6000)
+  const token = apiToken()
+  try {
+    const response = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      signal: controller.signal,
+      credentials: 'include',
+      headers: {
+        accept: 'application/json',
+        ...(options.body ? { 'content-type': 'application/json' } : {}),
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+        ...(options.headers || {}),
+      },
+    })
+    const contentType = response.headers.get('content-type') || ''
+    if (!contentType.includes('application/json')) throw new ApiError('The configured API returned a non-JSON response.', { code: 'NON_JSON_API' }, response.status)
+    const payload = await response.json()
+    if (!response.ok) throw new ApiError(payload.message || `API request failed with ${response.status}.`, payload, response.status)
+    return payload
+  } catch (error) {
+    if (error.name === 'AbortError') throw new ApiError('The API health window expired.', { code: 'API_TIMEOUT', retryable: true })
+    throw error
+  } finally {
+    window.clearTimeout(timeout)
   }
-
-  return payload
 }
 
 export const api = {
-  health: () => request('/health'),
-  seedSummary: () => request('/seed/summary'),
-  dashboardSummary: () => request('/dashboard/summary'),
-  login: (email, password) =>
-    request('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    }),
-  cases: () => request('/cases'),
-  caseByFir: (firId) => request(`/cases/${encodeURIComponent(firId)}`),
-  chat: (query, role = 'Investigator') =>
-    request('/chat', {
-      method: 'POST',
-      body: JSON.stringify({ query, role }),
-    }),
-  similar: (firId) => request(`/similar/${encodeURIComponent(firId)}`),
-  crimeDnaSimilar: (firId) =>
-    request('/crime-dna/similar', {
-      method: 'POST',
-      body: JSON.stringify({ firId }),
-    }),
-  graph: (firId) => request(`/graph/${encodeURIComponent(firId)}`),
-  hotspots: ({ district, crimeType } = {}) => {
+  health: () => request('/health', { timeout: 3500 }),
+  capabilities: () => request('/capabilities', { timeout: 3500 }),
+  login: (email, password) => request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
+  cases: (filters = {}) => {
     const params = new URLSearchParams()
-    if (district) params.set('district', district)
-    if (crimeType) params.set('crimeType', crimeType)
-    const suffix = params.toString() ? `?${params}` : ''
-    return request(`/hotspots${suffix}`)
+    Object.entries(filters).forEach(([key, value]) => value && params.set(key, value))
+    return request(`/cases${params.size ? `?${params}` : ''}`)
   },
-  whatIf: (payload) =>
-    request('/whatif', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
-  simulatePatrol: (payload) =>
-    request('/simulate/patrol', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
-  diffusion: ({ district = 'All', crimeType = 'All' } = {}) => {
-    const params = new URLSearchParams({ district, crimeType })
-    return request(`/diffusion?${params}`)
-  },
-  legalMap: (firId) =>
-    request('/legal/map', {
-      method: 'POST',
-      body: JSON.stringify({ firId }),
-    }),
-  auditLogs: () => request('/audit/logs'),
-  catalystReadiness: () => request('/catalyst/readiness'),
-  evidenceProfiles: () => request('/evidence/profiles'),
-  analyzeEvidence: (payload) =>
-    request('/evidence/analyze', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
-  evidenceReport: (payload) =>
-    request('/evidence/report', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
-  cachePrecompute: () => request('/cache/precompute'),
-  buildReport: (payload) =>
-    request('/report', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
+  caseByFir: (firId) => request(`/cases/${encodeURIComponent(firId)}`),
+  query: (query, context = {}) => request('/query', { method: 'POST', body: JSON.stringify({ query, context }) }),
+  similarity: (firId) => request('/analytics/similarity', { method: 'POST', body: JSON.stringify({ firId }) }),
+  graph: (firId) => request('/analytics/graph', { method: 'POST', body: JSON.stringify({ firId }) }),
+  hotspots: (filters) => request('/analytics/hotspots', { method: 'POST', body: JSON.stringify(filters) }),
+  scenario: (payload) => request('/scenarios', { method: 'POST', body: JSON.stringify(payload) }),
+  createEvidenceUpload: (payload) => request('/evidence/uploads', { method: 'POST', body: JSON.stringify(payload) }),
+  analyzeEvidence: (evidenceId, payload) => request(`/evidence/${encodeURIComponent(evidenceId)}/analyze`, { method: 'POST', body: JSON.stringify(payload), timeout: 15000 }),
+  report: (payload) => request('/reports', { method: 'POST', body: JSON.stringify(payload), timeout: 20000 }),
+  audit: () => request('/audit'),
+  feedback: (payload) => request('/feedback', { method: 'POST', body: JSON.stringify(payload) }),
 }
+
+export { API_BASE }

@@ -2,6 +2,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import seed from '../data/demoSeed.json'
 import { createIntelligenceCore } from '../../../functions/api/core/index.mjs'
+import { enrichInvestigationResult } from '../../../functions/api/core/insights.mjs'
 import { api, storeApiToken } from './api.js'
 import { catalystAccessToken, currentCatalystUser, registerCatalystUser, signOutCatalyst } from './catalystAuth.js'
 
@@ -64,10 +65,10 @@ export function RuntimeProvider({ children }) {
         setRuntime(offlineRuntime(`Catalyst query failed: ${error.message}`))
         const fallback = offlineCore.answer(query, { mode: 'offline-demo' })
         fallback.limitations.unshift(`Catalyst request failed (${error.code || 'API_ERROR'}); this answer was recomputed locally.`)
-        return fallback
+        return enrichInvestigationResult(fallback, { answerMode: context.answerMode })
       }
     }
-    return offlineCore.answer(query, { mode: 'offline-demo' })
+    return enrichInvestigationResult(offlineCore.answer(query, { mode: 'offline-demo' }), { answerMode: context.answerMode })
   }, [runtime.mode])
 
   const analyzeEvidence = useCallback(async (prepared) => {

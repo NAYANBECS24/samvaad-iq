@@ -18,6 +18,8 @@ The product follows one evidence-grounded loop:
 6. Accept, reject, or escalate the lead through a human review action.
 7. Produce an auditable supervisor-approved evidence brief.
 
+The conversational workspace also includes four additive response modes—Investigator, Command Brief, Timeline, and Skeptic—plus bounded multi-turn FIR context, a visible six-stage retrieval pipeline, claim-to-source coverage, chronological evidence, and structured consistency checks. These views use the same citations and do not remove or bypass the original KAVACH, map, graph, voice, evidence, reporting, or governance features.
+
 The application never presents a person-level risk score, automated guilt label, or unsupported legal conclusion.
 
 ## Runtime modes
@@ -118,6 +120,7 @@ The versioned interface includes:
 
 - `GET /api/v1/health`
 - `GET /api/v1/capabilities`
+- `GET /api/v1/ai/status`
 - `GET /api/v1/auth/me`
 - `GET /api/v1/cases` and `/cases/:firId`
 - `POST /api/v1/query`
@@ -132,7 +135,7 @@ The versioned interface includes:
 - `GET /api/v1/audit`
 - `POST /api/v1/feedback`
 
-Successful query responses contain `requestId`, `mode`, `intent`, `filters`, `answer`, `citations`, `confidence`, `evidence`, `visualizations`, `limitations`, `nextActions`, and `auditRef`.
+Successful query responses contain `requestId`, `mode`, `intent`, `filters`, `answer`, `citations`, `confidence`, `evidence`, `visualizations`, `limitations`, `nextActions`, and `auditRef`. Query responses additionally expose `responseMode`, `pipeline`, and `investigationInsights` with coverage, timeline, consistency checks, and normalized entities.
 
 ## Catalyst configuration
 

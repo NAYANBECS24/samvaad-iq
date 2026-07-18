@@ -20,33 +20,29 @@ import catalystBlueprint from '../../../data/catalyst-service-map.json'
 const pipelineTabs = ['Data Flow', 'Agent Room', 'API Layer', 'Catalyst Map', 'Deployment']
 
 const layers = [
-  { icon: Database, name: 'Synthetic FIR Store', metric: '12 FIR / 7 station records', tone: 'tone-blue' },
-  { icon: Bot, name: 'Query Engine', metric: 'English + Kanglish intents', tone: '' },
-  { icon: ListChecks, name: 'Evidence Lab', metric: 'Zia + RAG + SmartBrowz flow', tone: 'tone-blue' },
+  { icon: Database, name: 'Synthetic FIR Store', metric: '1,000 FIRs / 6 districts', tone: 'tone-blue' },
+  { icon: Bot, name: 'Query Engine', metric: 'English + Kannada + Kanglish', tone: '' },
+  { icon: ListChecks, name: 'Evidence Lab', metric: 'Hash + extraction + provenance', tone: 'tone-blue' },
   { icon: GitBranch, name: 'KAVACH Crime DNA', metric: '6-factor scoring model', tone: 'tone-violet' },
   { icon: MapPinned, name: 'Hotspot + Patrol', metric: 'Cluster and what-if outputs', tone: 'tone-amber' },
   { icon: FileText, name: 'Report Builder', metric: 'PDF-ready evidence brief', tone: '' },
 ]
 
 const apiRoutes = [
-  ['POST', '/api/auth/login', 'Role-based demo login'],
-  ['GET', '/api/dashboard/summary', 'KPIs and chart data'],
-  ['POST', '/api/chat', 'Intent detection and answer response'],
-  ['GET', '/api/similar/:firId', 'Crime DNA matches'],
-  ['POST', '/api/crime-dna/similar', 'NETRA-style Crime DNA alias'],
-  ['GET', '/api/graph/:firId', 'Entity network graph'],
-  ['GET', '/api/hotspots', 'Geospatial clusters'],
-  ['GET', '/api/diffusion', 'Rc diffusion risk model'],
-  ['POST', '/api/whatif', 'Patrol simulation'],
-  ['POST', '/api/simulate/patrol', 'ACSE patrol simulation alias'],
-  ['POST', '/api/legal/map', 'Legal XAI mapping'],
-  ['GET', '/api/audit/logs', 'Supervisor audit timeline'],
-  ['POST', '/api/report', 'HTML investigation brief'],
-  ['GET', '/api/catalyst/readiness', 'Catalyst service and GitHub readiness map'],
-  ['GET', '/api/evidence/profiles', 'Evidence Lab profile and workflow catalog'],
-  ['POST', '/api/evidence/analyze', 'Zia-style extraction, RAG chunks, FIR links, and audit trail'],
-  ['POST', '/api/evidence/report', 'SmartBrowz/Stratus/Mail report handoff'],
-  ['GET', '/api/cache/precompute', 'Catalyst Cache precompute plan'],
+  ['GET', '/api/v1/health', 'JSON runtime and data-version health'],
+  ['GET', '/api/v1/capabilities', 'Honest live-service capability registry'],
+  ['GET', '/api/v1/ai/status', 'Grounded-model status and safeguard summary'],
+  ['GET', '/api/v1/auth/me', 'Catalyst-derived user and role'],
+  ['GET', '/api/v1/cases/:firId', 'Synthetic FIR case workspace record'],
+  ['POST', '/api/v1/query', 'Multilingual, multi-turn, cited investigation answer'],
+  ['POST', '/api/v1/analytics/similarity', 'KAVACH factor-level case matches'],
+  ['POST', '/api/v1/analytics/graph', 'Evidence-backed entity network'],
+  ['POST', '/api/v1/analytics/hotspots', 'Area/time/category clusters'],
+  ['POST', '/api/v1/scenarios', 'Human-reviewed patrol what-if'],
+  ['POST', '/api/v1/evidence/:id/analyze', 'Validated evidence extraction and provenance'],
+  ['POST', '/api/v1/reports', 'Supervisor-gated evidence brief'],
+  ['GET', '/api/v1/audit', 'Hash-chained audit timeline'],
+  ['POST', '/api/v1/feedback', 'Analyst accept/reject review'],
 ]
 
 const deploymentStack = [
@@ -58,6 +54,8 @@ const deploymentStack = [
 ]
 
 const serviceStatusClass = {
+  Implemented: 'status-ready',
+  'Runtime-Detected': 'status-console',
   Ready: 'status-ready',
   'Schema Ready': 'status-schema',
   'Console Config': 'status-console',
@@ -73,6 +71,7 @@ function SystemPipeline() {
     return acc
   }, {})
   const readyCount =
+    (serviceCounts.Implemented || 0) +
     (serviceCounts.Ready || 0) +
     (serviceCounts['Schema Ready'] || 0) +
     (serviceCounts['Pipeline Ready'] || 0) +
@@ -110,7 +109,7 @@ function SystemPipeline() {
       <section className="readiness-grid">
         {[
           ['Catalyst Services', catalystBlueprint.serviceMap.length, Cloud, 'tone-blue'],
-          ['Ready / Schema Ready', readyCount, CheckCircle2, ''],
+          ['Implemented / Ready', readyCount, CheckCircle2, ''],
           ['GitHub Auto-Fetch Steps', catalystBlueprint.githubFlow.length, GitBranch, 'tone-violet'],
           ['Readiness Gates', catalystBlueprint.readinessGates.length, ListChecks, 'tone-amber'],
         ].map(([label, value, Icon, tone]) => (
@@ -155,10 +154,11 @@ function SystemPipeline() {
             <div className="timeline-list">
               {[
                 ['01', 'FIR fields indexed with district, station, MO, time, entity hashes, and legal sections'],
-                ['02', 'Query parser resolves intent, location, crime type, FIR IDs, and requested output'],
-                ['03', 'KAVACH scoring compares crime type, MO, location, time, shared entities, and FIR text'],
-                ['04', 'Graph and hotspot services convert evidence into visual investigation views'],
-                ['05', 'Skeptic and Report agents attach guardrails, source FIR IDs, and export-ready structure'],
+                ['02', 'Language normalizer resolves English, Kannada, Kanglish, follow-up context, intent, and filters'],
+                ['03', 'KAVACH retrieves citations and scores crime type, MO, location, time, shared entities, and narrative'],
+                ['04', 'NVIDIA NIM optionally phrases only the cited result; uncited FIR identifiers are rejected'],
+                ['05', 'Timeline, contradiction, coverage, graph, hotspot, and scenario views remain linked to source FIRs'],
+                ['06', 'Skeptic and Report agents attach limitations, audit reference, review state, and human next actions'],
               ].map(([step, text]) => (
                 <div key={step} className="audit-row">
                   <span>{step}</span>
@@ -193,7 +193,8 @@ function SystemPipeline() {
               ['Detective Agent', 'Frames the investigative question and chooses the intent path'],
               ['Data Agent', 'Retrieves FIR records, station data, accused data, and relation rows'],
               ['Network Agent', 'Finds repeated accused, phones, vehicles, victims, locations, and bank/account links'],
-              ['Skeptic Agent', 'Adds confidence and guardrail notes before any operational action'],
+              ['Skeptic Agent', 'Finds structured conflicts, missing evidence, unsupported FIR mentions, and alternative explanations'],
+              ['Language Agent', 'Uses NVIDIA NIM only to phrase server-retrieved evidence in English, Kannada, or Kanglish'],
               ['Report Agent', 'Formats the final answer with evidence trail and source identifiers'],
             ].map(([agent, detail]) => (
               <div key={agent} className="station-row">

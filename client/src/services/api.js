@@ -77,6 +77,7 @@ async function request(path, options = {}) {
 export const api = {
   health: () => request('/health', { timeout: 3500 }),
   capabilities: () => request('/capabilities', { timeout: 3500 }),
+  aiStatus: () => request('/ai/status', { timeout: 3500 }),
   login: (email, password) => request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   currentUser: () => request('/auth/me'),
   seedSyntheticData: () => request('/admin/seed', { method: 'POST', body: JSON.stringify({ confirm: true }), timeout: 60000 }),

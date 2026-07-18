@@ -10,7 +10,7 @@ Verified Development deployment (17 July 2026):
 
 - Web Client: `https://project-rainfall-60073323871.development.catalystserverless.in/app/index.html`
 - Advanced I/O API: `https://project-rainfall-60073323871.development.catalystserverless.in/server/api/api/v1/health`
-- Previously verified deployed API version: `1.1.0` on Node 24; repository candidate: `1.2.0`
+- Previously verified deployed API version: `1.1.0` on Node 24; repository candidate: `1.3.0`
 - Current deployed mode: `offline-demo`; the repository switches to `catalyst-live` only when either Data Store is active or Catalyst Auth + Advanced I/O + NVIDIA NIM are configured, while reporting any unavailable persistence
 
 ## 2. Configure the Catalyst candidate

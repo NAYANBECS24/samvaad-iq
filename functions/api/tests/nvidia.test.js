@@ -4,7 +4,7 @@ const assert = require('node:assert/strict')
 const nvidia = require('../providers/nvidia')
 
 const result = {
-  intent: 'CASE_SUMMARY',
+  intent: 'CASE_SEARCH_QUERY',
   filters: {},
   answer: 'Deterministic finding for SYN-2025-BLR-001.',
   confidence: { score: 0.88, band: 'high' },
@@ -38,6 +38,7 @@ test('NVIDIA adapter sends only server-grounded evidence and returns a cited ans
   const generated = await nvidia.generateGroundedAnswer({
     query: 'Summarize the case',
     result,
+    context: { answerMode: 'brief' },
     fetchImpl: async (url, options) => {
       request = { url, options }
       return {
@@ -57,6 +58,7 @@ test('NVIDIA adapter sends only server-grounded evidence and returns a cited ans
   const payload = JSON.parse(request.options.body)
   assert.equal(payload.stream, false)
   assert.equal(payload.temperature, 0.2)
+  assert.match(payload.messages[1].content, /"answer_mode":"brief"/)
   assert.match(payload.messages[1].content, /Synthetic motorcycle theft record/)
 })
 

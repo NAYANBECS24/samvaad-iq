@@ -98,3 +98,27 @@ test('text and voice queries both return grounded AI demo replies', async ({ pag
   await expect(page.locator('.query-status').first()).toContainText(/AI demo response completed|Catalyst response completed/)
   await expect(page.getByRole('heading', { name: 'Factor-level explanation' })).toBeVisible()
 })
+
+test('next-level copilot modes expose pipeline, coverage, timeline, and skeptic checks', async ({ page }) => {
+  await signIn(page, roles[1])
+  await expect(page.getByRole('group', { name: 'Response mode' })).toBeVisible()
+
+  await page.getByRole('button', { name: /Timeline/ }).click()
+  await page.getByLabel('Investigation query').fill('Summarize motorcycle theft cases with cited evidence')
+  await page.locator('.query-form').getByRole('button', { name: 'Ask', exact: true }).click()
+
+  await expect(page.getByRole('heading', { name: 'Claim-to-source coverage' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'How this answer was produced' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Evidence timeline' })).toBeVisible()
+  await expect(page.getByText('timeline mode', { exact: true })).toBeVisible()
+  await expect(page.getByText('No uncited FIR identifier detected in the answer.')).toBeVisible()
+
+  await page.getByRole('button', { name: /Skeptic/ }).click()
+  await page.getByLabel('Investigation query').fill('Are SYN-2025-BLR-001 and SYN-2025-BLR-014 connected?')
+  await page.locator('.query-form').getByRole('button', { name: 'Ask', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Consistency and contradiction checks' })).toBeVisible()
+  await expect(page.getByText('contradictions mode', { exact: true })).toBeVisible()
+
+  await page.getByRole('button', { name: 'New investigation' }).click()
+  await expect(page.getByText('New investigation session ready. Select a response mode or ask a cited database question.')).toBeVisible()
+})

@@ -39,7 +39,7 @@ test('health is versioned JSON and exposes the honest runtime mode', async () =>
   assert.match(response.headers.get('content-type'), /application\/json/)
   const payload = await response.json()
   assert.equal(payload.mode, 'offline-demo')
-  assert.equal(payload.version, '1.2.0')
+  assert.equal(payload.version, '1.3.0')
 })
 
 test('query returns the standardized evidence envelope', async () => {
@@ -54,6 +54,40 @@ test('query returns the standardized evidence envelope', async () => {
     assert.ok(Object.hasOwn(payload, field), `missing ${field}`)
   }
   assert.ok(payload.citations.length > 0)
+  assert.equal(payload.responseMode, 'investigator')
+  assert.equal(payload.pipeline.length, 6)
+  assert.equal(payload.investigationInsights.coverage.unsupportedAnswerIds.length, 0)
+})
+
+test('query supports timeline response mode and bounded conversation context', async () => {
+  const response = await fetch(`${baseUrl}/api/v1/query`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      query: 'Summarize motorcycle theft cases',
+      context: {
+        conversationId: 'CONV-TEST-TIMELINE',
+        newConversation: true,
+        answerMode: 'timeline',
+        interfaceLanguage: 'en',
+        history: [{ query: 'Find motorcycle theft', intent: 'CASE_SEARCH_QUERY', firIds: ['SYN-2025-BLR-001'] }],
+      },
+    }),
+  })
+  assert.equal(response.status, 200)
+  const payload = await response.json()
+  assert.equal(payload.responseMode, 'timeline')
+  assert.ok(payload.investigationInsights.timeline.length > 0)
+  assert.match(payload.investigationInsights.modeSummary, /Timeline prepared/)
+})
+
+test('AI status reports provider safeguards without exposing credentials', async () => {
+  const response = await fetch(`${baseUrl}/api/v1/ai/status`)
+  assert.equal(response.status, 200)
+  const payload = await response.json()
+  assert.equal(payload.provider, 'NVIDIA NIM')
+  assert.ok(payload.safeguards.includes('Uncited FIR rejection'))
+  assert.equal(JSON.stringify(payload).includes('NVIDIA_API_KEY'), false)
 })
 
 test('invalid requests use the standard error contract', async () => {

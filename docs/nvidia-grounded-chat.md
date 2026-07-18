@@ -8,8 +8,10 @@ SAMVAAD-IQ uses the NVIDIA NIM OpenAI-compatible Chat Completions endpoint only 
 2. It retrieves matching synthetic FIRs from Catalyst Data Store, or the reproducible server seed while Data Store is unavailable.
 3. KAVACH builds the deterministic answer, evidence objects, confidence, limitations, and citations.
 4. For supported, cited queries only, the server sends a minimized evidence projection to NVIDIA NIM.
-5. The generated response is rejected if it mentions a synthetic FIR outside the server citation set.
-6. On timeout, rate limit, invalid output, or provider failure, the deterministic cited answer is returned.
+5. The selected Investigator, Command Brief, Timeline, or Skeptic mode controls phrasing without changing the retrieved evidence.
+6. The generated response is rejected if it mentions a synthetic FIR outside the server citation set.
+7. The shared insights layer calculates claim coverage, timeline, consistency checks, and the visible orchestration pipeline.
+8. On timeout, rate limit, invalid output, or provider failure, the deterministic cited answer is returned.
 
 Out-of-scope, ambiguous, and insufficient-evidence requests do not call the language model.
 
@@ -35,5 +37,6 @@ Keep `SAMVAAD_NVIDIA_LLM_ENABLED=false` until a Development request succeeds. Re
 3. Confirm `modelSignals.generativeAnswer.provider` is `NVIDIA NIM`.
 4. Confirm every FIR named in the prose is also present in `citations`.
 5. Ask an out-of-scope question and confirm the grounded refusal is returned without a model signal.
+6. Switch all four response modes and confirm the citation set remains stable for the same query.
 
 The language model improves conversational phrasing; it does not replace database retrieval, KAVACH scoring, citations, audit logging, or supervisor review.

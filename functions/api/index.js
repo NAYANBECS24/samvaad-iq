@@ -7,12 +7,14 @@ const catalyst = require('./providers/catalyst')
 const nvidia = require('./providers/nvidia')
 
 const corePromise = import('./core/index.mjs')
+const insightsPromise = import('./core/insights.mjs')
 let memoryCorePromise = null
 let catalystCoreCache = null
 let catalystCoreCacheExpiresAt = 0
 const auditEvents = []
 const feedbackEvents = []
 const rateWindows = new Map()
+const knownConversations = new Set()
 
 const demoUsers = seed.users
 const roleLanding = { Admin: '/dashboard', Investigator: '/chat', Analyst: '/dashboard', Supervisor: '/analytics' }
@@ -298,7 +300,22 @@ function reportHtml(payload, user, auditRef) {
   return `<!doctype html><html><head><meta charset="utf-8"><title>SAMVAAD-IQ Evidence Brief</title><style>body{font:14px Arial;color:#132238;line-height:1.5}h1{color:#073b5c}section{border-top:1px solid #ccd6df;padding-top:12px;margin-top:16px}.label{color:#a33;font-weight:bold}</style></head><body><p class="label">SYNTHETIC DEMO DATA</p><h1>SAMVAAD-IQ Evidence Brief</h1><p>NETRA intelligence platform · KAVACH explainable analysis</p><section><h2>Analyst summary</h2><p>${escapeHtml(payload.answer || 'No summary supplied.')}</p></section><section><h2>Evidence citations</h2><ol>${citations || '<li>No cited evidence supplied.</li>'}</ol></section><section><h2>Governance</h2><p>Prepared for ${escapeHtml(user.email)} (${escapeHtml(user.role)}). Audit reference: ${escapeHtml(auditRef)}. Investigative lead only. Human verification and supervisory approval are required.</p></section></body></html>`
 }
 
-const QuerySchema = z.object({ query: z.string().trim().min(4).max(4000), context: z.record(z.string(), z.unknown()).optional() })
+const QueryContextSchema = z.object({
+  conversationId: z.string().trim().min(4).max(100).optional(),
+  newConversation: z.boolean().optional(),
+  answerMode: z.enum(['investigator', 'brief', 'timeline', 'contradictions']).default('investigator'),
+  interfaceLanguage: z.enum(['en', 'kn']).optional(),
+  previousRequestId: z.string().max(120).nullable().optional(),
+  previousIntent: z.string().max(100).nullable().optional(),
+  previousQuery: z.string().max(600).nullable().optional(),
+  previousFirIds: z.array(z.string().regex(/^SYN-[A-Z0-9-]+$/i)).max(5).optional(),
+  history: z.array(z.object({
+    query: z.string().max(400),
+    intent: z.string().max(100),
+    firIds: z.array(z.string().regex(/^SYN-[A-Z0-9-]+$/i)).max(5),
+  })).max(4).optional(),
+}).passthrough()
+const QuerySchema = z.object({ query: z.string().trim().min(4).max(4000), context: QueryContextSchema.optional().default({ answerMode: 'investigator' }) })
 const SimilarSchema = z.object({ firId: z.string().min(5).max(64) })
 const HotspotSchema = z.object({ district: z.string().max(80).nullable().optional(), crimeType: z.string().max(80).nullable().optional() })
 const ScenarioSchema = HotspotSchema.extend({ units: z.coerce.number().int().min(0).max(20).default(3) })
@@ -319,11 +336,23 @@ async function handleRequest(req, res) {
     const active = await runtime(req)
 
     if (req.method === 'GET' && path === '/api/v1/health') {
-      return sendJson(req, res, 200, { requestId: id, status: 'ok', name: 'SAMVAAD-IQ API', version: '1.2.0', mode: active.mode, dataVersion: active.core.dataset.version, timestamp: new Date().toISOString() }, id)
+      return sendJson(req, res, 200, { requestId: id, status: 'ok', name: 'SAMVAAD-IQ API', version: '1.3.0', mode: active.mode, dataVersion: active.core.dataset.version, timestamp: new Date().toISOString() }, id)
     }
 
     if (req.method === 'GET' && path === '/api/v1/capabilities') {
       return sendJson(req, res, 200, { requestId: id, mode: active.mode, dataLabel: active.core.dataset.label, capabilities: active.capabilities, limitations: active.limitations }, id)
+    }
+
+    if (req.method === 'GET' && path === '/api/v1/ai/status') {
+      return sendJson(req, res, 200, {
+        requestId: id,
+        mode: active.mode,
+        configured: active.capabilities.generativeAi.available,
+        provider: active.capabilities.generativeAi.provider,
+        model: active.capabilities.generativeAi.model,
+        dataSource: active.capabilities.datastore.available ? 'Catalyst Data Store' : 'Reproducible synthetic server seed',
+        safeguards: ['Server-side key isolation', 'Cited-evidence prompt boundary', 'Uncited FIR rejection', 'Deterministic fallback', 'Human review required'],
+      }, id)
     }
 
     if (req.method === 'POST' && path === '/api/v1/auth/login') {
@@ -380,14 +409,22 @@ async function handleRequest(req, res) {
       const access = active.mode === 'catalyst-live' ? await requireIdentity(req) : { user: await identity(req) }
       if (access.error) return sendJson(req, res, access.error.status, errorPayload(id, access.error.code, access.error.message, false, active.mode), id)
       const session = access.user
-      const audit = await appendAudit(req, { actor: session?.email || 'anonymous-demo', action: 'QUERY', resource: 'CaseIndex', requestId: id, mode: active.mode, details: { queryLength: body.query.length } })
+      const conversationId = body.context.conversationId || `CONV-${crypto.randomUUID()}`
+      const audit = await appendAudit(req, { actor: session?.email || 'anonymous-demo', action: 'QUERY', resource: 'CaseIndex', requestId: id, mode: active.mode, details: { queryLength: body.query.length, answerMode: body.context.answerMode, conversationId } })
       const groundedQuery = retrievalQuery(body.query, body.context)
-      const result = active.core.answer(groundedQuery, { mode: active.mode, requestId: id, auditRef: audit.id })
+      let result = active.core.answer(groundedQuery, { mode: active.mode, requestId: id, auditRef: audit.id })
       if (groundedQuery !== body.query) result.contextUsed = { previousFirIds: body.context?.previousFirIds?.slice(0, 3) || [] }
       result.limitations = [...active.limitations, ...result.limitations]
       await attachQuickMlSignal(req, active, result)
       await attachGenerativeAnswer(active, body.query, body.context, result)
-      if (active.capabilities.datastore.available) await catalyst.appendRow(req, 'QueryRuns', { request_id: id, conversation_id: body.context?.conversationId || `CONV-${crypto.randomUUID()}`, actor: session?.email || 'anonymous-demo', intent: result.intent, filters_json: JSON.stringify(result.filters || {}), mode: active.mode, created_at: new Date().toISOString() }).catch(() => null)
+      const { enrichInvestigationResult } = await insightsPromise
+      result = enrichInvestigationResult(result, { answerMode: body.context.answerMode, contextUsed: groundedQuery !== body.query })
+      if (active.capabilities.datastore.available) {
+        if (body.context.newConversation && !knownConversations.has(conversationId)) {
+          await catalyst.appendRow(req, 'Conversations', { conversation_id: conversationId, user_id: session?.id || session?.email || 'anonymous-demo', language: body.context.interfaceLanguage || 'en', created_at: new Date().toISOString() }).then(() => knownConversations.add(conversationId)).catch(() => null)
+        }
+        await catalyst.appendRow(req, 'QueryRuns', { request_id: id, conversation_id: conversationId, actor: session?.email || 'anonymous-demo', intent: result.intent, filters_json: JSON.stringify({ ...result.filters, answerMode: result.responseMode }), mode: active.mode, created_at: new Date().toISOString() }).catch(() => null)
+      }
       return sendJson(req, res, 200, result, id)
     }
 

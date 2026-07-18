@@ -4,6 +4,7 @@
     "challenge": "Datathon 2026 Challenge 1",
     "deploymentMode": "Blue-green Catalyst candidate with the existing Slate site retained as rollback",
     "buildOutput": "dist",
+    "githubAutoFetch": "GitHub main → validated Slate build",
     "truthPolicy": "Provider availability is reported by /api/v1/capabilities; this file describes targets, not live entitlement."
   },
   "serviceMap": [
@@ -47,6 +48,12 @@
       "capability": "OCR and model enrichment",
       "requiredService": "Zia or QuickML",
       "prototypeEvidence": "Optional adapter boundary. Deterministic retrieval remains the core and no model response is simulated.",
+      "status": "Runtime-Detected"
+    },
+    {
+      "capability": "Grounded multilingual response generation",
+      "requiredService": "Catalyst Advanced I/O + NVIDIA NIM",
+      "prototypeEvidence": "Server-only adapter uses cited evidence, four answer modes, bounded conversation context, uncited-FIR rejection, and deterministic fallback.",
       "status": "Runtime-Detected"
     },
     {

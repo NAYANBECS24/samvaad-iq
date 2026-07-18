@@ -86,7 +86,7 @@ function SystemPipeline() {
         </div>
         <div className="intent-pill">
           <Workflow size={16} />
-          Catalyst-ready
+          Capability blueprint
         </div>
       </header>
 
@@ -109,7 +109,7 @@ function SystemPipeline() {
       <section className="readiness-grid">
         {[
           ['Catalyst Services', catalystBlueprint.serviceMap.length, Cloud, 'tone-blue'],
-          ['Implemented / Ready', readyCount, CheckCircle2, ''],
+          ['Code / schema artifacts', readyCount, CheckCircle2, ''],
           ['GitHub Auto-Fetch Steps', catalystBlueprint.githubFlow.length, GitBranch, 'tone-violet'],
           ['Readiness Gates', catalystBlueprint.readinessGates.length, ListChecks, 'tone-amber'],
         ].map(([label, value, Icon, tone]) => (
@@ -199,7 +199,7 @@ function SystemPipeline() {
             ].map(([agent, detail]) => (
               <div key={agent} className="station-row">
                 <strong>{agent}</strong>
-                <span>active</span>
+                <span>defined role</span>
                 <small>{detail}</small>
               </div>
             ))}
@@ -312,7 +312,7 @@ function SystemPipeline() {
             {deploymentStack.map(([name, detail]) => (
               <div key={name} className="station-row">
                 <strong>{name}</strong>
-                <span>ready</span>
+                <span>repository artifact</span>
                 <small>{detail}</small>
               </div>
             ))}

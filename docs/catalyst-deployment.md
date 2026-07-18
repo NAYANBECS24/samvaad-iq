@@ -1,51 +1,84 @@
-# Safe Catalyst and Slate Deployment
+# NETRA OS Catalyst-First Deployment
 
-## 1. Preserve the current release
+## Release posture
 
-- Keep `pre-winner-upgrade-92b19b7` as the rollback tag.
-- Develop and review through normal commits; never force-push the deployment branch.
-- Do not change the current Slate production source until the Catalyst candidate passes the judge journey.
+The canonical judge target is Catalyst Web Client plus the Node 24 `api` Advanced I/O function. Slate is a synchronized mirror and rollback, not a dependable same-origin API host.
 
-Verified Development deployment (17 July 2026):
+This document does not assert a current public URL as release-ready. Deployment acceptance requires the smoke tests and judge journey below. The source rollback tag is `pre-netra-os-edef150`; development occurs on `feat/netra-os` without force-pushing.
 
-- Web Client: `https://project-rainfall-60073323871.development.catalystserverless.in/app/index.html`
-- Advanced I/O API: `https://project-rainfall-60073323871.development.catalystserverless.in/server/api/api/v1/health`
-- Previously verified deployed API version: `1.1.0` on Node 24; repository candidate: `1.4.0`
-- Current deployed mode: `offline-demo`; the repository switches to `catalyst-live` only when either Data Store is active or Catalyst Auth + Advanced I/O + NVIDIA NIM are configured, while reporting any unavailable persistence
+## Required project preparation
 
-## 2. Configure the Catalyst candidate
+1. Revoke the NVIDIA credential exposed outside the secret store.
+2. Authenticate the Catalyst CLI with the authorized project-owner account and bind the intended Development project.
+3. Provision the normalized tables from `data/catalyst-schema.md` and the required indexes/constraints.
+4. Configure invited Catalyst Auth users and server-owned role mappings; keep public registration disabled.
+5. Configure API Gateway routes, authentication, throttling, request-size rules, and exact approved CORS origins.
+6. Add a replacement NVIDIA key and other provider identifiers only to Catalyst secrets/environment settings.
+7. Keep Data Store, NVIDIA, QuickML, Zia, storage, SmartBrowz, and Circuits unavailable until each real Development canary succeeds.
 
-1. Bind the repository to the existing Catalyst project with the CLI.
-2. Provision the Data Store tables from `data/catalyst-schema.md`.
-3. Create invited Catalyst Auth users and map them to Investigator, Analyst, Supervisor, or Admin server roles.
-4. Deploy the `api` Advanced I/O function and web client.
-5. Build the client with `VITE_API_BASE=/server/api/api/v1`, or configure API Gateway to map `/api/v1/*` to `/server/api/api/v1/*`.
-6. Keep optional service flags false until each provider call is verified in Development.
-7. Store allowed origins, secrets, project IDs, bucket names, and tokens in Catalyst variables rather than Git.
-8. Create and publish the QuickML pipeline using `docs/quickml-pipeline.md`; keep `SAMVAAD_QUICKML_ENABLED=false` until a published endpoint call succeeds in Development.
-9. Revoke any exposed NVIDIA key, create a replacement, and configure it only in the `api` function environment using `docs/nvidia-grounded-chat.md`. Enable `SAMVAAD_NVIDIA_LLM_ENABLED` only after a grounded Development response succeeds.
+## Local release gate
 
-Data Store table creation and QuickML pipeline publication are Catalyst console operations. The repository supplies the complete schema, generated 1,000-case import, 1,452-row QuickML training file, and safe Admin-only seed route; it does not claim either capability is live before those console operations succeed.
-
-## 3. Validate before promotion
-
-```bash
+```powershell
+npm ci --ignore-scripts
+npm --prefix client ci
+npm --prefix functions/api ci
+npm run generate:data
 npm run validate
-npm --prefix client audit --omit=dev
-npm --prefix functions/api audit --omit=dev
-catalyst serve
+npm --prefix client audit --omit=dev --audit-level=high
+npm --prefix functions/api audit --omit=dev --audit-level=high
 ```
 
-Verify that `/api/v1/health` is JSON, the capability mode is honest, unauthorized audit/report requests fail, all citations open cases, evidence hashes match, and the complete demo works in a fresh browser.
+The measured artifact authority is `data/generated/manifest.json` plus `evaluation-metrics.json`.
 
-## 4. Promote without breaking Slate
+The API dependency is locked to `zcatalyst-sdk-node` 3.3.0; keep the lockfile and function package in sync during deployment.
 
-- Promote the Catalyst candidate to a separate judge URL.
-- Make that URL canonical only after deployed smoke tests pass.
-- Configure Slate Git deployment with install command `npm ci`, build command `npm run build`, and output directory `dist`.
-- Purge or invalidate Slate CDN cache if available and verify the new hashed asset name.
-- Remove the legacy root static bundle only after Slate is confirmed to build from `dist`.
+## Data activation
 
-## 5. Rollback
+1. Insert the new `DataVersions` record as `staging`.
+2. Load the 1,000 synthetic cases, 2,000 translations, 19 stations, entities/relations, and approved prototype knowledge for one version.
+3. Validate checksums, counts, bilingual fields, referential integrity, synthetic labels, and absence of evaluation truth in runtime rows.
+4. Atomically retire the former version and activate `synthetic-20260717-1000`.
+5. Confirm every UI/API/report displays the same active version.
+6. Leave a failed/partial version in `staging` and test rollback.
 
-If authentication, API health, or the judge journey fails, restore the previous successful Catalyst deployment and point public links back to the untouched Slate site. Do not force-push or rewrite `main`.
+## Client/API routing
+
+Build the canonical Catalyst client with the same-platform API base supported by the deployed Gateway/function mapping, commonly `/server/api/api/v1` unless Gateway exposes `/api/v1`.
+
+Build Slate with the full approved Catalyst/API Gateway origin. Relative `/api/v1` on a static Slate origin is invalid when Slate returns the SPA HTML.
+
+## Provider activation
+
+- **NVIDIA NIM:** grounded and general canaries, uncited-FIR rejection, deterministic fallback, measured end-to-end latency.
+- **QuickML A:** published case-link model with held-out high-confidence precision at least 90%.
+- **QuickML B:** published aggregate model with temporal backtesting, uncertainty, and feature explanations.
+- **Storage:** real upload, server-side hash, retrieval, provenance, authorization, and lifecycle test.
+- **Zia OCR:** real synthetic image call; no face/object/plate inference unless separately implemented and governed.
+- **SmartBrowz:** real PDF containing complete transcript, approval, audit, data version, and disclaimer.
+- **Circuits:** real upload-to-review workflow with a genuine run ID.
+
+## Deployed smoke test
+
+```powershell
+$env:SAMVAAD_WEB_URL='https://<canonical-client>'
+$env:SAMVAAD_API_BASE='https://<canonical-api>/server/api/api/v1'
+npm run deployed:smoke
+```
+
+The release fails if health/capability/AI routes return HTML, data version is absent/mismatched, role denial can be bypassed, a provider badge lacks a successful canary, or the complete judge mission fails in a fresh profile.
+
+## Remaining production-specific proof
+
+- Atomic cross-instance audit sequence and concurrent chain verification.
+- Persistent conversation/investigation/report recovery after restart.
+- Evidence retention/deletion and storage authorization.
+- Accessibility at least 90 plus 320px/200% zoom checks.
+- Desktop/tablet/mobile English/Kannada/Kanglish text/voice journey.
+- No high/critical production dependency vulnerability.
+- Logs/monitoring with correlation IDs and no secrets.
+
+## Promotion and rollback
+
+Promote Catalyst only after all required gates pass. Then build the Slate mirror from the accepted revision and verify its asset hash plus remote JSON API origin in a fresh browser. Merge to `main` after the reviewed deployed judge mission.
+
+Rollback to the previous successful Catalyst deployment and `pre-netra-os-edef150` if authentication, JSON routing, active data version, grounded chat, evidence handling, approvals, or reports fail. Never force-push or rewrite `main`.

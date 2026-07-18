@@ -12,11 +12,13 @@ process.env.DEMO_AUTH_SECRET = `secret-${crypto.randomUUID()}`
 const handler = require('../index')
 let server
 let baseUrl
+let investigatorSession
 
 test.before(async () => {
   server = http.createServer(handler)
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
   baseUrl = `http://127.0.0.1:${server.address().port}`
+  investigatorSession = await loginAs('investigator@ksp.demo')
 })
 
 test.after(async () => {
@@ -33,17 +35,30 @@ async function loginAs(email) {
   return response.json()
 }
 
+function protectedFetch(path, options = {}, session = investigatorSession) {
+  return fetch(`${baseUrl}${path}`, {
+    ...options,
+    headers: {
+      authorization: `Bearer ${session.token}`,
+      ...(options.headers || {}),
+    },
+  })
+}
+
 test('health is versioned JSON and exposes the honest runtime mode', async () => {
   const response = await fetch(`${baseUrl}/api/v1/health`)
   assert.equal(response.status, 200)
   assert.match(response.headers.get('content-type'), /application\/json/)
   const payload = await response.json()
   assert.equal(payload.mode, 'offline-demo')
-  assert.equal(payload.version, '1.4.0')
+  assert.equal(payload.version, '2.0.0')
+  assert.equal(payload.runtime.apiReachable, true)
+  assert.equal(payload.runtime.persistence.available, false)
+  assert.equal(payload.runtime.generativeAi.verified, false)
 })
 
 test('query returns the standardized evidence envelope', async () => {
-  const response = await fetch(`${baseUrl}/api/v1/query`, {
+  const response = await protectedFetch('/api/v1/query', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ query: 'Find similar cases to SYN-2025-BLR-001' }),
@@ -60,7 +75,7 @@ test('query returns the standardized evidence envelope', async () => {
 })
 
 test('query supports timeline response mode and bounded conversation context', async () => {
-  const response = await fetch(`${baseUrl}/api/v1/query`, {
+  const response = await protectedFetch('/api/v1/query', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
@@ -82,7 +97,7 @@ test('query supports timeline response mode and bounded conversation context', a
 })
 
 test('short conversational prompts receive a normal assistant response', async () => {
-  const response = await fetch(`${baseUrl}/api/v1/query`, {
+  const response = await protectedFetch('/api/v1/query', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ query: 'hi' }),
@@ -92,6 +107,62 @@ test('short conversational prompts receive a normal assistant response', async (
   assert.equal(payload.intent, 'CONVERSATIONAL_QUERY')
   assert.match(payload.answer, /SAMVAAD-IQ/)
   assert.equal(payload.citations.length, 0)
+  assert.equal(payload.answerClass, 'GENERAL_AI')
+})
+
+test('general questions are explicitly separated from database-grounded answers', async () => {
+  const response = await protectedFetch('/api/v1/query', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ message: 'Explain why reproducible random seeds are useful', conversationId: 'CONV-GENERAL-TEST', language: 'en' }),
+  })
+  assert.equal(response.status, 200)
+  const payload = await response.json()
+  assert.equal(payload.answerClass, 'GENERAL_AI')
+  assert.equal(payload.conversationId, 'CONV-GENERAL-TEST')
+  assert.match(payload.messageId, /^MSG-/)
+  assert.equal(payload.citations.length, 0)
+  assert.equal(payload.queryPlan.groundingRequired, false)
+  assert.equal(payload.dataVersion, 'synthetic-20260717-1000')
+})
+
+test('fixed demo profiles receive a signed server demo session without a browser-supplied role', async () => {
+  const response = await fetch(`${baseUrl}/api/v1/auth/demo-session`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email: 'analyst@ksp.demo' }),
+  })
+  assert.equal(response.status, 201)
+  const payload = await response.json()
+  assert.equal(payload.user.role, 'Analyst')
+  assert.ok(payload.token)
+})
+
+test('conversation messages restore in ordered server history', async () => {
+  const conversationId = `CONV-${crypto.randomUUID()}`
+  await protectedFetch('/api/v1/query', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message: 'hello', conversationId }) })
+  const response = await protectedFetch(`/api/v1/conversations/${conversationId}/messages`)
+  assert.equal(response.status, 200)
+  const payload = await response.json()
+  assert.deepEqual(payload.messages.map((item) => item.role), ['user', 'assistant'])
+})
+
+test('additive search, data-version, knowledge, trend, alert, and cohort contracts are honest', async () => {
+  const endpoints = [
+    ['/api/v1/data/versions', undefined],
+    ['/api/v1/search?q=motorcycle', undefined],
+    ['/api/v1/knowledge/search?q=evidence', undefined],
+    ['/api/v1/analytics/trends', {}],
+    ['/api/v1/analytics/alerts', {}],
+    ['/api/v1/analytics/cohorts', { dimension: 'district' }],
+  ]
+  for (const [path, body] of endpoints) {
+    const response = await protectedFetch(path, body === undefined ? undefined : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+    assert.equal(response.status, 200, path)
+    const payload = await response.json()
+    assert.equal(payload.mode, 'offline-demo')
+    assert.equal(JSON.stringify(payload).includes('truth_group'), false)
+  }
 })
 
 test('AI status reports provider safeguards without exposing credentials', async () => {
@@ -104,7 +175,7 @@ test('AI status reports provider safeguards without exposing credentials', async
 })
 
 test('invalid requests use the standard error contract', async () => {
-  const response = await fetch(`${baseUrl}/api/v1/query`, {
+  const response = await protectedFetch('/api/v1/query', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ query: '' }),
@@ -141,13 +212,43 @@ test('anonymous requests never receive a placeholder Catalyst identity', async (
   assert.equal(payload.user, undefined)
 })
 
+test('investigative APIs require a real session even when optional services are unavailable', async () => {
+  const requests = [
+    ['/api/v1/cases', undefined],
+    ['/api/v1/search?q=motorcycle', undefined],
+    ['/api/v1/data/versions', undefined],
+    ['/api/v1/query', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message: 'hello' }) }],
+    ['/api/v1/analytics/trends', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }],
+    ['/api/v1/scenarios', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ units: 3 }) }],
+    ['/api/v1/evidence/sample/analyze', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }],
+    ['/api/v1/reports', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }],
+  ]
+  for (const [path, options] of requests) {
+    const response = await fetch(`${baseUrl}${path}`, options)
+    assert.equal(response.status, 401, path)
+    const payload = await response.json()
+    assert.equal(payload.code, 'AUTH_REQUIRED', path)
+  }
+})
+
+test('Analyst cannot call field-operation scenarios directly', async () => {
+  const analyst = await loginAs('analyst@ksp.demo')
+  const response = await protectedFetch('/api/v1/scenarios', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ district: 'Mysuru', units: 3 }),
+  }, analyst)
+  assert.equal(response.status, 403)
+  assert.equal((await response.json()).code, 'FORBIDDEN')
+})
+
 test('CORS never reflects an unapproved origin', async () => {
   const response = await fetch(`${baseUrl}/api/v1/health`, { headers: { origin: 'https://attacker.example' } })
   assert.equal(response.headers.get('access-control-allow-origin'), null)
 })
 
 test('evidence validation rejects a declared file above 10 MB', async () => {
-  const response = await fetch(`${baseUrl}/api/v1/evidence/sample/analyze`, {
+  const response = await protectedFetch('/api/v1/evidence/sample/analyze', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
@@ -182,16 +283,25 @@ test('reports are supervisor-gated, escaped, and audit-linked', async () => {
   assert.match(report.html, /&lt;script&gt;/)
 })
 
-test('audit events form a verifiable append-only hash chain', async () => {
+test('concurrent audit events form one sequenced, verifiable append-only hash chain', async () => {
   const supervisor = await loginAs('supervisor@ksp.demo')
+  const queryResponses = await Promise.all(Array.from({ length: 8 }, (_, index) => protectedFetch('/api/v1/query', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ message: `Summarize synthetic motorcycle theft cases ${index + 1}`, conversationId: `CONV-AUDIT-${index + 1}` }),
+  }, supervisor)))
+  assert.deepEqual(queryResponses.map((response) => response.status), Array(8).fill(200))
+
   const response = await fetch(`${baseUrl}/api/v1/audit`, { headers: { authorization: `Bearer ${supervisor.token}` } })
   assert.equal(response.status, 200)
   const payload = await response.json()
-  const chronological = [...payload.events].reverse()
+  const chronological = [...payload.events].sort((left, right) => left.sequence - right.sequence)
+  assert.equal(new Set(chronological.map((event) => event.sequence)).size, chronological.length)
   for (let index = 0; index < chronological.length; index += 1) {
     const event = chronological[index]
     const { hash, ...unsigned } = event
     assert.equal(hash, crypto.createHash('sha256').update(JSON.stringify(unsigned)).digest('hex'))
+    assert.equal(event.sequence, index + 1)
     assert.equal(event.previousHash, index ? chronological[index - 1].hash : 'GENESIS')
   }
   assert.equal(payload.chainHead, chronological.at(-1)?.hash || 'GENESIS')

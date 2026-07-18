@@ -1,13 +1,17 @@
 import { Clock, MapPin, Mic, Navigation, Radio, Route, Send, ShieldAlert } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { cases, getHotspots, patrolWhatIf } from '../services/prototypeEngine.js'
+import { cases, getHotspots, patrolWhatIf } from '../services/intelligenceRepository.js'
+import { useRuntime } from '../services/runtime.jsx'
 
 const activeStatuses = new Set(['Open', 'Under Investigation'])
 
 function TabletPatrol() {
+  const { runtime, runQuery } = useRuntime()
   const [query, setQuery] = useState('Nearby chain snatching alerts')
   const [voiceStatus, setVoiceStatus] = useState('Voice ready')
+  const [result, setResult] = useState(null)
+  const [isQuerying, setIsQuerying] = useState(false)
   const alerts = useMemo(() => cases.filter((caseRecord) => activeStatuses.has(caseRecord.status)).slice(0, 5), [])
   const hotspots = useMemo(() => getHotspots({ district: 'Bengaluru South', crimeType: 'Motorcycle Theft' }), [])
   const patrol = useMemo(() => patrolWhatIf({ district: 'Bengaluru South', crimeType: 'Motorcycle Theft', units: 4 }), [])
@@ -34,6 +38,30 @@ function TabletPatrol() {
     recognition.start()
   }
 
+  async function submitQuery(event) {
+    event.preventDefault()
+    const message = query.trim()
+    if (!message || isQuerying) return
+    setIsQuerying(true)
+    setVoiceStatus('SAMVAAD is checking the shared synthetic case repository…')
+    try {
+      const nextResult = await runQuery(message, {
+        answerMode: 'brief',
+        interfaceLanguage: 'en',
+        source: 'tablet-patrol',
+      })
+      setResult(nextResult)
+      setVoiceStatus(nextResult?.citations?.length
+        ? `Answered with ${nextResult.citations.length} cited synthetic source${nextResult.citations.length === 1 ? '' : 's'}`
+        : 'Answered without making a case-database claim')
+    } catch (error) {
+      setResult(null)
+      setVoiceStatus(`Query failed safely: ${error.message}`)
+    } finally {
+      setIsQuerying(false)
+    }
+  }
+
   return (
     <div className="tablet-shell">
       <header className="tablet-topbar">
@@ -42,7 +70,7 @@ function TabletPatrol() {
           <h1>Patrol Command View</h1>
         </div>
         <div className="tablet-status-strip">
-          <span><Radio size={15} /> Online</span>
+          <span><Radio size={15} /> {runtime.label}</span>
           <span><Clock size={15} /> 21:00-00:00</span>
         </div>
       </header>
@@ -99,20 +127,37 @@ function TabletPatrol() {
 
       <form
         className="tablet-query-dock"
-        onSubmit={(event) => {
-          event.preventDefault()
-          setVoiceStatus('Query staged')
-        }}
+        onSubmit={submitQuery}
       >
         <button type="button" onClick={startVoiceInput} aria-label="Voice query">
           <Mic size={20} />
         </button>
         <input value={query} onChange={(event) => setQuery(event.target.value)} />
-        <button type="submit" aria-label="Send query">
+        <button type="submit" aria-label="Send query" disabled={isQuerying || !query.trim()}>
           <Send size={20} />
         </button>
         <span>{voiceStatus}</span>
       </form>
+
+      {result ? (
+        <section className="panel" aria-live="polite">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">SAMVAAD field brief · {result.mode}</p>
+              <h2>{result.intent?.replaceAll('_', ' ') || 'Query response'}</h2>
+            </div>
+          </div>
+          <p>{result.answer}</p>
+          {result.citations?.length ? (
+            <div className="mini-action-row">
+              {result.citations.slice(0, 4).map((citation) => (
+                <Link key={citation.id} to={`/cases/${citation.firId}`}>{citation.firId}</Link>
+              ))}
+            </div>
+          ) : null}
+          <p className="disclaimer">Area/time/category decision support only. Field action and case conclusions require human verification.</p>
+        </section>
+      ) : null}
     </div>
   )
 }

@@ -29,17 +29,18 @@ import CaseCard from '../components/CaseCard.jsx'
 import DetectiveRoom from '../components/DetectiveRoom.jsx'
 import EvidencePanel from '../components/EvidencePanel.jsx'
 import { useLanguage } from '../i18n.js'
+import { useInvestigation } from '../os/InvestigationContext.jsx'
 import { api } from '../services/api.js'
-import { getStoredUser } from '../services/prototypeEngine.js'
+import { getStoredUser } from '../services/intelligenceRepository.js'
 import { useRuntime } from '../services/runtime.jsx'
 
 const starterQueries = [
   'Mysuru alli motorcycle theft hotspot show maadi',
   'ಮೈಸೂರು ಬೈಕ್ ಕಳ್ಳತನ ಹಾಟ್‌ಸ್ಪಾಟ್ ತೋರಿಸಿ',
-  'Are SYN-2025-BLR-001 and SYN-2025-BLR-014 connected?',
-  'Find similar cases to SYN-2025-BLR-001 using Crime DNA',
+  'Are SYN-2026-BLR-0103 and SYN-2026-BLR-0205 connected?',
+  'Find similar cases to SYN-2026-BLR-0103 using Crime DNA',
   'What if 3 patrol units are added in Mysuru?',
-  'Summarize SYN-2025-BLR-014 with cited evidence',
+  'Summarize SYN-2026-BLR-0205 with cited evidence',
 ]
 
 const answerModes = [
@@ -51,6 +52,30 @@ const answerModes = [
 
 function createConversationId() {
   return `CONV-${globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`}`
+}
+
+const CONVERSATION_STORAGE_KEY = 'samvaad_conversation_current'
+
+function restoredConversation() {
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(CONVERSATION_STORAGE_KEY) || 'null')
+    if (stored?.conversationId && Array.isArray(stored.turns)) {
+      return { conversationId: stored.conversationId, history: [...stored.turns].reverse() }
+    }
+    const last = JSON.parse(window.localStorage.getItem('samvaad_last_chat') || 'null')
+    if (last?.requestId && last?.answer) return { conversationId: last.conversationId || createConversationId(), history: [last] }
+  } catch {
+    // Ignore malformed legacy browser state and start a clean synthetic investigation.
+  }
+  return { conversationId: createConversationId(), history: [] }
+}
+
+function responseLabel(turn) {
+  if (turn.answerClass === 'DATABASE_GROUNDED') return `Database Grounded · ${turn.citations?.length || 0} cited synthetic source${turn.citations?.length === 1 ? '' : 's'}`
+  if (turn.answerClass === 'APPROVED_KNOWLEDGE') return 'Approved knowledge · verify the applicable KSP SOP'
+  if (turn.answerClass === 'GENERAL_AI') return turn.provider?.kind === 'general-ai' ? 'General AI — not a police-database result' : 'General conversation · no database claim made'
+  if (turn.answerClass === 'SAFETY_REFUSAL') return 'Safety boundary · no database claim made'
+  return 'Clarification requested · no database claim made'
 }
 
 function ConfidenceRing({ confidence }) {
@@ -139,7 +164,7 @@ function ChatTranscript({ history, isProcessing, language, endRef }) {
                   {turn.citations.slice(0, 5).map((citation) => <Link key={citation.id} to={`/cases/${citation.firId}`}>{citation.firId}</Link>)}
                 </div>
               ) : null}
-              <small>{turn.citations?.length ? `${turn.citations.length} cited synthetic source${turn.citations.length === 1 ? '' : 's'} · investigative support only` : 'Conversational response · no database claim made'}</small>
+              <small>{responseLabel(turn)}</small>
             </div>
           </article>
         </div>
@@ -159,11 +184,13 @@ function ChatTranscript({ history, isProcessing, language, endRef }) {
 function InvestigationChat() {
   const { language, t } = useLanguage()
   const { runtime, runQuery } = useRuntime()
+  const investigation = useInvestigation()
   const user = useMemo(() => getStoredUser(), [])
+  const restored = useMemo(() => restoredConversation(), [])
   const [query, setQuery] = useState('')
   const [answerMode, setAnswerMode] = useState('investigator')
-  const [conversationId, setConversationId] = useState(createConversationId)
-  const [history, setHistory] = useState([])
+  const [conversationId, setConversationId] = useState(restored.conversationId)
+  const [history, setHistory] = useState(restored.history)
   const [isProcessing, setIsProcessing] = useState(false)
   const [isListening, setIsListening] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
@@ -193,6 +220,8 @@ function InvestigationChat() {
         previousIntent: latest?.intent || null,
         previousQuery: latest?.query || null,
         previousFirIds: (latest?.citations || []).map((item) => item.firId).filter(Boolean).slice(0, 5),
+        contextRefs: investigation.pinnedCases,
+        investigationId: investigation.activeInvestigation.id,
         history: history.slice(0, 4).reverse().map((item) => ({
           query: item.query,
           intent: item.intent,
@@ -201,12 +230,18 @@ function InvestigationChat() {
         interfaceLanguage: language,
       })
       if (!result?.answer) throw new Error('The intelligence engine returned no grounded answer.')
-      setHistory((current) => [{ ...result, query: trimmed }, ...current].slice(0, 8))
+      const recordedResult = { ...result, query: trimmed, conversationId: result.conversationId || conversationId }
+      setHistory((current) => [recordedResult, ...current])
+      investigation.recordResult(recordedResult)
       setQuery((current) => current.trim() === trimmed ? '' : current)
       const cited = Boolean(result.citations?.length)
-      setStatus(result.mode === 'catalyst-live'
-        ? cited ? 'SAMVAAD replied with traceable Catalyst evidence.' : 'SAMVAAD replied.'
-        : cited ? 'SAMVAAD replied from the local synthetic database; cited results were not persisted.' : 'SAMVAAD replied in read-only demo mode.')
+      setStatus(result.answerClass === 'GENERAL_AI'
+        ? result.provider?.kind === 'general-ai' ? 'SAMVAAD replied in General AI mode; this is not a police-database result.' : 'SAMVAAD replied conversationally without making a database claim.'
+        : result.answerClass === 'APPROVED_KNOWLEDGE'
+          ? 'SAMVAAD returned approved prototype guidance; verify the applicable KSP SOP.'
+          : cited
+            ? `SAMVAAD replied with traceable synthetic evidence from ${result.provider?.name || 'KAVACH'}.`
+            : 'SAMVAAD needs clarification and did not fabricate evidence.')
       return result
     } catch (error) {
       setStatus(`Unable to complete the query: ${error.message}`)
@@ -222,8 +257,10 @@ function InvestigationChat() {
   }, [])
 
   useEffect(() => {
-    if (latest) window.localStorage.setItem('samvaad_last_chat', JSON.stringify(latest))
-  }, [latest])
+    if (!history.length) return
+    window.localStorage.setItem(CONVERSATION_STORAGE_KEY, JSON.stringify({ conversationId, turns: [...history].reverse() }))
+    window.localStorage.setItem('samvaad_last_chat', JSON.stringify(latest))
+  }, [conversationId, history, latest])
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' })
@@ -243,6 +280,7 @@ function InvestigationChat() {
     window.speechSynthesis?.cancel()
     setConversationId(createConversationId())
     setHistory([])
+    window.localStorage.removeItem(CONVERSATION_STORAGE_KEY)
     setFeedback(null)
     setAnswerMode('investigator')
     setQuery('')
@@ -331,7 +369,7 @@ function InvestigationChat() {
   async function recordDecision(decision) {
     if (!latest) return
     setFeedback('Saving review…')
-    if (runtime.mode === 'catalyst-live') {
+    if (runtime.truth?.persistence?.available) {
       try {
         await api.feedback({ requestId: latest.requestId, decision })
         setFeedback(`Review recorded: ${decision}`)
@@ -352,9 +390,9 @@ function InvestigationChat() {
   const coverage = insights?.coverage
   const timeline = insights?.timeline || []
   const consistencyChecks = insights?.consistencyChecks || []
-  const languageModel = runtime.capabilities?.generativeAi
+  const languageModel = runtime.truth?.generativeAi
   const voiceStatusText = voiceStatus.value ? `${t(voiceStatus.key)} ${voiceStatus.value}` : t(voiceStatus.key)
-  const showInvestigationDetails = Boolean(latest && !['CONVERSATIONAL_QUERY', 'AMBIGUOUS_QUERY', 'OUT_OF_SCOPE'].includes(latest.intent))
+  const showInvestigationDetails = Boolean(latest && latest.answerClass === 'DATABASE_GROUNDED' && !['INSUFFICIENT_EVIDENCE', 'AMBIGUOUS_QUERY'].includes(latest.intent))
 
   return (
     <div className="page-stack">
@@ -372,7 +410,7 @@ function InvestigationChat() {
           <div>
             <span className={`ai-live-dot${languageModel?.available ? ' is-live' : ''}`} />
             <strong>{languageModel?.available ? `${languageModel.provider} · ${languageModel.model}` : 'SAMVAAD conversational engine'}</strong>
-            <small>{languageModel?.available ? 'Natural server-side answers with a cited-evidence guard' : 'Natural local answers · grounded NVIDIA phrasing activates through the server'}</small>
+            <small>{languageModel?.available ? 'Verified server AI · grounded answers enforce the uncited-FIR guard' : languageModel?.configured ? 'Server AI configured · availability is confirmed only after a successful response' : 'Deterministic local answers · no external AI claim'}</small>
           </div>
           <button type="button" className="secondary-button" onClick={startNewInvestigation} disabled={isProcessing}><RefreshCw size={16} />New investigation</button>
         </div>
@@ -430,6 +468,8 @@ function InvestigationChat() {
               <span>{latest.responseMode || answerMode} mode</span>
               <span>{latest.auditRef || 'No persisted audit reference'}</span>
               <span>{latest.citations?.length || 0} citations</span>
+              <span>{latest.dataVersion || 'Unversioned data'}</span>
+              <span>{latest.latency?.totalMs ?? 0} ms</span>
               {latest.modelSignals?.generativeAnswer ? <span>{latest.modelSignals.generativeAnswer.provider} · {latest.modelSignals.generativeAnswer.model} · grounded</span> : null}
             </div>
 

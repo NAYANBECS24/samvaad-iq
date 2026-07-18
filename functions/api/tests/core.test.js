@@ -43,13 +43,22 @@ test('replies naturally to greetings without inventing database evidence', () =>
   }
 })
 
-test('does not fabricate evidence for ambiguous or out-of-scope prompts', () => {
+test('does not fabricate evidence for clarification, safety, or general prompts', () => {
   for (const query of ['do something', 'Give medical advice', 'What is the cricket score?']) {
     const response = core.answer(query)
-    assert.ok(['AMBIGUOUS_QUERY', 'OUT_OF_SCOPE'].includes(response.intent))
+    assert.ok(['AMBIGUOUS_QUERY', 'SAFETY_REFUSAL', 'GENERAL_QUERY'].includes(response.intent))
     assert.equal(response.citations.length, 0)
     assert.equal(response.confidence.score, 0)
   }
+})
+
+test('extracts structured status, date, station, BNS, and language signals without exposing evaluation labels', () => {
+  const response = core.answer('Show open motorcycle theft cases in Mysuru from 2025-01-01 at PS-MYS-SYN-02 under BNS 303')
+  assert.equal(response.filters.status, 'Open')
+  assert.equal(response.filters.dateFrom, '2025-01-01')
+  assert.equal(response.filters.stationId, 'PS-MYS-SYN-02')
+  assert.deepEqual(response.filters.bnsSections, ['BNS 303'])
+  assert.equal(JSON.stringify(response).includes('truth_group'), false)
 })
 
 test('answers natural database summary questions with readable grounded counts', () => {

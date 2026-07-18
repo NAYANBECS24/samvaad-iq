@@ -1,12 +1,11 @@
 import { CheckCircle2, DatabaseZap, RefreshCw, ShieldCheck, TableProperties, Upload } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import seed from '../data/demoSeed.json'
-import { seedSummary } from '../services/prototypeEngine.js'
+import { cases, DATA_VERSION, seedSummary } from '../services/intelligenceRepository.js'
 import { api } from '../services/api.js'
 import { useRuntime } from '../services/runtime.jsx'
 
 function AdminData() {
-  const [draft, setDraft] = useState(JSON.stringify(seed.cases.slice(0, 2), null, 2))
+  const [draft, setDraft] = useState(JSON.stringify(cases.slice(0, 2), null, 2))
   const [message, setMessage] = useState('Ready for manual synthetic data validation.')
   const [isSeeding, setIsSeeding] = useState(false)
   const summary = seedSummary()
@@ -56,7 +55,7 @@ function AdminData() {
         </div>
         <div className="data-pill">
           <DatabaseZap size={16} />
-          {summary.cases} current seed records
+          {summary.cases} records · {DATA_VERSION}
         </div>
       </header>
 
@@ -149,11 +148,14 @@ function AdminData() {
             <TableProperties size={19} />
           </div>
           {[
-            ['Users', `${summary.users} role records`],
-            ['PoliceStations', `${summary.stations} station records`],
-            ['Cases', `${summary.cases} FIR records`],
-            ['Accused', `${summary.accused} entity records`],
-            ['Relations', `${summary.relations} graph relation records`],
+            ['DataVersions', 'Staging → validation → atomic activation'],
+            ['Cases + CaseTranslations', `${summary.cases} FIR records with bilingual projection`],
+            ['Stations', `${summary.stations} station records`],
+            ['Entities + CaseEntities', `${summary.accused} masked seed entities`],
+            ['EvidenceObjects + EvidenceFacts', 'Provenance and extracted facts kept separate'],
+            ['Conversations + Messages', 'Full query and report transcript'],
+            ['Relations + AnalysisRuns', `${summary.relations} seed graph relations`],
+            ['Approvals + AuditEvents', 'Human authorization and tamper-evident history'],
           ].map(([name, detail]) => (
             <div key={name} className="station-row">
               <strong>{name}</strong>

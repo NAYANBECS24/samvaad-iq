@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "release": {
+    "product": "NETRA OS",
+    "copilot": "SAMVAAD-IQ",
+    "kernel": "KAVACH",
+    "challenge": "KSP Datathon 2026 Challenge 1",
+    "version": "2.0.0",
+    "baselineTag": "pre-netra-os-edef150"
+  },
+  "data": {
+    "version": "synthetic-20260717-1000",
+    "label": "SYNTHETIC DEMO DATA — NOT AN OPERATIONAL POLICE RECORD",
+    "seed": 20260717,
+    "cases": 1000,
+    "browserFallbackCases": 250,
+    "stations": 19,
+    "translationRows": 2000,
+    "plantedPatternFamilies": 6,
+    "restrictedEvaluationRows": 58
+  },
+  "metrics": {
+    "source": "data/generated/evaluation-metrics.json",
+    "evaluationQueries": 30,
+    "intentAccuracy": 1,
+    "citationCoverage": 1,
+    "refusalFabricationFailures": 0,
+    "deterministicP95Ms": 118.03,
+    "highConfidenceLinkPrecision": 0.955,
+    "plantedLinkRecall": 1,
+    "evaluatedPlantedPairs": 252
+  },
+  "capabilities": {
+    "netraOs": {
+      "implementation": "implemented",
+      "liveVerification": "local-build-and-tests"
+    },
+    "advancedIo": {
+      "implementation": "implemented",
+      "liveVerification": "required"
+    },
+    "catalystAuth": {
+      "implementation": "adapter-and-branded-redirect",
+      "liveVerification": "required"
+    },
+    "catalystDataStore": {
+      "implementation": "schema-and-adapter",
+      "liveVerification": "required"
+    },
+    "apiGateway": {
+      "implementation": "routing-and-security-contract",
+      "liveVerification": "required"
+    },
+    "nvidiaNim": {
+      "implementation": "server-only-adapter",
+      "liveVerification": "required-after-secret-rotation"
+    },
+    "quickMlCaseLink": {
+      "implementation": "training-artifact-only",
+      "liveVerification": "not-published"
+    },
+    "quickMlAggregatePattern": {
+      "implementation": "training-artifact-only",
+      "liveVerification": "not-published"
+    },
+    "evidenceStorage": {
+      "implementation": "binary-upload-and-storage-adapters",
+      "liveVerification": "required"
+    },
+    "ziaOcr": {
+      "implementation": "capability-gated-adapter",
+      "liveVerification": "required"
+    },
+    "smartBrowz": {
+      "implementation": "server-pdf-adapter-with-browser-fallback",
+      "liveVerification": "required"
+    },
+    "circuits": {
+      "implementation": "capability-gated-adapter",
+      "liveVerification": "required"
+    },
+    "audit": {
+      "implementation": "serialized-hash-chain-with-unique-sequence-optimistic-retry",
+      "liveVerification": "multi-instance-canary-required"
+    }
+  },
+  "safety": {
+    "syntheticOnly": true,
+    "humanReviewRequired": true,
+    "noPersonRiskScoring": true,
+    "noGuiltInference": true,
+    "publicRegistration": false,
+    "exposedNvidiaCredentialMustBeRevoked": true
+  },
+  "deployment": {
+    "catalystCanonical": "pending-authenticated-deployment",
+    "slateMirror": "legacy-until-catalyst-acceptance",
+    "liveCapabilitiesRequireCanary": true
+  }
+}

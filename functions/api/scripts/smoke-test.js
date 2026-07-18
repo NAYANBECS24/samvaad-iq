@@ -20,9 +20,10 @@ async function main() {
   assert.equal(similar.matches[0].fir_id, 'SYN-2025-BLR-014')
   assert.ok(similar.matches[0].factors.every((factor) => typeof factor.contribution === 'number'))
 
-  const refusal = core.answer('What is the cricket score?')
-  assert.equal(refusal.intent, 'OUT_OF_SCOPE')
-  assert.equal(refusal.citations.length, 0)
+  const general = core.answer('What is the cricket score?')
+  assert.equal(general.intent, 'GENERAL_QUERY')
+  assert.equal(general.answerClass, 'GENERAL_AI')
+  assert.equal(general.citations.length, 0)
 
   const evidence = core.analyzeEvidence({
     text: 'SYN-2025-BLR-001 contains PH-HASH-711 and BNS 303(2).',

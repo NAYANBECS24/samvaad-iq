@@ -11,13 +11,13 @@
     },
     {
       "role": "Investigator",
-      "query": "Are SYN-2025-BLR-001 and SYN-2025-BLR-014 connected?",
+      "query": "Are SYN-2026-BLR-0103 and SYN-2026-BLR-0205 connected?",
       "expected_intent": "CASE_LINK_QUERY",
-      "required": ["PH-HASH-711", "KAVACH factor contributions", "investigative-lead disclaimer"]
+      "required": ["PH-SYN-B47FC863", "KAVACH factor contributions", "investigative-lead disclaimer"]
     },
     {
       "role": "Analyst",
-      "query": "Find similar cases to SYN-2025-BLR-001 using Crime DNA",
+      "query": "Find similar cases to SYN-2026-BLR-0103 using Crime DNA",
       "expected_intent": "SIMILAR_CASE_QUERY",
       "required": ["inclusion threshold", "factor-level evidence", "source and match citations"]
     },
@@ -30,8 +30,8 @@
     {
       "role": "Investigator",
       "query": "What is the cricket score?",
-      "expected_intent": "OUT_OF_SCOPE",
-      "required": ["zero citations", "zero confidence", "crime-database scope guidance"]
+      "expected_intent": "GENERAL_QUERY",
+      "required": ["General AI label", "zero FIR citations", "no claim of live internet access"]
     }
   ]
 }

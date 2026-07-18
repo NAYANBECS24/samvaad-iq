@@ -87,21 +87,27 @@ function buildReport(payload = {}) {
     cases: selected,
     html: buildHtml({ reportId, title, generatedAt, query, answer, selected, disclaimer }),
     smartBrowz: {
-      renderJobId: `SBZ-${Date.now().toString().slice(-6)}`,
-      status: 'queued-for-headless-render',
+      renderJobId: null,
+      available: false,
+      verified: false,
+      status: 'capability-unavailable',
       service: 'Catalyst SmartBrowz',
     },
     stratusObject: {
-      bucket: 'samvaad-intelligence-briefs',
-      key: `reports/${reportId}.pdf`,
+      bucket: null,
+      key: null,
+      available: false,
+      verified: false,
       service: 'Catalyst Stratus',
     },
     mailEvent: {
-      template: 'Supervisor evidence review',
-      status: 'ready-to-send',
+      template: null,
+      available: false,
+      verified: false,
+      status: 'capability-unavailable',
       service: 'Catalyst Mail',
     },
-    status: 'prototype-ready',
+    status: 'local-html-ready',
   }
 }
 

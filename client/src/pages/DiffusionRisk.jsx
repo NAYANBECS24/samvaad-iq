@@ -1,7 +1,7 @@
 import { Activity, AlertTriangle, MapPinned, RadioTower, Route, ShieldCheck } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { buildDiffusionModel } from '../services/prototypeEngine.js'
+import { buildDiffusionModel } from '../services/intelligenceRepository.js'
 
 const districts = ['All', 'Bengaluru South', 'Mysuru', 'Hubballi-Dharwad', 'Mangaluru']
 const crimeTypes = ['All', 'Motorcycle Theft', 'Chain Snatching', 'UPI Fraud', 'House Burglary']
@@ -20,12 +20,12 @@ function DiffusionRisk() {
     <div className="page-stack">
       <header className="page-header">
         <div>
-          <p className="eyebrow">Crime Contagion Diffusion</p>
-          <h1>Area-Level Rc Risk Model</h1>
+          <p className="eyebrow">Incident Pattern Transition</p>
+          <h1>Area-Level Activity Monitor</h1>
         </div>
         <div className="intent-pill">
           <Activity size={16} />
-          {model.risk}
+          {model.patternBand}
         </div>
       </header>
 
@@ -66,8 +66,8 @@ function DiffusionRisk() {
         </article>
         <article className="kpi-card emphasis">
           <MapPinned size={22} />
-          <span>Expansion Zones</span>
-          <strong>{model.zones.filter((zone) => zone.risk === 'Expansion').length}</strong>
+          <span>Expanding Pattern Areas</span>
+          <strong>{model.zones.filter((zone) => zone.patternBand === 'Expansion').length}</strong>
         </article>
         <article className="kpi-card emphasis">
           <Route size={22} />
@@ -80,8 +80,8 @@ function DiffusionRisk() {
         <article className="panel chart-panel">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Station Rc</p>
-              <h2>Diffusion Pressure</h2>
+              <p className="eyebrow">Station Activity Ratio</p>
+              <h2>Historical Pattern Change</h2>
             </div>
           </div>
           <ResponsiveContainer width="100%" height={300}>
@@ -92,7 +92,7 @@ function DiffusionRisk() {
               <Tooltip />
               <Bar dataKey="rc" radius={[4, 4, 0, 0]}>
                 {model.zones.map((zone) => (
-                  <Cell key={zone.station_id} fill={colors[zone.risk] || '#2563eb'} />
+                  <Cell key={zone.station_id} fill={colors[zone.patternBand] || '#2563eb'} />
                 ))}
               </Bar>
             </BarChart>
@@ -129,13 +129,13 @@ function DiffusionRisk() {
         <div className="section-heading">
           <div>
             <p className="eyebrow">Interpretation</p>
-            <h2>Hypothesis-Only Diffusion Reading</h2>
+            <h2>Historical Aggregate Interpretation</h2>
           </div>
         </div>
         <div className="risk-list">
-          <span>Rc above 1.2 means expansion watch</span>
+          <span>Rc above 1.2 flags an aggregate pattern for review</span>
           <span>Area-level only</span>
-          <span>No individual prediction</span>
+          <span>No incident or person prediction</span>
           <span>Patrol decisions remain human-led</span>
         </div>
       </section>

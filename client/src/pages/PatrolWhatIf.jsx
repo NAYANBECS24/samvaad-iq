@@ -1,7 +1,7 @@
 import { AlertTriangle, Car, CheckCircle2, Clock, MapPin, Radio, Route, Shield, SlidersHorizontal } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import LiveFieldMetrics from '../components/LiveFieldMetrics.jsx'
-import { patrolWhatIf } from '../services/prototypeEngine.js'
+import { patrolWhatIf } from '../services/intelligenceRepository.js'
 
 const districts = ['Bengaluru South', 'Mysuru', 'Hubballi-Dharwad', 'Mangaluru']
 const crimeTypes = ['Motorcycle Theft', 'Chain Snatching', 'UPI Fraud', 'House Burglary']
@@ -113,8 +113,8 @@ function PatrolWhatIf() {
         <article className="panel">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Live Dispatch Simulator</p>
-              <h2>Drag Patrol Unit To High-Risk Zone</h2>
+              <p className="eyebrow">Interactive Planning Simulator</p>
+              <h2>Assign A Unit To A High-Concentration Area</h2>
             </div>
             <Radio size={19} />
           </div>
@@ -264,20 +264,20 @@ function PatrolWhatIf() {
           <div className="section-heading">
             <div>
               <p className="eyebrow">ACSE Red Team</p>
-              <h2>Displacement Risk</h2>
+              <h2>Adjacent-Area Pattern Watch</h2>
             </div>
             <AlertTriangle size={19} />
           </div>
           <div className="lead-banner">
-            <strong>{simulation.displacementRisk}</strong>
-            <span>adversarial patrol simulation</span>
+            <strong>{simulation.displacementWatch}</strong>
+            <span>aggregate scenario stress test</span>
           </div>
           {simulation.displacementZones.map((zone) => (
             <div key={`${zone.rank}-${zone.station}`} className="station-row">
               <strong>
                 {zone.rank}. {zone.station}
               </strong>
-              <span style={{ color: 'var(--amber)' }}>+{zone.riskDelta}% watch</span>
+              <span style={{ color: 'var(--amber)' }}>+{zone.patternWatchDelta}% watch index</span>
               <small>{zone.reason}</small>
             </div>
           ))}
@@ -297,7 +297,7 @@ function PatrolWhatIf() {
               ['Crime Type', crimeType],
               ['Units', units],
               ['Coverage Delta', `${simulation.coverageBefore}% -> ${adjustedCoverageAfter}%`],
-              ['Displacement', simulation.displacementRisk],
+              ['Adjacent-area watch', simulation.displacementWatch],
               ['Time Windows', simulation.recommendedTimeWindows.map((w) => w.name).join(', ')],
             ].map(([label, value]) => (
               <div key={label} style={{

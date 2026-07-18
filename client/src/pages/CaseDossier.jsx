@@ -24,7 +24,7 @@ import {
   getStation,
   legalExplainabilityForCase,
   relations,
-} from '../services/prototypeEngine.js'
+} from '../services/intelligenceRepository.js'
 
 const tabs = ['Overview', 'Evidence', 'Crime DNA', 'Legal XAI', 'Action Plan', 'Audit']
 

@@ -5,16 +5,20 @@
   "dataVersion": "synthetic-20260717-1000",
   "cases": 1000,
   "stations": 19,
-  "plantedPatterns": [
-    "RING-METRO-LOCK",
-    "RING-EVENING-CHAIN",
-    "RING-UPI-MULE",
-    "RING-REAR-ENTRY",
-    "RING-TRANSIT-PICK",
-    "COLD-MO-RETURN"
-  ],
+  "caseTranslationRows": 2000,
+  "plantedPatternFamilies": 6,
   "plantedCases": 58,
-  "quickMlRows": 1452,
-  "quickMlPositiveRows": 252,
-  "quickMlTarget": "linked"
+  "quickMlCaseLinkRows": 1452,
+  "quickMlCaseLinkPositiveRows": 252,
+  "quickMlCaseLinkTarget": "linked",
+  "quickMlAreaPatternRows": 6935,
+  "quickMlAreaPatternTarget": "target_next_week_count",
+  "evaluationTruthRows": 58,
+  "modelStatus": "training-artifacts-only-not-live",
+  "leakageControls": [
+    "no FIR IDs in case-link features",
+    "no truth_group in runtime cases",
+    "no deterministic final score as a model feature",
+    "no person fields in area-pattern features"
+  ]
 }

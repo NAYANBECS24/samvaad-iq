@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import ReactFlow, { Background, Controls, MiniMap } from 'reactflow'
 import { useParams } from 'react-router-dom'
-import { buildGraph, cases } from '../services/prototypeEngine.js'
+import { buildGraph, cases } from '../services/intelligenceRepository.js'
 
 const nodeColors = {
   FIR: '#60a5fa',
@@ -135,14 +135,15 @@ function NetworkGraph() {
             </div>
           </div>
           {Object.entries(nodeColors).map(([label, color]) => (
-            <div
+            <button
               key={label}
-              className="legend-row"
+              type="button"
+              className="legend-row legend-filter"
+              aria-pressed={activeFilters.has(label)}
+              aria-label={`${activeFilters.has(label) ? 'Hide' : 'Show'} ${label} nodes, ${typeCounts[label] || 0} available`}
               style={{
-                cursor: 'pointer',
                 opacity: activeFilters.has(label) ? 1 : 0.35,
                 transition: 'opacity 0.2s',
-                padding: '4px 0',
               }}
               onClick={() => toggleFilter(label)}
             >
@@ -156,7 +157,7 @@ function NetworkGraph() {
               }}>
                 {typeCounts[label] || 0}
               </span>
-            </div>
+            </button>
           ))}
           <p className="disclaimer">Click legend items to toggle. Graph links are synthetic evidence trails.</p>
         </aside>

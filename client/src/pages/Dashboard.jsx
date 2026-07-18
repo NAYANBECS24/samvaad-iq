@@ -35,7 +35,8 @@ import {
 import CaseCard from '../components/CaseCard.jsx'
 import LiveFieldMetrics from '../components/LiveFieldMetrics.jsx'
 import OperationalReadiness from '../components/OperationalReadiness.jsx'
-import { buildDashboardSummary, seedSummary } from '../services/prototypeEngine.js'
+import { canAccessPath } from '../os/navigation.js'
+import { buildDashboardSummary, getStoredUser, seedSummary } from '../services/intelligenceRepository.js'
 
 const palette = ['#00f0ff', '#f59e0b', '#a78bfa', '#ef4444', '#60a5fa', '#10b981']
 
@@ -52,10 +53,9 @@ function AnimatedCounter({ target, suffix = '' }) {
   return <strong>{target}{suffix}</strong>
 }
 
-function ThreatGauge({ level }) {
+function ActivityShareGauge({ level }) {
   const percent = Math.min(100, Math.max(0, level))
-  const color = percent > 70 ? 'var(--red)' : percent > 40 ? 'var(--amber)' : 'var(--emerald)'
-  const label = percent > 70 ? 'HIGH' : percent > 40 ? 'ELEVATED' : 'NORMAL'
+  const color = 'var(--cyan)'
 
   return (
     <div style={{
@@ -68,7 +68,7 @@ function ThreatGauge({ level }) {
       background: 'var(--surface)',
       backdropFilter: 'blur(16px)',
     }}>
-      <p className="eyebrow">Threat Assessment</p>
+      <p className="eyebrow">Active Case Share</p>
       <div style={{
         position: 'relative',
         width: 120,
@@ -109,10 +109,10 @@ function ThreatGauge({ level }) {
         fontWeight: 800,
         letterSpacing: '0.1em',
         color,
-        background: color === 'var(--red)' ? 'var(--red-soft)' : color === 'var(--amber)' ? 'var(--amber-soft)' : 'var(--emerald-soft)',
+        background: 'var(--cyan-soft)',
         border: `1px solid ${color}22`,
       }}>
-        {label}
+        HISTORICAL STATUS
       </span>
     </div>
   )
@@ -165,10 +165,9 @@ function IntelTicker({ cases: casesData }) {
 function Dashboard() {
   const summary = buildDashboardSummary()
   const counts = seedSummary()
-  const threatLevel = Math.round(
-    (summary.activeCases / Math.max(1, summary.totalCases)) * 100 * 0.85
-      + (summary.repeatOffenders * 6)
-  )
+  const activeShare = Math.round(summary.activeShare * 100)
+  const role = getStoredUser()?.role || 'Investigator'
+  const visibleJudgeWorkflow = judgeWorkflow.filter((item) => canAccessPath(role, item.to))
 
   return (
     <div className="page-stack">
@@ -187,7 +186,7 @@ function Dashboard() {
 
       <section className="ops-hero">
         <div className="ops-copy">
-          <p className="eyebrow">SAMVAAD-IQ Live Prototype</p>
+          <p className="eyebrow">SAMVAAD-IQ Synthetic Intelligence Workspace</p>
           <h2>Conversational intelligence, graph reasoning, hotspot context, and report-ready evidence in one workspace.</h2>
           <p>
             Built for Challenge 1: login, ask, retrieve, reason, visualize, run scenarios, and export. All FIR records are
@@ -198,10 +197,7 @@ function Dashboard() {
               <FolderSearch size={15} />
               Case Explorer
             </Link>
-            <Link to="/pipeline">
-              <Workflow size={15} />
-              Pipeline
-            </Link>
+            {canAccessPath(role, '/pipeline') ? <Link to="/pipeline"><Workflow size={15} />Pipeline</Link> : null}
             <Link to="/diffusion">
               <RadioTower size={15} />
               Diffusion
@@ -223,7 +219,7 @@ function Dashboard() {
       </section>
 
       <section className="dashboard-journey-grid" aria-label="Recommended judge workflow">
-        {judgeWorkflow.map(({ to, title, text, Icon }, index) => (
+        {visibleJudgeWorkflow.map(({ to, title, text, Icon }, index) => (
           <Link to={to} className="journey-card" key={to}>
             <span className="journey-step">{String(index + 1).padStart(2, '0')}</span>
             <Icon size={20} />
@@ -259,8 +255,8 @@ function Dashboard() {
           </article>
           <article className="kpi-card">
             <AlertTriangle size={22} />
-            <span>High-Risk Crime Type</span>
-            <strong style={{ fontSize: '0.95rem' }}>{summary.highRiskCrimeType}</strong>
+            <span>Most Frequent Category</span>
+            <strong style={{ fontSize: '0.95rem' }}>{summary.mostFrequentCrimeType}</strong>
           </article>
           <article className="kpi-card emphasis">
             <Database size={22} />
@@ -279,16 +275,16 @@ function Dashboard() {
           </article>
           <article className="kpi-card emphasis">
             <BrainCircuit size={22} />
-            <span>Crime DNA Avg</span>
-            <strong>0.84</strong>
+            <span>Mean Top Crime DNA Match</span>
+            <strong>{summary.averageTopSimilarity.toFixed(2)}</strong>
           </article>
           <article className="kpi-card emphasis">
             <RadioTower size={22} />
-            <span>Demo Queries</span>
-            <strong>5/5</strong>
+            <span>Similarity Rows Measured</span>
+            <strong>{summary.similarityCandidatesMeasured}</strong>
           </article>
         </section>
-        <ThreatGauge level={threatLevel} />
+        <ActivityShareGauge level={activeShare} />
       </div>
 
       <OperationalReadiness />

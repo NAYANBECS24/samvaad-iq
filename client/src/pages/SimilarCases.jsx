@@ -2,7 +2,7 @@ import { Sparkles } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import CaseCard from '../components/CaseCard.jsx'
-import { cases, findSimilarCases } from '../services/prototypeEngine.js'
+import { cases, findSimilarCases } from '../services/intelligenceRepository.js'
 
 function SimilarCases() {
   const { firId } = useParams()

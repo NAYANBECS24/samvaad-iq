@@ -1,7 +1,7 @@
 {
   "name": "samvaad-iq-workspace",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "SAMVAAD-IQ — the conversational workspace for the NETRA crime-intelligence platform",
   "scripts": {
     "start": "npm run client:dev",
@@ -14,10 +14,12 @@
     "api:dev": "node functions/api/index.js",
     "api:smoke": "node functions/api/scripts/smoke-test.js",
     "api:test": "npm --prefix functions/api test",
-    "evaluate": "npm --prefix functions/api run evaluate",
+    "evaluate": "npm --prefix functions/api run evaluate && npm run release:manifest",
+    "release:manifest": "node scripts/generate-release-manifest.mjs",
     "generate:data": "npm --prefix functions/api run generate:data",
+    "deployed:smoke": "node scripts/deployed-smoke.mjs",
     "browser:test": "playwright test",
-    "test": "npm run api:test && npm run api:smoke && npm run evaluate",
+    "test": "npm run api:test && npm run api:smoke && npm --prefix functions/api run evaluate:check",
     "validate": "npm run client:lint && npm run build && npm test && npm run browser:test"
   },
   "engines": {

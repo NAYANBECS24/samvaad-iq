@@ -1,189 +1,91 @@
 {
   "summary": {
     "name": "NETRA Evidence Lab",
-    "flow": "Upload Evidence -> Zia Extraction -> QuickML RAG -> Crime DNA Match -> SmartBrowz Report -> Signals Audit",
-    "disclaimer": "Synthetic evidence simulation only. No real PII, biometric identity, or enforcement decision is generated."
+    "flow": "Validate file -> calculate SHA-256 -> extract supported text/metadata -> optional server hash recheck/storage -> retrieve synthetic case fields -> human review -> capability-gated report",
+    "mode": "offline-capable",
+    "disclaimer": "Only actual file metadata and parser output may be displayed. Optional Catalyst services remain unavailable until a live canary succeeds."
   },
   "evidenceProfiles": [
     {
-      "id": "fir-pdf",
-      "label": "FIR PDF Intake",
-      "kind": "FIR PDF",
-      "accepted": ".pdf",
-      "sampleFileName": "FIR-2025-MYS-railway-theft.pdf",
-      "requiredServices": ["Catalyst Stratus", "Catalyst Zia Services", "Catalyst Data Store", "Catalyst QuickML"],
-      "extractionMode": "Zia OCR + text analytics",
-      "linkedCaseIds": ["SYN-2026-LEG-1003", "SYN-2026-LEG-1004", "SYN-2026-LEG-1008", "SYN-2026-LEG-1015"],
-      "extracted": {
-        "crimeType": "Motorcycle Theft",
-        "district": "Mysuru",
-        "station": "Lashkar Police Station",
-        "location": "Mysuru railway parking",
-        "timeWindow": "20:00-23:00",
-        "vehicle": "KA-09-MX-4481",
-        "phoneHash": "PH-HASH-MYS-909",
-        "suspectMentions": ["A-909", "A-910"],
-        "legalHints": ["BNS 303(2)", "BNS 317"],
-        "confidence": 0.91
-      },
-      "sourceText": "OCR extracted duplicate-key motorcycle theft near Mysuru railway parking, repeated phone hash PH-HASH-MYS-909, vehicle KA-09-MX-4481, evening pattern between 8 PM and 11 PM."
+      "id": "document",
+      "label": "Document intake",
+      "kind": "PDF, DOCX, XLSX, CSV, or JSON",
+      "accepted": ".pdf,.docx,.xlsx,.csv,.json",
+      "extractionMode": "Browser text extraction",
+      "limitations": ["PDF parsing is limited to 50 pages.", "XLSX parsing reads the first worksheet."]
     },
     {
-      "id": "cctv-image",
-      "label": "CCTV Image",
-      "kind": "CCTV image",
-      "accepted": ".jpg,.jpeg,.png",
-      "sampleFileName": "jayanagar-metro-cam-04.png",
-      "requiredServices": ["Catalyst Stratus", "Catalyst Zia Services", "Catalyst Data Store", "Catalyst Cache"],
-      "extractionMode": "Zia object recognition + plate OCR",
-      "linkedCaseIds": ["SYN-2025-BLR-001", "SYN-2025-BLR-014"],
-      "extracted": {
-        "crimeType": "Motorcycle Theft",
-        "district": "Bengaluru South",
-        "station": "Jayanagar Police Station",
-        "location": "Jayanagar metro exit parking",
-        "timeWindow": "21:00-23:00",
-        "vehicle": "KA-05-SYN-1122",
-        "phoneHash": "PH-HASH-711",
-        "suspectMentions": ["A-112", "A-205"],
-        "legalHints": ["BNS 303(2)", "BNS 317"],
-        "confidence": 0.88
-      },
-      "sourceText": "CCTV frame shows two-person motorcycle theft pattern near Jayanagar metro exit, handle lock break, KA-05-SYN-1122 plate candidate, shared phone hash PH-HASH-711."
-    },
-    {
-      "id": "id-document",
-      "label": "ID / Document Scan",
-      "kind": "ID document",
-      "accepted": ".jpg,.jpeg,.png,.pdf",
-      "sampleFileName": "bank-support-kyc-fragment.pdf",
-      "requiredServices": ["Catalyst Stratus", "Catalyst Zia Services", "Catalyst NoSQL", "Catalyst QuickML"],
-      "extractionMode": "Zia ID scanner + entity masking",
-      "linkedCaseIds": ["SYN-2025-HUB-009", "SYN-2025-MNG-004"],
-      "extracted": {
-        "crimeType": "UPI Fraud",
-        "district": "Hubballi-Dharwad",
-        "station": "Keshwapur Police Station",
-        "location": "bank support impersonation trail",
-        "timeWindow": "13:30-14:30",
-        "vehicle": "NA",
-        "phoneHash": "PH-HASH-450",
-        "suspectMentions": ["A-450", "A-451"],
-        "legalHints": ["BNS 318(4)", "IT Act 66D"],
-        "confidence": 0.86
-      },
-      "sourceText": "Document scanner extracted masked account support script, repeated bank impersonation wording, PH-HASH-450, and mule account pattern across Hubballi-Dharwad and Mangaluru."
-    },
-    {
-      "id": "audio-clip",
-      "label": "Audio Clip",
-      "kind": "voice/audio",
-      "accepted": ".mp3,.wav,.m4a",
-      "sampleFileName": "market-chain-snatching-witness.wav",
-      "requiredServices": ["Catalyst Stratus", "Catalyst Zia Services", "Catalyst QuickML", "Catalyst Mail"],
-      "extractionMode": "Zia speech-to-text + translation",
-      "linkedCaseIds": ["SYN-2025-MYS-006", "SYN-2025-MYS-011"],
-      "extracted": {
-        "crimeType": "Chain Snatching",
-        "district": "Mysuru",
-        "station": "Lashkar Police Station",
-        "location": "market road and dim lane corridor",
-        "timeWindow": "19:00-20:00",
-        "vehicle": "KA-09-SYN-3001",
-        "phoneHash": "PH-HASH-901",
-        "suspectMentions": ["A-301", "A-302"],
-        "legalHints": ["BNS 304(2)", "BNS 3(5)"],
-        "confidence": 0.84
-      },
-      "sourceText": "Speech-to-text transcript mentions rider-pillion scooter, gold chain snatching near market road, same KA-09-SYN-3001 scooter, evening escape through dim lane."
+      "id": "image",
+      "label": "Image intake",
+      "kind": "PNG or JPEG",
+      "accepted": ".png,.jpg,.jpeg",
+      "extractionMode": "Browser image metadata only",
+      "limitations": ["No OCR, face identity, object recognition, or plate reading is inferred without a verified server capability."]
     }
   ],
   "workflowEvents": [
     {
-      "id": "SIG-01",
-      "name": "Evidence uploaded",
-      "service": "Catalyst Stratus",
-      "detail": "Object stored with metadata, hash, uploader role, and retention tag."
+      "id": "EV-01",
+      "name": "File validation",
+      "service": "Browser parser",
+      "detail": "Checks the supported extension, non-empty content, and 10 MB limit.",
+      "status": "implemented"
     },
     {
-      "id": "SIG-02",
-      "name": "Zia extraction completed",
-      "service": "Catalyst Zia Services",
-      "detail": "OCR, STT, object recognition, ID scanner, and text analytics normalize evidence entities."
+      "id": "EV-02",
+      "name": "Provenance calculation",
+      "service": "Web Crypto",
+      "detail": "Calculates SHA-256 over the actual selected file bytes.",
+      "status": "implemented"
     },
     {
-      "id": "SIG-03",
-      "name": "Entity event emitted",
-      "service": "Catalyst Signals + Event Functions",
-      "detail": "New vehicle, phone hash, station, and suspect mention trigger matching functions."
+      "id": "EV-03",
+      "name": "Local extraction",
+      "service": "Format-specific browser parser",
+      "detail": "Extracts supported text or image dimensions and preserves parser limitations.",
+      "status": "implemented"
     },
     {
-      "id": "SIG-04",
-      "name": "Crime DNA and RAG fused",
-      "service": "Catalyst QuickML + Cache",
-      "detail": "Evidence metadata retrieves FIR, legal, SOP, and graph sources; repeated matches are cached."
+      "id": "EV-04",
+      "name": "Grounded case retrieval",
+      "service": "Shared synthetic repository",
+      "detail": "Matches extracted terms only against source fields in the active synthetic data version.",
+      "status": "implemented"
     },
     {
-      "id": "SIG-05",
-      "name": "Supervisor circuit opened",
-      "service": "Catalyst Circuits",
-      "detail": "Human review branch must approve report circulation or request more validation."
+      "id": "EV-05",
+      "name": "Server persistence and enrichment canary",
+      "service": "Catalyst capability adapters",
+      "detail": "The implemented upload path validates decoded bytes, enforces 10 MB, recalculates SHA-256, and calls Stratus/File Store. Storage, OCR, orchestration, and server PDF output activate only after their verified live calls.",
+      "status": "runtime-detected"
     },
     {
-      "id": "SIG-06",
-      "name": "Report rendered and logged",
-      "service": "Catalyst SmartBrowz + Mail",
-      "detail": "Official HTML brief renders to PDF, stores in Stratus, sends notification, and writes audit log."
+      "id": "EV-06",
+      "name": "Human review",
+      "service": "Supervisor approval",
+      "detail": "No extracted fact, case link, or report becomes actionable without source review.",
+      "status": "required"
     }
   ],
-  "cachePlan": [
-    {
-      "key": "crime-dna:fir:SYN-2026-LEG-1003",
-      "scope": "Similar-case ranking",
-      "ttl": "30 min",
-      "service": "Catalyst Cache",
-      "status": "Warm"
-    },
-    {
-      "key": "hotspots:Mysuru:Motorcycle Theft",
-      "scope": "Hotspot points and clusters",
-      "ttl": "15 min",
-      "service": "Catalyst Cache",
-      "status": "Warm"
-    },
-    {
-      "key": "graph:SYN-2025-BLR-001",
-      "scope": "Network graph nodes and edges",
-      "ttl": "20 min",
-      "service": "Catalyst Cache",
-      "status": "Warm"
-    },
-    {
-      "key": "dashboard:summary:command",
-      "scope": "Dashboard KPIs and chart data",
-      "ttl": "10 min",
-      "service": "Catalyst Cache",
-      "status": "Warm"
-    }
-  ],
+  "cachePlan": [],
   "ragCorpus": [
     {
-      "id": "RAG-FIR",
-      "title": "FIR narrative and evidence metadata",
-      "service": "Catalyst QuickML RAG",
-      "detail": "Retrieves FIR summary, MO, station, time window, vehicle, phone hash, and linked entities."
+      "id": "SRC-FIR",
+      "title": "Synthetic FIR fields",
+      "service": "Shared synthetic repository",
+      "detail": "Case summary, modus operandi, station, time, vehicle, phone hash, and masked entity identifiers."
     },
     {
-      "id": "RAG-LEGAL",
-      "title": "BNS / IPC legal support mapping",
-      "service": "Catalyst QuickML RAG",
-      "detail": "Maps crime category to advisory legal sections while preserving human legal review."
+      "id": "SRC-LEGAL",
+      "title": "Advisory BNS support mapping",
+      "service": "Bundled deterministic map",
+      "detail": "Supports human legal review and does not produce a legal conclusion."
     },
     {
-      "id": "RAG-SOP",
-      "title": "Investigation SOP guardrails",
-      "service": "Catalyst QuickML RAG",
-      "detail": "Adds manual verification, source traceability, privacy masking, and supervisor review requirements."
+      "id": "SRC-SAFETY",
+      "title": "Investigation safeguards",
+      "service": "Bundled policy",
+      "detail": "Requires source traceability, synthetic identifiers, privacy minimization, and human approval."
     }
   ]
 }

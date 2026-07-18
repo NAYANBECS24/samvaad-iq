@@ -3097,6 +3097,14 @@ textarea {
   backdrop-filter: blur(24px);
 }
 
+.login-action-panel.auth-view-catalyst {
+  gap: 14px;
+  padding: clamp(16px, 2vw, 22px);
+}
+
+.login-action-panel.auth-view-catalyst .login-form-heading { gap: 4px; }
+.login-action-panel.auth-view-catalyst .login-form-heading p:last-child { font-size: 0.9rem; line-height: 1.35; }
+
 .login-form-heading { display: grid; gap: 7px; min-width: 0; }
 .login-form-heading h2 { color: var(--text-bright); }
 .login-form-heading p:last-child { color: var(--muted); line-height: 1.45; }
@@ -3147,15 +3155,19 @@ textarea {
 
 .login-auth-tabs button:disabled { cursor: not-allowed; opacity: 0.45; }
 
-.catalyst-auth-panel { display: grid; gap: 12px; }
+.catalyst-auth-panel { display: grid; gap: 10px; }
 
 .catalyst-signin-frame {
+  position: relative;
   display: grid;
-  min-height: 210px;
+  height: clamp(330px, 37vh, 390px);
+  min-height: 0;
   overflow: hidden;
   border: 1px solid rgba(0, 240, 255, 0.18);
   border-radius: 12px;
-  background: #ffffff;
+  background: #f8fafc;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+  contain: layout paint;
 }
 
 .catalyst-signin-frame > p {
@@ -3165,7 +3177,15 @@ textarea {
   text-align: center;
 }
 
-.catalyst-signin-frame iframe { width: 100% !important; min-height: 430px !important; border: 0; }
+.catalyst-signin-frame iframe {
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: calc(100% + 20px) !important;
+  height: 640px !important;
+  min-height: 640px !important;
+  border: 0;
+  background: #f8fafc;
+}
 .catalyst-auth-panel .primary-button { width: 100%; min-height: 46px; }
 
 .auth-safety-note {
@@ -3174,6 +3194,16 @@ textarea {
   gap: 7px;
   color: var(--dim);
   line-height: 1.45;
+}
+
+.auth-view-catalyst .auth-safety-note {
+  padding: 8px 10px;
+  border: 1px solid rgba(16, 185, 129, 0.14);
+  border-radius: 9px;
+  color: var(--muted);
+  background: rgba(16, 185, 129, 0.06);
+  font-size: 0.72rem;
+  line-height: 1.35;
 }
 
 .auth-safety-note svg { flex: 0 0 auto; color: var(--emerald); margin-top: 2px; }

@@ -213,7 +213,7 @@ function Login({ onLogin }) {
             </div>
           </div>
 
-          <div className="login-action-panel">
+          <div className={`login-action-panel auth-view-${authView}`}>
             <div className="login-form-heading">
               <p className="eyebrow">Secure Demo Gateway</p>
               <h2>{authView === 'register' ? 'Register Catalyst Account' : authView === 'demo' ? 'Read-Only Judge Demo' : 'Catalyst Role-Based Access'}</h2>
@@ -243,8 +243,7 @@ function Login({ onLogin }) {
                 <button type="button" className="primary-button" disabled={sdkState !== 'ready' || isSubmitting} onClick={() => continueCatalystSession()}>
                   <LogIn size={18} /> Continue after sign in
                 </button>
-                <small className="auth-safety-note">Complete the Catalyst form above, then use Continue after sign in to open your role-controlled workspace.</small>
-                <small className="auth-safety-note"><ShieldCheck size={14} /> Authentication, password reset, and session cookies are handled by Catalyst—not stored in Git or browser application code.</small>
+                <small className="auth-safety-note"><ShieldCheck size={14} /> Complete the secure form, then continue. Catalyst handles passwords, reset, and session cookies; SAMVAAD-IQ never stores them.</small>
               </div>
             ) : null}
 

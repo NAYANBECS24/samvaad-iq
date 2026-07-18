@@ -112,7 +112,7 @@ npm --prefix client audit --omit=dev
 npm --prefix functions/api audit --omit=dev
 ```
 
-Offline mode is read-only: when `VITE_OFFLINE_DEMO_PASSWORD` is unset, selecting a role profile grants a clearly labeled local demo persona without pretending that it is police authentication. Hosted builds load Catalyst Web SDK v4.6.1, embed Catalyst sign-in, derive the active role from Catalyst, and provide low-privilege App User registration when Public Signup is enabled. Hosts may set the offline password variable to add a presentation gate. Local API demo authentication additionally requires `ALLOW_DEMO_AUTH=true`, `DEMO_PASSWORD`, and `DEMO_AUTH_SECRET`; live deployments keep demo authentication disabled. Credentials and endpoint keys are distributed out of band, never committed.
+The visible gateway is a read-only role selector for the synthetic judge demonstration. When `VITE_OFFLINE_DEMO_PASSWORD` is unset, choosing one of the four profiles opens its role-aware workspace without a password; hosts may set that variable to add a private presentation gate. Embedded Catalyst sign-in and public registration are intentionally not loaded in the browser. Catalyst server-side authorization adapters remain available for a later private operational deployment. Local API demo authentication additionally requires `ALLOW_DEMO_AUTH=true`, `DEMO_PASSWORD`, and `DEMO_AUTH_SECRET`; live deployments keep demo authentication disabled. Credentials and endpoint keys are distributed out of band, never committed.
 
 ## API contract
 

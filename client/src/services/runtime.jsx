@@ -4,7 +4,6 @@ import seed from '../data/demoSeed.json'
 import { createIntelligenceCore } from '../../../functions/api/core/index.mjs'
 import { enrichInvestigationResult } from '../../../functions/api/core/insights.mjs'
 import { api, storeApiToken } from './api.js'
-import { catalystAccessToken, currentCatalystUser, registerCatalystUser, signOutCatalyst } from './catalystAuth.js'
 
 const RuntimeContext = createContext(null)
 const offlineCore = createIntelligenceCore(seed, { total: 250 })
@@ -82,8 +81,8 @@ export function RuntimeProvider({ children }) {
     return offlineCore.analyzeEvidence({ ...prepared, mode: 'offline-demo', limitations: [...(prepared.limitations || []), 'Analysis ran locally and was not persisted.'] })
   }, [runtime.mode])
 
-  const login = useCallback(async (email, password) => {
-    if (runtime.mode === 'catalyst-live') {
+  const login = useCallback(async (email, password, options = {}) => {
+    if (runtime.mode === 'catalyst-live' && !options.forceOffline) {
       const session = await api.login(email, password)
       storeApiToken(session.token)
       return session.user
@@ -100,21 +99,11 @@ export function RuntimeProvider({ children }) {
     }
   }, [runtime.mode])
 
-  const completeCatalystLogin = useCallback(async () => {
-    const user = await currentCatalystUser()
-    const token = await catalystAccessToken().catch(() => null)
-    if (token) storeApiToken(token, 'Zoho-oauthtoken')
-    return user
-  }, [])
-
-  const register = useCallback((details) => registerCatalystUser(details), [])
-
-  const logout = useCallback((sessionMode) => {
+  const logout = useCallback(() => {
     storeApiToken(null)
-    if (sessionMode === 'catalyst-auth') signOutCatalyst().catch(() => null)
   }, [])
 
-  const value = useMemo(() => ({ runtime, probe, runQuery, analyzeEvidence, login, completeCatalystLogin, register, logout, offlineCore }), [runtime, probe, runQuery, analyzeEvidence, login, completeCatalystLogin, register, logout])
+  const value = useMemo(() => ({ runtime, probe, runQuery, analyzeEvidence, login, logout, offlineCore }), [runtime, probe, runQuery, analyzeEvidence, login, logout])
   return <RuntimeContext.Provider value={value}>{children}</RuntimeContext.Provider>
 }
 

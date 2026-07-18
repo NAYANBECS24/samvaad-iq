@@ -19,17 +19,16 @@ async function signIn(page, profile) {
   await expect(page.locator('.runtime-badge')).toContainText(/Offline Demo|Catalyst Live/)
 }
 
-test('Catalyst login portal stays bounded without horizontal or nested-frame overflow', async ({ page }) => {
+test('login uses the direct role gateway without embedded Catalyst authentication', async ({ page }) => {
   await page.setViewportSize({ width: 1920, height: 1080 })
   await page.goto('/#/login')
-  await page.getByRole('tab', { name: 'Catalyst Login' }).click()
-  await page.locator('#catalyst-signin').evaluate((host) => {
-    host.replaceChildren(document.createElement('iframe'))
-  })
+  await expect(page.getByRole('heading', { name: 'Role-Based Demo Access' })).toBeVisible()
+  await expect(page.getByRole('tab', { name: 'Catalyst Login' })).toHaveCount(0)
+  await expect(page.getByRole('tab', { name: 'Register' })).toHaveCount(0)
+  await expect(page.locator('#catalyst-signin, iframe')).toHaveCount(0)
+  await expect(page.locator('.credential-card')).toHaveCount(4)
 
-  const frameBox = await page.locator('.catalyst-signin-frame').boundingBox()
   const panelBox = await page.locator('.login-action-panel').boundingBox()
-  expect(frameBox.height).toBeLessThanOrEqual(391)
   expect(panelBox.y + panelBox.height).toBeLessThanOrEqual(1080)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
 })

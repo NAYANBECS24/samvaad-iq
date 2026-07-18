@@ -1,10 +1,9 @@
-import { Bot, FileText, GitBranch, KeyRound, Languages, LogIn, MapPinned, RadioTower, ShieldCheck, UserPlus } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Bot, FileText, GitBranch, KeyRound, Languages, LogIn, MapPinned, RadioTower, ShieldCheck } from 'lucide-react'
+import { useCallback, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import loginWallpaper from '../assets/ksp-police-command-wallpaper.png'
 import { demoUsers } from '../services/prototypeEngine.js'
 import { useRuntime } from '../services/runtime.jsx'
-import { loadCatalystWebSdk, renderCatalystSignIn } from '../services/catalystAuth.js'
 
 const loginCapabilities = [
   { label: 'Natural-language FIR search', Icon: Bot },
@@ -40,22 +39,15 @@ function CredentialCard({ user, isSelected, onSelect }) {
 }
 
 function Login({ onLogin }) {
-  const localBrowser = ['localhost', '127.0.0.1'].includes(window.location.hostname)
   const [email, setEmail] = useState(demoUsers[1].email)
   const [password, setPassword] = useState(offlineDemoPassword)
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
   const [accessGranted, setAccessGranted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [authView, setAuthView] = useState(localBrowser ? 'demo' : 'catalyst')
-  const [sdkState, setSdkState] = useState(localBrowser ? 'unavailable' : 'checking')
-  const [registration, setRegistration] = useState({ firstName: '', lastName: '', email: '' })
   const navigate = useNavigate()
-  const { runtime, login, completeCatalystLogin, register } = useRuntime()
-  const passwordRequired = runtime.mode === 'catalyst-live' || Boolean(offlineDemoPassword)
-  const checkingRuntime = runtime.mode === 'checking'
+  const { login } = useRuntime()
+  const passwordRequired = Boolean(offlineDemoPassword)
   const grantingRef = useRef(false)
-  const signInRenderedRef = useRef(false)
 
   const grantAccess = useCallback((user) => {
     if (grantingRef.current) return
@@ -67,49 +59,13 @@ function Login({ onLogin }) {
     }, 600)
   }, [navigate, onLogin])
 
-  const continueCatalystSession = useCallback(async ({ silent = false } = {}) => {
-    if (grantingRef.current) return
-    try {
-      const user = await completeCatalystLogin()
-      grantAccess(user)
-    } catch (err) {
-      if (!silent) setError(err.message || 'Complete the Catalyst sign-in form first.')
-    }
-  }, [completeCatalystLogin, grantAccess])
-
-  useEffect(() => {
-    if (localBrowser) return undefined
-    let cancelled = false
-    loadCatalystWebSdk()
-      .then(() => {
-        if (!cancelled) setSdkState('ready')
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setSdkState('unavailable')
-          setError(`Catalyst Auth is unavailable on this deployment: ${err.message}`)
-        }
-      })
-    return () => { cancelled = true }
-  }, [localBrowser])
-
-  useEffect(() => {
-    if (sdkState !== 'ready' || authView !== 'catalyst' || signInRenderedRef.current) return undefined
-    signInRenderedRef.current = true
-    renderCatalystSignIn('catalyst-signin').catch((err) => {
-      signInRenderedRef.current = false
-      setError(err.message)
-    })
-    return undefined
-  }, [sdkState, authView])
-
   async function submit(event) {
     event.preventDefault()
     setError('')
     setIsSubmitting(true)
 
     try {
-      const user = await login(email, password)
+      const user = await login(email, password, { forceOffline: true })
       grantAccess(user)
     } catch (err) {
       setError(err.message)
@@ -121,29 +77,6 @@ function Login({ onLogin }) {
     setEmail(user.email)
     setPassword(offlineDemoPassword)
     setError('')
-  }
-
-  async function submitRegistration(event) {
-    event.preventDefault()
-    setError('')
-    setNotice('')
-    setIsSubmitting(true)
-    try {
-      await register(registration)
-      setNotice(`Activation instructions were sent to ${registration.email.trim().toLowerCase()}. The account starts with Investigator access.`)
-      setAuthView('catalyst')
-      signInRenderedRef.current = false
-    } catch (err) {
-      setError(`${err.message || 'Registration could not be completed.'} If public signup is disabled, enable it in Catalyst Authentication or invite the user from the console.`)
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  function selectAuthView(view) {
-    setAuthView(view)
-    setError('')
-    setNotice('')
   }
 
   return (
@@ -213,67 +146,26 @@ function Login({ onLogin }) {
             </div>
           </div>
 
-          <div className={`login-action-panel auth-view-${authView}`}>
+          <div className="login-action-panel auth-view-demo">
             <div className="login-form-heading">
               <p className="eyebrow">Secure Demo Gateway</p>
-              <h2>{authView === 'register' ? 'Register Catalyst Account' : authView === 'demo' ? 'Read-Only Judge Demo' : 'Catalyst Role-Based Access'}</h2>
-              <p>{authView === 'catalyst'
-                ? 'Sign in through Zoho Catalyst. The server derives your role; the browser cannot promote it.'
-                : authView === 'register'
-                  ? 'Create a low-privilege account and activate it from the email sent by Catalyst.'
-                  : offlineDemoPassword
-                    ? 'Offline demo access uses the password configured by the host; changes are not persisted.'
-                    : 'Select a profile for read-only offline access. This is a demo persona, not an authenticated police account.'}</p>
+              <h2>Role-Based Demo Access</h2>
+              <p>{offlineDemoPassword
+                ? 'Choose a role profile and enter the private demo password. Changes are not persisted.'
+                : 'Choose a role profile and enter the read-only command workspace. No password is required.'}</p>
             </div>
 
-            <div className="login-auth-tabs" role="tablist" aria-label="Authentication method">
-              <button type="button" role="tab" aria-selected={authView === 'catalyst'} className={authView === 'catalyst' ? 'active' : ''} onClick={() => selectAuthView('catalyst')}>Catalyst Login</button>
-              <button type="button" role="tab" aria-selected={authView === 'register'} className={authView === 'register' ? 'active' : ''} onClick={() => selectAuthView('register')} disabled={sdkState === 'unavailable'}>Register</button>
-              <button type="button" role="tab" aria-selected={authView === 'demo'} className={authView === 'demo' ? 'active' : ''} onClick={() => selectAuthView('demo')}>Offline Demo</button>
+            <form className="login-form" onSubmit={submit}>
+              <label>Email<input value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="username" autoCapitalize="none" spellCheck="false" /></label>
+              <label>{passwordRequired ? 'Password' : 'Password (not required for demo)'}<input value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="current-password" disabled={!passwordRequired} required={passwordRequired} placeholder={passwordRequired ? 'Enter password' : 'Choose a role profile below'} /></label>
+              {error ? <p className="form-error" role="alert">{error}</p> : null}
+              <button type="submit" className="primary-button" disabled={isSubmitting}><LogIn size={18} />{isSubmitting ? 'Opening workspace…' : 'Enter Command Workspace'}</button>
+            </form>
+            <div className="credential-header"><p className="eyebrow">Choose Access Role</p><span>{demoUsers.length} profiles</span></div>
+            <div className="credential-grid">
+              {demoUsers.map((user) => <CredentialCard key={user.email} user={user} isSelected={email.trim().toLowerCase() === user.email} onSelect={fillDemo} />)}
             </div>
-
-            {authView === 'catalyst' ? (
-              <div className="catalyst-auth-panel">
-                <div id="catalyst-signin" className="catalyst-signin-frame">
-                  {sdkState === 'checking' ? <p>Loading secure Catalyst authentication…</p> : null}
-                  {sdkState === 'unavailable' ? <p>Catalyst Auth is not configured for this hosted origin. The offline judge demo remains available.</p> : null}
-                </div>
-                {error ? <p className="form-error" role="alert">{error}</p> : null}
-                {notice ? <p className="form-notice" role="status">{notice}</p> : null}
-                <button type="button" className="primary-button" disabled={sdkState !== 'ready' || isSubmitting} onClick={() => continueCatalystSession()}>
-                  <LogIn size={18} /> Continue after sign in
-                </button>
-                <small className="auth-safety-note"><ShieldCheck size={14} /> Complete the secure form, then continue. Catalyst handles passwords, reset, and session cookies; SAMVAAD-IQ never stores them.</small>
-              </div>
-            ) : null}
-
-            {authView === 'register' ? (
-              <form className="login-form" onSubmit={submitRegistration}>
-                <div className="registration-name-grid">
-                  <label>First name<input value={registration.firstName} onChange={(event) => setRegistration((current) => ({ ...current, firstName: event.target.value }))} autoComplete="given-name" maxLength={80} /></label>
-                  <label>Last name<input value={registration.lastName} onChange={(event) => setRegistration((current) => ({ ...current, lastName: event.target.value }))} autoComplete="family-name" required maxLength={80} /></label>
-                </div>
-                <label>Email<input value={registration.email} onChange={(event) => setRegistration((current) => ({ ...current, email: event.target.value }))} type="email" autoComplete="email" required /></label>
-                {error ? <p className="form-error" role="alert">{error}</p> : null}
-                {notice ? <p className="form-notice" role="status">{notice}</p> : null}
-                <button type="submit" className="primary-button" disabled={isSubmitting || sdkState !== 'ready'}><UserPlus size={18} />{isSubmitting ? 'Creating account…' : 'Register as Investigator'}</button>
-              </form>
-            ) : null}
-
-            {authView === 'demo' ? (
-              <>
-                <form className="login-form" onSubmit={submit}>
-                  <label>Email<input value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="username" autoCapitalize="none" spellCheck="false" /></label>
-                  <label>{passwordRequired ? 'Password' : 'Password (not required for read-only demo)'}<input value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="current-password" disabled={!passwordRequired} required={passwordRequired} placeholder={passwordRequired ? 'Enter password' : 'Profile selection only'} /></label>
-                  {error ? <p className="form-error" role="alert">{error}</p> : null}
-                  <button type="submit" className="primary-button" disabled={isSubmitting || checkingRuntime}><LogIn size={18} />{checkingRuntime ? 'Checking runtime…' : isSubmitting ? 'Opening workspace…' : 'Enter Command Workspace'}</button>
-                </form>
-                <div className="credential-header"><p className="eyebrow">Demo Profiles</p><span>{demoUsers.length} available</span></div>
-                <div className="credential-grid">
-                  {demoUsers.map((user) => <CredentialCard key={user.email} user={user} isSelected={email.trim().toLowerCase() === user.email} onSelect={fillDemo} />)}
-                </div>
-              </>
-            ) : null}
+            <small className="demo-access-note"><ShieldCheck size={14} /> Synthetic demonstration data only. Role selection changes the visible workspace; it is not operational police authentication.</small>
           </div>
         </section>
       )}

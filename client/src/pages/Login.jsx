@@ -1,8 +1,9 @@
-import { Bot, CheckCircle2, FileText, GitBranch, KeyRound, Languages, LogIn, MapPinned, RadioTower, ShieldCheck } from 'lucide-react'
+import { Bot, CheckCircle2, ExternalLink, FileText, GitBranch, KeyRound, Languages, LogIn, MapPinned, RadioTower, ShieldCheck } from 'lucide-react'
 import { useCallback, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import loginWallpaper from '../assets/ksp-police-command-wallpaper.png'
-import { demoUsers } from '../services/prototypeEngine.js'
+import { api } from '../services/api.js'
+import { demoUsers } from '../services/intelligenceRepository.js'
 import { useRuntime } from '../services/runtime.jsx'
 
 const loginCapabilities = [
@@ -40,15 +41,34 @@ function CredentialCard({ user, isSelected, onSelect }) {
 }
 
 function Login({ onLogin }) {
+  const [accessMode, setAccessMode] = useState('demo')
   const [email, setEmail] = useState(demoUsers[1].email)
   const [password, setPassword] = useState(offlineDemoPassword)
   const [error, setError] = useState('')
   const [accessGranted, setAccessGranted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isOpeningSecure, setIsOpeningSecure] = useState(false)
   const navigate = useNavigate()
-  const { login } = useRuntime()
+  const { login, runtime } = useRuntime()
   const passwordRequired = Boolean(offlineDemoPassword)
   const grantingRef = useRef(false)
+
+  function selectAccessMode(mode) {
+    setAccessMode(mode)
+    setError('')
+  }
+
+  function handleAccessModeKeyDown(event) {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+    event.preventDefault()
+    const nextMode = event.key === 'Home'
+      ? 'demo'
+      : event.key === 'End'
+        ? 'secure'
+        : accessMode === 'demo' ? 'secure' : 'demo'
+    selectAccessMode(nextMode)
+    window.requestAnimationFrame(() => document.getElementById(`access-tab-${nextMode}`)?.focus())
+  }
 
   const grantAccess = useCallback((user) => {
     if (grantingRef.current) return
@@ -66,7 +86,7 @@ function Login({ onLogin }) {
     setIsSubmitting(true)
 
     try {
-      const user = await login(email, password, { forceOffline: true })
+      const user = await login(email, password, { allowOfflineProfile: true })
       grantAccess(user)
     } catch (err) {
       setError(err.message)
@@ -78,6 +98,19 @@ function Login({ onLogin }) {
     setEmail(user.email)
     setPassword(offlineDemoPassword)
     setError('')
+  }
+
+  async function openSecureSignIn() {
+    setError('')
+    setIsOpeningSecure(true)
+    try {
+      const response = await api.secureLogin()
+      if (!response?.url) throw new Error('Secure invited-user sign-in is not configured for this environment.')
+      window.location.assign(response.url)
+    } catch (err) {
+      setError(err.message)
+      setIsOpeningSecure(false)
+    }
   }
 
   return (
@@ -150,24 +183,45 @@ function Login({ onLogin }) {
           <div className="login-action-panel auth-view-demo">
             <div className="login-form-heading">
               <p className="eyebrow">Secure Demo Gateway</p>
-              <h2>Role-Based Demo Access</h2>
-              <p>{offlineDemoPassword
-                ? 'Choose a role profile and enter the private demo password. Changes are not persisted.'
-                : 'Choose a role profile and enter the read-only command workspace. No password is required.'}</p>
+              <h2>{accessMode === 'demo' ? 'Role-Based Demo Access' : 'Invited Secure Access'}</h2>
+              <p>{accessMode === 'demo'
+                ? offlineDemoPassword
+                  ? 'Choose a judge profile and enter the private demo password.'
+                  : 'Choose a judge profile and enter NETRA OS. No password is required.'
+                : 'Continue through the branded secure redirect. Public registration is disabled and no Catalyst form is embedded here.'}</p>
             </div>
 
-            <form className="login-form" onSubmit={submit}>
-              <label>Email<input value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="username" autoCapitalize="none" spellCheck="false" /></label>
-              <label>{passwordRequired ? 'Password' : 'Password (not required for demo)'}<input value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="current-password" disabled={!passwordRequired} required={passwordRequired} placeholder={passwordRequired ? 'Enter password' : 'Choose a role profile below'} /></label>
-              {!passwordRequired ? <p className="form-notice compact">No password is needed for this read-only public demo. Choose a role and enter.</p> : null}
-              {error ? <p className="form-error" role="alert">{error}</p> : null}
-              <button type="submit" className="primary-button" disabled={isSubmitting}><LogIn size={18} />{isSubmitting ? 'Opening workspace…' : 'Enter Command Workspace'}</button>
-            </form>
-            <div className="credential-header"><p className="eyebrow">Choose Access Role</p><span>{demoUsers.length} profiles</span></div>
-            <div className="credential-grid">
-              {demoUsers.map((user) => <CredentialCard key={user.email} user={user} isSelected={email.trim().toLowerCase() === user.email} onSelect={fillDemo} />)}
+            <div className="login-access-switch" role="tablist" aria-label="NETRA OS access mode" onKeyDown={handleAccessModeKeyDown}>
+              <button id="access-tab-demo" type="button" role="tab" aria-selected={accessMode === 'demo'} aria-controls="access-panel-demo" tabIndex={accessMode === 'demo' ? 0 : -1} className={accessMode === 'demo' ? 'is-selected' : ''} onClick={() => selectAccessMode('demo')}>Judge Demo</button>
+              <button id="access-tab-secure" type="button" role="tab" aria-selected={accessMode === 'secure'} aria-controls="access-panel-secure" tabIndex={accessMode === 'secure' ? 0 : -1} className={accessMode === 'secure' ? 'is-selected' : ''} onClick={() => selectAccessMode('secure')}>Secure sign-in</button>
             </div>
-            <small className="demo-access-note"><ShieldCheck size={14} /> Synthetic demonstration data only. Role selection changes the visible workspace; it is not operational police authentication.</small>
+
+            {accessMode === 'demo' ? (
+              <div id="access-panel-demo" className="login-access-panel" role="tabpanel" aria-labelledby="access-tab-demo" tabIndex="0">
+                <form className="login-form" onSubmit={submit}>
+                  <label>Email<input value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="username" autoCapitalize="none" spellCheck="false" /></label>
+                  <label>{passwordRequired ? 'Password' : 'Password (not required for demo)'}<input value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="current-password" disabled={!passwordRequired} required={passwordRequired} placeholder={passwordRequired ? 'Enter password' : 'Choose a role profile below'} /></label>
+                  {!passwordRequired ? <p className="form-notice compact">No password is needed for this synthetic judge demonstration. The server assigns the selected demo role when available.</p> : null}
+                  {error ? <p className="form-error" role="alert">{error}</p> : null}
+                  <button type="submit" className="primary-button" disabled={isSubmitting}><LogIn size={18} />{isSubmitting ? 'Opening NETRA OS…' : 'Enter NETRA OS'}</button>
+                </form>
+                <div className="credential-header"><p className="eyebrow">Choose Access Role</p><span>{demoUsers.length} profiles</span></div>
+                <div className="credential-grid">
+                  {demoUsers.map((user) => <CredentialCard key={user.email} user={user} isSelected={email.trim().toLowerCase() === user.email} onSelect={fillDemo} />)}
+                </div>
+                <small className="demo-access-note"><ShieldCheck size={14} /> Synthetic demonstration data only. {runtime.apiReachable ? 'A short-lived server demo session will enforce the selected role.' : 'Offline role selection changes visible modules but is not operational authentication.'}</small>
+              </div>
+            ) : (
+              <div id="access-panel-secure" className="secure-signin-card" role="tabpanel" aria-labelledby="access-tab-secure" tabIndex="0">
+                <div className="secure-signin-icon"><ShieldCheck size={28} /></div>
+                <h3>Invited KSP workspace</h3>
+                <p>Use an invited account whose role is derived by the server. The browser cannot promote itself and public account creation is disabled.</p>
+                <ul><li>No embedded third-party login panel</li><li>No password or token stored in this repository</li><li>Returns to the canonical Catalyst NETRA OS workspace</li></ul>
+                {error ? <p className="form-error" role="alert">{error}</p> : null}
+                <button type="button" className="primary-button" onClick={openSecureSignIn} disabled={isOpeningSecure || runtime.apiReachable === false}><ExternalLink size={18} />{isOpeningSecure ? 'Opening secure sign-in…' : 'Continue to secure sign-in'}</button>
+                {runtime.apiReachable === false ? <p className="form-notice compact">Secure access is unavailable in Offline Demo. Use a judge profile or open the canonical Catalyst deployment.</p> : null}
+              </div>
+            )}
           </div>
         </section>
       )}

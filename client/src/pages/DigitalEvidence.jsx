@@ -1,117 +1,105 @@
-import { Camera, Car, FileSearch, Fingerprint, GitBranch, Radio, ShieldCheck, UserRoundSearch } from 'lucide-react'
+import { AlertTriangle, FileCheck2, FileSearch, Fingerprint, HardDrive, Image, ShieldCheck, Upload } from 'lucide-react'
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { cases, getAccused, getStation } from '../services/prototypeEngine.js'
+import { readEvidenceRecords } from '../services/fileAnalysis.js'
+import { useRuntime } from '../services/runtime.jsx'
 
-const evidenceItems = cases
-  .filter((caseRecord) => caseRecord.vehicle !== 'NA' || caseRecord.phone_hash !== 'NA')
-  .slice(0, 6)
+function formatBytes(value) {
+  if (value < 1024) return `${value} B`
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`
+}
 
-function buildPlate(caseRecord, index) {
-  if (caseRecord.vehicle && caseRecord.vehicle !== 'NA') return caseRecord.vehicle
-  return `KA-${String(10 + index).padStart(2, '0')}-SYN-${caseRecord.fir_id.slice(-3)}`
+function capabilityStatus(capability) {
+  return capability?.available ? 'Verified available' : 'Unavailable in this runtime'
 }
 
 function DigitalEvidence() {
-  const active = evidenceItems[0] || cases[0]
-  const station = getStation(active)
-  const accused = getAccused(active)[0]
+  const { runtime } = useRuntime()
+  const records = useMemo(() => readEvidenceRecords(), [])
+  const imageRecords = records.filter((record) => ['png', 'jpg', 'jpeg'].includes(record.extension))
+  const storage = runtime.capabilities?.storage
+  const ocr = runtime.capabilities?.ocr || runtime.capabilities?.intelligence
 
   return (
     <div className="page-stack">
       <header className="page-header">
         <div>
           <p className="eyebrow">Digital Evidence</p>
-          <h1>CCTV / Media Analysis Workbench</h1>
+          <h1>Evidence Provenance Workbench</h1>
+          <p>Verified file metadata and capability-aware extraction results—no invented detections or confidence scores.</p>
         </div>
         <div className="intent-pill">
-          <Radio size={16} />
-          LIVE REVIEW
+          <HardDrive size={16} />
+          {storage?.available ? 'SERVER STORAGE VERIFIED' : 'LOCAL METADATA ONLY'}
         </div>
       </header>
 
-      <section className="media-layout">
-        <article className="media-feed-frame">
-          <div className="feed-camera-label">
-            <Camera size={18} />
-            <span>{station?.station_name || active.station_id} CAM-04</span>
-            <strong>{active.time}</strong>
+      <section className="dossier-grid">
+        <article className="panel">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Evidence index</p>
+              <h2>{records.length} prepared file{records.length === 1 ? '' : 's'}</h2>
+            </div>
+            <Fingerprint size={20} />
           </div>
-          <div className="feed-road">
-            <span className="lane lane-one" />
-            <span className="lane lane-two" />
-            <span className="vehicle-shape" />
-            <span className="person-shape" />
-          </div>
-          <div className="media-sweep" />
-          <div className="detection-box plate-box">
-            <Car size={15} />
-            {buildPlate(active, 0)}
-          </div>
-          <div className="detection-box face-box">
-            <UserRoundSearch size={15} />
-            {accused?.accused_id || active.accused_ids[0]}
-          </div>
-          <div className="feed-hud">
-            <span>object lock 91%</span>
-            <span>face hash 84%</span>
-            <span>plate OCR 88%</span>
+          <p>
+            The browser retains only provenance metadata for the public demo. File bytes and extracted text are not silently
+            uploaded or presented as server-persisted evidence.
+          </p>
+          <div className="mini-action-row">
+            <Link to="/evidence-lab"><Upload size={15} />Prepare evidence</Link>
           </div>
         </article>
 
-        <aside className="panel media-detection-list">
+        <article className="panel">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Extracted Entities</p>
-              <h2>{active.fir_id}</h2>
+              <p className="eyebrow">Runtime capabilities</p>
+              <h2>Extraction boundary</h2>
             </div>
-            <Fingerprint size={19} />
+            <ShieldCheck size={20} />
           </div>
-          {[
-            ['Vehicle Plate', buildPlate(active, 0), Car],
-            ['Face Hash', accused?.accused_id || active.accused_ids[0], UserRoundSearch],
-            ['Phone Hash', active.phone_hash, Fingerprint],
-            ['Evidence Confidence', '0.88', ShieldCheck],
-          ].map(([label, value, Icon]) => (
-            <div key={label} className="evidence-link-row">
-              <Icon size={17} />
-              <span>{label}</span>
-              <strong>{value}</strong>
-            </div>
-          ))}
-          <div className="mini-action-row">
-            <Link to={`/network/${active.fir_id}`}>
-              <GitBranch size={14} />
-              Push to Graph
-            </Link>
-            <Link to={`/cases/${active.fir_id}`}>
-              <FileSearch size={14} />
-              Case Dossier
-            </Link>
-          </div>
-        </aside>
+          <div className="station-row"><strong>Evidence storage</strong><span>{capabilityStatus(storage)}</span><small>{storage?.provider || 'Browser metadata index'}</small></div>
+          <div className="station-row"><strong>OCR / visual extraction</strong><span>{capabilityStatus(ocr)}</span><small>{ocr?.available ? ocr.provider : 'Images expose dimensions and file metadata only'}</small></div>
+          <p className="disclaimer">Face identity, object recognition, and plate OCR are never inferred unless a verified server capability returns actual source-backed output.</p>
+        </article>
       </section>
 
-      <section className="media-chip-grid">
-        {evidenceItems.map((caseRecord, index) => (
-          <article key={caseRecord.fir_id} className="panel media-evidence-card">
-            <div>
-              <p className="eyebrow">Media Match</p>
-              <h2>{caseRecord.fir_id}</h2>
-            </div>
-            <div className="media-mini-feed">
-              <span />
-              <strong>{buildPlate(caseRecord, index)}</strong>
-            </div>
-            <p>{caseRecord.case_summary}</p>
-            <div className="mini-action-row">
-              <Link to={`/network/${caseRecord.fir_id}`}>
-                <GitBranch size={13} />
-                Graph Link
-              </Link>
-            </div>
-          </article>
-        ))}
-      </section>
+      {!records.length ? (
+        <article className="panel empty-state">
+          <FileSearch size={28} />
+          <strong>No evidence has been prepared in this browser</strong>
+          <p>Use Evidence Lab to validate a synthetic file, calculate SHA-256, and create a local provenance record.</p>
+          <Link className="primary-button" to="/evidence-lab"><Upload size={17} />Open Evidence Lab</Link>
+        </article>
+      ) : (
+        <section className="media-chip-grid">
+          {records.map((record) => (
+            <article key={record.evidenceId} className="panel media-evidence-card">
+              <div className="section-heading">
+                <div><p className="eyebrow">{record.persistence}</p><h2>{record.name}</h2></div>
+                {['png', 'jpg', 'jpeg'].includes(record.extension) ? <Image size={19} /> : <FileCheck2 size={19} />}
+              </div>
+              <div className="provenance-grid">
+                <div><span>Evidence ID</span><strong>{record.evidenceId}</strong></div>
+                <div><span>Type</span><strong>{record.type}</strong></div>
+                <div><span>Size</span><strong>{formatBytes(record.size)}</strong></div>
+                <div><span>Parser</span><strong>{record.parser}</strong></div>
+                <div><span>Extracted characters</span><strong>{record.extractedCharacters}</strong></div>
+                <div><span>Review</span><strong>{record.reviewStatus}</strong></div>
+              </div>
+              <div className="hash-cell"><span>SHA-256</span><code>{record.sha256}</code></div>
+              {record.limitations?.length ? <p className="disclaimer"><AlertTriangle size={14} /> {record.limitations.join(' ')}</p> : null}
+            </article>
+          ))}
+        </section>
+      )}
+
+      {imageRecords.length ? (
+        <p className="disclaimer">{imageRecords.length} image file{imageRecords.length === 1 ? '' : 's'} indexed. Visual content remains unclassified while verified OCR is unavailable.</p>
+      ) : null}
     </div>
   )
 }

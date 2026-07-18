@@ -1,5 +1,5 @@
 import seed from '../data/demoSeed.json'
-import { createIntelligenceCore, toSyntheticFirId } from '../../../functions/api/core/index.mjs'
+import { createIntelligenceCore, crimeDna as sharedCrimeDna, toSyntheticFirId } from '../../../functions/api/core/index.mjs'
 
 const STORAGE_KEY = 'samvaad_user'
 const DISCLAIMER = 'Investigative lead only. Requires human verification and legal review.'
@@ -7,12 +7,51 @@ const offlineDemoPassword = import.meta.env.VITE_OFFLINE_DEMO_PASSWORD || ''
 
 const sharedOfflineCore = createIntelligenceCore(seed, { total: 250 })
 
+export const DATA_VERSION = sharedOfflineCore.dataset.version || 'synthetic-250-v1'
+export const DATA_LABEL = sharedOfflineCore.dataset.label || 'SYNTHETIC DEMO DATA'
+
+const kannadaCrimeNames = {
+  'Motorcycle Theft': 'ದ್ವಿಚಕ್ರ ವಾಹನ ಕಳವು',
+  'Chain Snatching': 'ಸರ ಕಳವು',
+  'UPI Fraud': 'ಯುಪಿಐ ವಂಚನೆ',
+  'House Burglary': 'ಮನೆ ಕಳ್ಳತನ',
+}
+
+const kannadaDistrictNames = {
+  'Bengaluru South': 'ಬೆಂಗಳೂರು ದಕ್ಷಿಣ',
+  Mysuru: 'ಮೈಸೂರು',
+  'Hubballi-Dharwad': 'ಹುಬ್ಬಳ್ಳಿ-ಧಾರವಾಡ',
+  Mangaluru: 'ಮಂಗಳೂರು',
+  Belagavi: 'ಬೆಳಗಾವಿ',
+  Kalaburagi: 'ಕಲಬುರಗಿ',
+}
+
+function publicCaseRecord(caseRecord) {
+  const runtimeRecord = { ...caseRecord }
+  const crimeKn = kannadaCrimeNames[runtimeRecord.crime_type] || runtimeRecord.crime_type
+  const districtKn = kannadaDistrictNames[runtimeRecord.district] || runtimeRecord.district
+  return {
+    ...runtimeRecord,
+    synthetic: true,
+    data_label: DATA_LABEL,
+    language: 'en',
+    case_summary_kn: `ಕೃತಕ ಪ್ರಕರಣ ದಾಖಲೆ: ${districtKn} ವ್ಯಾಪ್ತಿಯಲ್ಲಿ ${crimeKn}. ಪರಿಶೀಲನೆಗಾಗಿ ${runtimeRecord.fir_id} ಮೂಲ ದಾಖಲೆಯನ್ನು ನೋಡಿ.`,
+    mo_kn: `ಈ ಘಟನೆಗೆ ಸಂಬಂಧಿಸಿದ ಕಾರ್ಯವಿಧಾನ ವಿವರವನ್ನು ${runtimeRecord.fir_id} ಮೂಲ ದಾಖಲೆಯೊಂದಿಗೆ ಮಾನವ ಪರಿಶೀಲನೆ ಮಾಡಬೇಕು.`,
+    translations: {
+      kn: {
+        crime_type: crimeKn,
+        district: districtKn,
+      },
+    },
+  }
+}
+
 export const demoUsers = seed.users
 export const stations = [
   ...seed.police_stations,
   ...sharedOfflineCore.dataset.stations.filter((station) => !seed.police_stations.some((existing) => existing.station_id === station.station_id)),
 ]
-export const cases = sharedOfflineCore.cases
+export const cases = sharedOfflineCore.cases.map(publicCaseRecord)
 export const accused = seed.accused
 const legacyCaseIds = new Set(seed.cases.map((item) => item.fir_id))
 export const relations = seed.relations.map((item) => ({
@@ -20,6 +59,18 @@ export const relations = seed.relations.map((item) => ({
   source: legacyCaseIds.has(item.source) ? toSyntheticFirId(item.source) : item.source,
   target: legacyCaseIds.has(item.target) ? toSyntheticFirId(item.target) : item.target,
 }))
+
+export const caseRepository = Object.freeze({
+  dataVersion: DATA_VERSION,
+  dataLabel: DATA_LABEL,
+  count: cases.length,
+  all: () => cases,
+  byId: (firId) => cases.find((caseRecord) => caseRecord.fir_id === firId) || null,
+  list: ({ district, crimeType, status } = {}) => cases
+    .filter((caseRecord) => !district || district === 'All' || caseRecord.district === district)
+    .filter((caseRecord) => !crimeType || crimeType === 'All' || caseRecord.crime_type === crimeType)
+    .filter((caseRecord) => !status || status === 'All' || caseRecord.status === status),
+})
 
 const stationById = Object.fromEntries(stations.map((station) => [station.station_id, station]))
 const accusedById = Object.fromEntries(accused.map((person) => [person.accused_id, person]))
@@ -61,30 +112,6 @@ const districtAliases = [
   { district: 'Hubballi-Dharwad', words: ['hubballi', 'dharwad', 'hubli'] },
   { district: 'Mangaluru', words: ['mangaluru', 'mangalore'] },
 ]
-
-const stopWords = new Set([
-  'a',
-  'an',
-  'and',
-  'are',
-  'as',
-  'at',
-  'by',
-  'case',
-  'cases',
-  'for',
-  'from',
-  'in',
-  'is',
-  'near',
-  'of',
-  'on',
-  'or',
-  'show',
-  'the',
-  'to',
-  'with',
-])
 
 export function getStoredUser() {
   try {
@@ -187,16 +214,6 @@ export function filterCases({ query = '', crimeType, district, firIds = [] } = {
   })
 }
 
-function tokens(text) {
-  return new Set(
-    text
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, ' ')
-      .split(/\s+/)
-      .filter((token) => token.length > 2 && !stopWords.has(token)),
-  )
-}
-
 function intersects(a, b) {
   return a.some((item) => b.includes(item))
 }
@@ -219,24 +236,6 @@ function sharedEntities(a, b) {
   return shared
 }
 
-function moSimilarity(a, b) {
-  const left = tokens(a.mo)
-  const right = tokens(b.mo)
-  const union = new Set([...left, ...right])
-  if (!union.size) return 0
-  const shared = [...left].filter((token) => right.has(token))
-  return shared.length / union.size
-}
-
-function summarySimilarity(a, b) {
-  const left = tokens(a.case_summary || '')
-  const right = tokens(b.case_summary || '')
-  const union = new Set([...left, ...right])
-  if (!union.size) return 0
-  const shared = [...left].filter((token) => right.has(token))
-  return shared.length / union.size
-}
-
 function timeBand(time) {
   const hour = Number(time.split(':')[0])
   if (hour >= 0 && hour < 5) return 'late-night'
@@ -246,43 +245,15 @@ function timeBand(time) {
   return 'night'
 }
 
-function timeSimilarity(a, b) {
-  return timeBand(a.time) === timeBand(b.time) ? 1 : 0.35
-}
-
-function locationScore(a, b) {
-  if (a.station_id === b.station_id) return 1
-  if (a.district === b.district) return 0.78
-  return 0.25
-}
-
 export function crimeDNAScore(a, b) {
-  const shared = sharedEntities(a, b)
-  const score =
-    0.3 * Number(a.crime_type === b.crime_type) +
-    0.2 * moSimilarity(a, b) +
-    0.15 * locationScore(a, b) +
-    0.15 * timeSimilarity(a, b) +
-    0.1 * Math.min(1, shared.length / 2) +
-    0.1 * summarySimilarity(a, b)
-
-  return Number(Math.min(0.96, score).toFixed(2))
+  return sharedCrimeDna(a, b).score
 }
 
 export function explainMatch(a, b) {
-  const reasons = []
-  const shared = sharedEntities(a, b)
-
-  if (a.crime_type === b.crime_type) reasons.push(`same crime type: ${a.crime_type}`)
-  if (timeBand(a.time) === timeBand(b.time)) reasons.push(`${timeBand(a.time)} time pattern`)
-  if (a.district === b.district) reasons.push(`${a.district} geography`)
-  shared.forEach((item) => reasons.push(item.value))
-
-  if (moSimilarity(a, b) > 0.2) {
-    reasons.push('similar modus operandi wording')
-  }
-
-  return reasons
+  return sharedCrimeDna(a, b).factors
+    .filter((factor) => factor.contribution > 0)
+    .sort((left, right) => right.contribution - left.contribution)
+    .map((factor) => `${factor.label}: ${factor.evidence}`)
 }
 
 export function findSimilarCases(firId) {
@@ -419,6 +390,9 @@ function clusterHotspots(points, { epsKm = 1.6, minPoints = 2 } = {}) {
     clusters.push({
       cluster_id: clusterId,
       count: clusterCases.length,
+      concentration: clusterCases.length >= 3 ? 'high' : 'medium',
+      // Kept as a compatibility alias for existing map styles; this describes
+      // incident density, not a person-level score or forecast.
       risk: clusterCases.length >= 3 ? 'high' : 'medium',
       cases: clusterCases.map((caseRecord) => caseRecord.fir_id),
       centroid: {
@@ -506,8 +480,8 @@ export function patrolWhatIf({ district = 'Bengaluru South', crimeType = 'Motorc
   const displacementZones = zones.slice(1).map((zone, index) => ({
     rank: index + 1,
     station: zone.station?.station_name || zone.records[0].station_id,
-    riskDelta: Math.max(5, 18 - units * 2 - index * 3),
-    reason: 'Pattern may shift if only the top hotspot receives visible patrol pressure',
+    patternWatchDelta: Math.max(5, 18 - units * 2 - index * 3),
+    reason: 'Review nearby area/time patterns if only the top concentration receives visible patrol coverage',
   }))
   const fallbackDisplacement = displacementZones.length
     ? displacementZones
@@ -515,8 +489,8 @@ export function patrolWhatIf({ district = 'Bengaluru South', crimeType = 'Motorc
         {
           rank: 1,
           station: `${district} perimeter corridor`,
-          riskDelta: Math.max(4, 14 - units * 2),
-          reason: 'Monitor nearby transit or market corridors for displacement signals',
+          patternWatchDelta: Math.max(4, 14 - units * 2),
+          reason: 'Review nearby transit or market corridors for changes in aggregate incident counts',
         },
       ]
 
@@ -527,6 +501,7 @@ export function patrolWhatIf({ district = 'Bengaluru South', crimeType = 'Motorc
     coverageBefore,
     coverageAfter,
     recommendations,
+    displacementWatch: units >= recommendations.length + 2 ? 'Low' : selected.length >= 3 ? 'Elevated' : 'Moderate',
     displacementRisk: units >= recommendations.length + 2 ? 'Low' : selected.length >= 3 ? 'Elevated' : 'Moderate',
     displacementZones: fallbackDisplacement,
     recommendedTimeWindows: timeWindowCounts.length ? timeWindowCounts.slice(0, 2) : [{ name: 'evening', count: 1 }],
@@ -614,6 +589,7 @@ export function buildDiffusionModel({ district = 'All', crimeType = 'All' } = {}
       return {
         ...zone,
         rc: zoneRc,
+        patternBand: zoneRc >= 1.2 ? 'Expansion' : zoneRc >= 0.85 ? 'Watch' : 'Contained',
         risk: zoneRc >= 1.2 ? 'Expansion' : zoneRc >= 0.85 ? 'Watch' : 'Contained',
       }
     })
@@ -648,12 +624,13 @@ export function buildDiffusionModel({ district = 'All', crimeType = 'All' } = {}
     district,
     crimeType,
     rc,
-    risk: rc >= 1.2 ? 'Expansion risk' : rc >= 0.85 ? 'Watch closely' : 'Contained',
+    patternBand: rc >= 1.2 ? 'Expanding pattern' : rc >= 0.85 ? 'Pattern watch' : 'Stable pattern',
+    risk: rc >= 1.2 ? 'Expanding pattern' : rc >= 0.85 ? 'Pattern watch' : 'Stable pattern',
     active,
     inactive,
     zones: grouped,
     corridors,
-    advisory: 'Rc is an area-level synthetic indicator, not a prediction about any person.',
+    advisory: 'Rc summarizes historical synthetic area/time/category activity. It is not a forecast or a score about any person.',
   }
 }
 
@@ -686,6 +663,12 @@ export function buildDashboardSummary() {
     crimeType: 'Motorcycle Theft',
     units: 5,
   }).recommendations.length
+  const topSimilarityScores = cases
+    .map((caseRecord) => findSimilarCases(caseRecord.fir_id).matches[0]?.score)
+    .filter(Number.isFinite)
+  const averageTopSimilarity = topSimilarityScores.length
+    ? Number((topSimilarityScores.reduce((sum, score) => sum + score, 0) / topSimilarityScores.length).toFixed(2))
+    : 0
 
   const monthlyData = Object.values(
     cases.reduce((acc, caseRecord) => {
@@ -699,12 +682,17 @@ export function buildDashboardSummary() {
   return {
     totalCases,
     activeCases,
+    activeShare: totalCases ? Number((activeCases / totalCases).toFixed(2)) : 0,
     repeatOffenders,
     hotspotZones,
+    mostFrequentCrimeType: topCrime?.name || 'NA',
     highRiskCrimeType: topCrime?.name || 'NA',
     pendingInvestigations,
     similarCaseAlerts,
     patrolRecommendationCount,
+    averageTopSimilarity,
+    similarityCandidatesMeasured: topSimilarityScores.length,
+    dataVersion: DATA_VERSION,
     topCrime,
     crimeTypeData,
     districtData,
@@ -845,7 +833,7 @@ function suggestedQuestionsForIntent(intent, sources) {
     ],
     CASE_LINK_QUERY: [`Generate PDF report for this cluster`, `Find similar cases to ${first}`, 'Analyze unsolved cases'],
     SIMILAR_CASE_QUERY: [`Open network graph for ${first}`, 'Show hotspot map for matching cases', 'Generate investigation brief'],
-    PATROL_WHAT_IF: ['Show high-risk zones on map', 'Generate patrol simulation report', 'Which cases caused this recommendation?'],
+    PATROL_WHAT_IF: ['Show high-concentration areas on map', 'Generate patrol simulation report', 'Which cases caused this recommendation?'],
     LEGAL_REPORT: ['Show source FIR evidence trail', 'Open matching network graph', 'Analyze unsolved cases'],
     COLD_CASE_QUERY: ['Open the matching network graph', 'Generate cold-case review brief', 'Show patrol plan for the matched area'],
     STATUS_QUERY: ['Show district chart', 'Show top police stations', 'Generate dashboard report'],
@@ -871,8 +859,8 @@ function buildRagSourceChunks(response) {
   const sourceIds = new Set(response.sources || [])
   const selectedCases = cases.filter((caseRecord) => sourceIds.has(caseRecord.fir_id)).slice(0, 3)
   const chunks = selectedCases.map((caseRecord, index) => ({
-    id: `RAG-FIR-${String(index + 1).padStart(2, '0')}`,
-    service: 'Catalyst QuickML RAG',
+    id: `SRC-FIR-${String(index + 1).padStart(2, '0')}`,
+    service: 'Shared synthetic case repository',
     title: `${caseRecord.fir_id} narrative and MO`,
     text: `${caseRecord.case_summary} MO: ${caseRecord.mo}`,
     confidence: Math.max(0.72, Number((response.confidence - index * 0.04).toFixed(2))),
@@ -881,8 +869,8 @@ function buildRagSourceChunks(response) {
   if (selectedCases[0]) {
     const legal = legalExplainabilityForCase(selectedCases[0])
     chunks.push({
-      id: 'RAG-LEGAL-01',
-      service: 'Catalyst QuickML RAG',
+      id: 'SRC-LEGAL-01',
+      service: 'Deterministic legal support map',
       title: `BNS / IPC support for ${legal.crimeType}`,
       text: `BNS ${legal.bns}; ${legal.legalNote} ${legal.humanActionNote}`,
       confidence: 0.86,
@@ -890,8 +878,8 @@ function buildRagSourceChunks(response) {
   }
 
   chunks.push({
-    id: 'RAG-SOP-01',
-    service: 'Catalyst QuickML RAG',
+    id: 'SRC-SOP-01',
+    service: 'Bundled human-review safeguard',
     title: 'Investigation SOP guardrail',
     text: 'Use source FIRs, masked identifiers, supervisor review, and human verification before operational action.',
     confidence: 0.94,
@@ -910,8 +898,9 @@ function decorateResponse(response) {
     riskFlags: riskFlagsForIntent(response.intent, response.confidence),
     sourceChunks,
     quickMlRag: {
+      available: false,
       knowledgeBase: 'FIR + BNS + SOP + evidence metadata demo KB',
-      retrievalMode: 'Prototype deterministic retrieval mapped to Catalyst QuickML',
+      retrievalMode: 'Deterministic structured retrieval; no QuickML call was made in offline mode',
       sourceCount: sourceChunks.length,
     },
     audit: {

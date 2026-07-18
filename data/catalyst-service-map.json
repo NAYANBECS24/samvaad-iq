@@ -2,9 +2,9 @@
   "summary": {
     "project": "NETRA / SAMVAAD-IQ / KAVACH",
     "challenge": "Datathon 2026 Challenge 1",
-    "deploymentMode": "Blue-green Catalyst candidate with the existing Slate site retained as rollback",
+    "deploymentMode": "Catalyst-first candidate with Slate retained as a synchronized mirror and rollback after acceptance",
     "buildOutput": "dist",
-    "githubAutoFetch": "GitHub main → validated Slate build",
+    "githubAutoFetch": "feat/netra-os → Catalyst review gate → main and synchronized Slate build",
     "truthPolicy": "Provider availability is reported by /api/v1/capabilities; this file describes targets, not live entitlement."
   },
   "serviceMap": [
@@ -12,13 +12,13 @@
       "capability": "Frontend and offline fallback",
       "requiredService": "Catalyst Web Client Hosting or Slate",
       "prototypeEvidence": "React/Vite build, route-level chunks, runtime badge, labeled read-only fallback.",
-      "status": "Implemented"
+      "status": "Repository-Implemented"
     },
     {
       "capability": "Versioned backend API",
       "requiredService": "Catalyst Advanced I/O",
       "prototypeEvidence": "Node 24 function with catalyst-config.json, validation, tests, security headers and /api/v1 contract.",
-      "status": "Implemented"
+      "status": "Repository-Implemented"
     },
     {
       "capability": "Routing, throttling and authentication",
@@ -35,7 +35,7 @@
     {
       "capability": "Evidence object persistence",
       "requiredService": "Catalyst Stratus or File Store",
-      "prototypeEvidence": "File validation, hash and extraction are implemented; storage remains unavailable until a real bucket/folder passes verification.",
+      "prototypeEvidence": "Browser validation/hash/parsing and the server base64 upload, 10 MB decoded-byte validation, SHA-256 recheck, storage adapters, provenance and audit path are implemented; storage remains unavailable until a real bucket/folder passes verification.",
       "status": "Runtime-Detected"
     },
     {
@@ -65,8 +65,8 @@
     {
       "capability": "Build, test and deploy",
       "requiredService": "Catalyst Pipelines",
-      "prototypeEvidence": "Pipeline installs Node 24 dependencies, lints, builds, tests, evaluates and deploys through Catalyst CLI.",
-      "status": "Implemented"
+      "prototypeEvidence": "A pipeline definition installs Node 24 dependencies, lints, builds, tests, evaluates and calls the Catalyst CLI; an authenticated live run remains to be verified.",
+      "status": "Repository-Implemented"
     }
   ],
   "githubFlow": [
@@ -97,6 +97,6 @@
     "Every supported answer includes valid citations and refusal queries include none.",
     "Roles are derived server-side and privileged endpoints reject unauthorized sessions.",
     "Provider badges reflect runtime evidence rather than design intent.",
-    "The current Slate deployment remains untouched until the Catalyst candidate passes the judge journey."
+    "Slate is synchronized only after the Catalyst candidate passes the judge journey; it is not treated as the API host."
   ]
 }

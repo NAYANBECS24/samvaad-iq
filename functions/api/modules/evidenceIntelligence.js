@@ -1,4 +1,5 @@
 const blueprint = require('../../../data/evidence-intelligence.json')
+const crypto = require('crypto')
 const { cases, getStation } = require('./seedData')
 const { findSimilarCases } = require('./crimeDNA')
 const { buildGraph } = require('./graphBuilder')
@@ -28,7 +29,7 @@ function buildSourceChunks(profile, matchedCases) {
   return [
     {
       id: 'RAG-FIR-01',
-      service: 'Catalyst QuickML RAG',
+      service: 'Deterministic local retrieval',
       title: `${topCase?.fir_id || 'FIR'} narrative and metadata`,
       text: topCase
         ? `${topCase.case_summary} MO: ${topCase.mo}`
@@ -44,7 +45,7 @@ function buildSourceChunks(profile, matchedCases) {
     },
     {
       id: 'RAG-SOP-03',
-      service: 'Catalyst QuickML RAG',
+      service: 'Approved local safety guidance',
       title: 'Human review and privacy guardrail',
       text: 'Treat this as an investigative lead. Verify source evidence, keep identifiers masked, and require supervisor approval before circulation.',
       confidence: 0.96,
@@ -89,8 +90,10 @@ function buildEvidenceAnalysis({ profileId = 'fir-pdf', fileName = '' } = {}) {
     uploaded: {
       fileName: fileName || profile.sampleFileName,
       accepted: profile.accepted,
-      objectKey: `stratus://samvaad-iq/evidence/${Date.now()}-${fileName || profile.sampleFileName}`,
-      checksum: `SYN-${profile.id.toUpperCase()}-${String(Date.now()).slice(-6)}`,
+      objectKey: null,
+      persisted: false,
+      storageCapability: 'unavailable',
+      checksum: crypto.createHash('sha256').update(`${fileName || profile.sampleFileName}\n${profile.sourceText || ''}`).digest('hex'),
     },
     extracted: profile.extracted,
     matchedCases,
@@ -99,25 +102,31 @@ function buildEvidenceAnalysis({ profileId = 'fir-pdf', fileName = '' } = {}) {
       matches: crimeDna.matches.slice(0, 4),
     },
     sourceChunks: buildSourceChunks(profile, matchedCases),
-    workflowEvents: blueprint.workflowEvents,
-    cachePlan: blueprint.cachePlan,
-    ragCorpus: blueprint.ragCorpus,
+    workflowEvents: blueprint.workflowEvents.map((event) => ({ ...event, status: 'reference-only', verified: false })),
+    cachePlan: blueprint.cachePlan.map((entry) => ({ ...entry, status: 'reference-only', verified: false })),
+    ragCorpus: blueprint.ragCorpus.map((entry) => ({ ...entry, status: 'local-seed', verifiedExternalService: false })),
     graph: buildGraph(focusFirId),
     report: {
       ...report,
       smartBrowz: {
-        renderJobId: `SBZ-${Date.now().toString().slice(-6)}`,
-        status: 'queued-for-headless-render',
+        renderJobId: null,
+        status: 'capability-unavailable',
+        available: false,
+        verified: false,
         service: 'Catalyst SmartBrowz',
       },
       stratusObject: {
-        bucket: 'samvaad-intelligence-briefs',
-        key: `reports/${report.reportId}.pdf`,
+        bucket: null,
+        key: null,
+        available: false,
+        verified: false,
         service: 'Catalyst Stratus',
       },
       mailEvent: {
-        template: 'Supervisor evidence review',
-        status: 'ready-to-send',
+        template: null,
+        status: 'capability-unavailable',
+        available: false,
+        verified: false,
         service: 'Catalyst Mail',
       },
     },

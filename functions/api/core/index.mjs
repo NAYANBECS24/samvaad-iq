@@ -128,10 +128,21 @@ function sharedEntities(left, right) {
   if (left.vehicle && left.vehicle !== 'NA' && left.vehicle === right.vehicle) {
     shared.push({ type: 'vehicle', value: left.vehicle })
   }
-  if (left.truth_group && left.truth_group === right.truth_group) {
-    shared.push({ type: 'planted_truth_group', value: left.truth_group })
-  }
   return shared
+}
+
+function opaqueSyntheticToken(namespace, seedNumber, groupIndex) {
+  let hash = 2166136261
+  for (const character of `${namespace}:${seedNumber}:${groupIndex}`) {
+    hash ^= character.charCodeAt(0)
+    hash = Math.imul(hash, 16777619)
+  }
+  hash ^= hash >>> 16
+  hash = Math.imul(hash, 0x85ebca6b)
+  hash ^= hash >>> 13
+  hash = Math.imul(hash, 0xc2b2ae35)
+  hash ^= hash >>> 16
+  return (hash >>> 0).toString(16).toUpperCase().padStart(8, '0')
 }
 
 export function crimeDna(left, right) {
@@ -176,26 +187,25 @@ export function generateSyntheticDataset(baseSeed, total = 1000, seedNumber = 20
   const random = mulberry32(seedNumber)
   const baseCases = (baseSeed?.cases || []).map((item, index) => ({
     ...item,
-    source_seed_id: item.fir_id,
     fir_id: toSyntheticFirId(item.fir_id, index),
     synthetic: true,
     data_label: 'SYNTHETIC DEMO DATA',
   }))
   const cases = [...baseCases]
-  const plantedGroups = ['RING-METRO-LOCK', 'RING-EVENING-CHAIN', 'RING-UPI-MULE', 'RING-REAR-ENTRY', 'RING-TRANSIT-PICK', 'COLD-MO-RETURN']
+  const patternFamilyCount = 6
 
   for (let index = cases.length; index < total; index += 1) {
     const district = DISTRICTS[index % DISTRICTS.length]
-    const groupIndex = index % 17 === 0 ? Math.floor(index / 17) % plantedGroups.length : -1
+    const groupIndex = index % 17 === 0 ? Math.floor(index / 17) % patternFamilyCount : -1
     const profile = CRIME_PROFILES[groupIndex >= 0 ? groupIndex % CRIME_PROFILES.length : (index * 7) % CRIME_PROFILES.length]
-    const truthGroup = groupIndex >= 0 ? plantedGroups[groupIndex] : null
+    const isPatternCase = groupIndex >= 0
     const dayOffset = index % 540
     const date = new Date(Date.UTC(2024, 7, 1 + dayOffset)).toISOString().slice(0, 10)
-    const hour = truthGroup ? 21 + (index % 2) : 6 + ((index * 5) % 18)
+    const hour = isPatternCase ? 21 + (index % 2) : 6 + ((index * 5) % 18)
     const minute = (index * 13) % 60
-    const patternSuffix = truthGroup ? ` Planted evaluation pattern ${truthGroup} with repeated operational markers.` : ''
-    const accusedId = truthGroup ? `A-SYN-${groupIndex + 1}00` : `A-SYN-${String(index + 1000).padStart(4, '0')}`
-    const phoneHash = truthGroup ? `PH-SYN-GROUP-${groupIndex + 1}` : `PH-SYN-${String(index + 5000).padStart(5, '0')}`
+    const patternSuffix = ''
+    const accusedId = isPatternCase ? `A-SYN-${opaqueSyntheticToken('actor', seedNumber, groupIndex)}` : `A-SYN-${String(index + 1000).padStart(4, '0')}`
+    const phoneHash = isPatternCase ? `PH-SYN-${opaqueSyntheticToken('phone', seedNumber, groupIndex)}` : `PH-SYN-${String(index + 5000).padStart(5, '0')}`
     const caseNumber = String(index + 1).padStart(4, '0')
 
     cases.push({
@@ -215,7 +225,6 @@ export function generateSyntheticDataset(baseSeed, total = 1000, seedNumber = 20
       victim_id: `V-SYN-${String(index + 8000).padStart(5, '0')}`,
       vehicle: profile.type.includes('Theft') && index % 3 === 0 ? `KA-SYN-${String(index + 3000).padStart(5, '0')}` : 'NA',
       phone_hash: phoneHash,
-      truth_group: truthGroup,
       synthetic: true,
       data_label: 'SYNTHETIC DEMO DATA',
     })
@@ -236,20 +245,20 @@ export function generateSyntheticDataset(baseSeed, total = 1000, seedNumber = 20
     label: 'SYNTHETIC DEMO DATA — NOT AN OPERATIONAL POLICE RECORD',
     cases,
     stations,
-    truthGroups: plantedGroups,
+    plantedPatternFamilies: patternFamilyCount,
   }
 }
 
-function extractFirIds(query) {
+export function extractFirIds(query) {
   return unique(String(query).match(/(?:FIR|SYN)-\d{4}-[A-Z]+-\d{3,4}/gi) || []).map((id) => id.toUpperCase())
 }
 
-function extractDistrict(query) {
+export function extractDistrict(query) {
   const normalized = normalizeQuery(query)
   return DISTRICTS.find((district) => normalized.includes(normalizeQuery(district.name)))?.name || null
 }
 
-function extractCrimeType(query) {
+export function extractCrimeType(query) {
   const normalized = normalizeQuery(query)
   if (normalized.includes('chain') || normalized.includes('snatching')) return 'Chain Snatching'
   if (normalized.includes('upi') || normalized.includes('fraud') || normalized.includes('cyber')) return 'UPI Fraud'
@@ -259,7 +268,55 @@ function extractCrimeType(query) {
   return null
 }
 
-function classifyIntent(query) {
+function extractStructuredFilters(query) {
+  const normalized = normalizeQuery(query)
+  const isoDates = unique(String(query).match(/\b20\d{2}-\d{2}-\d{2}\b/g) || []).sort()
+  const stationId = String(query).match(/\bPS-[A-Z]+-(?:SYN-)?\d{2}\b/i)?.[0]?.toUpperCase() || null
+  const status = /charge\s*sheet/i.test(query)
+    ? 'Charge Sheet Filed'
+    : /under investigation|ತನಿಖೆ/i.test(query)
+      ? 'Under Investigation'
+      : /\bclosed\b|ಮುಚ್ಚ/i.test(query)
+        ? 'Closed'
+        : /\bopen\b/i.test(query)
+          ? 'Open'
+          : null
+  const bnsSections = unique(String(query).match(/\bBNS\s*\d+(?:\(\d+\))?/gi) || []).map((value) => value.toUpperCase().replace(/\s+/g, ' '))
+  const entityRefs = unique(String(query).match(/(?:PH-(?:HASH|SYN)[-A-Z0-9]+|KA-[A-Z0-9-]{5,}|A-SYN-[A-Z0-9]+)/gi) || []).map((value) => value.toUpperCase())
+  const timeBandFilter = /late[ -]?night|midnight/i.test(query)
+    ? 'late-night'
+    : /morning|ಬೆಳಗ್ಗೆ/i.test(query)
+      ? 'morning'
+      : /afternoon|ಮಧ್ಯಾಹ್ನ/i.test(query)
+        ? 'afternoon'
+        : /evening|ಸಂಜೆ/i.test(query)
+          ? 'evening'
+          : /\bnight\b|ರಾತ್ರಿ/i.test(query)
+            ? 'night'
+            : null
+  const relative = normalized.match(/last (\d{1,3}) (day|days|week|weeks|month|months)/)
+  return {
+    district: extractDistrict(query),
+    crimeType: extractCrimeType(query),
+    firIds: extractFirIds(query),
+    stationId,
+    status,
+    bnsSections,
+    entityRefs,
+    dateFrom: isoDates[0] || null,
+    dateTo: isoDates[1] || isoDates[0] || null,
+    relativePeriod: relative ? { value: Number(relative[1]), unit: relative[2] } : null,
+    timeBand: timeBandFilter,
+  }
+}
+
+export function detectQueryLanguage(query = '') {
+  if (/[\u0C80-\u0CFF]/u.test(query)) return 'kn'
+  if (/\b(mahiti|maadi|thorsi|torisi|alli|beku|yenu|ideya|jothe|eshtu|helu)\b/i.test(query)) return 'kanglish'
+  return 'en'
+}
+
+export function classifyIntent(query) {
   const normalized = normalizeQuery(query)
   if (!normalized) return { intent: 'AMBIGUOUS_QUERY', reason: 'Please type a question so I can help.' }
   if (/^(hi|hii+|hello|hey|hlo|hai|namaste|namaskara|ನಮಸ್ಕಾರ|ಶುಭೋದಯ)( everyone| samvaad| there| sir| madam)?$/.test(normalized)) {
@@ -274,8 +331,14 @@ function classifyIntent(query) {
   if (/what can you do|how can you help|help me|how (do i|to) use|capabilit|commands|examples|ಏನು ಮಾಡಬಹುದು|ಸಹಾಯ/.test(normalized)) {
     return { intent: 'CONVERSATIONAL_QUERY', conversationType: 'help' }
   }
-  if (/weather|cricket|stock|movie|medical|election|recipe/.test(normalized)) {
-    return { intent: 'OUT_OF_SCOPE', reason: 'The workspace answers only evidence-grounded crime-database questions.' }
+  if (/who is guilty|prove (he|she|they) did|predict (a )?person|person risk score|rank (people|suspects)|identify caste|religion.*risk|bypass|hack.*database|reveal.*personal|real fir|operational deployment/.test(normalized)) {
+    return { intent: 'SAFETY_REFUSAL', reason: 'SAMVAAD-IQ cannot determine guilt, rank people, reveal operational or personal data, or bypass safeguards.' }
+  }
+  if (/medical advice|diagnose me|legal advice for me|self harm|suicide/.test(normalized)) {
+    return { intent: 'SAFETY_REFUSAL', reason: 'This request needs an appropriately qualified human or emergency service rather than a police-database assistant.' }
+  }
+  if (/chain of custody|evidence handling|preserve evidence|human review|supervisor approval|investigation sop|standard operating procedure|how should evidence/.test(normalized)) {
+    return { intent: 'KNOWLEDGE_QUERY', knowledgeTopic: 'evidence-governance' }
   }
   if (/how many|count|overview|database summary|data summary|statistics|stats|total cases|crime breakdown|district breakdown/.test(normalized)) return { intent: 'DATABASE_SUMMARY_QUERY' }
   if (/hotspot|map|where|area pattern|high crime|most incidents|crime trend|crime pattern/.test(normalized)) return { intent: 'HOTSPOT_QUERY' }
@@ -284,7 +347,9 @@ function classifyIntent(query) {
   if (/patrol|what if|scenario|units/.test(normalized)) return { intent: 'SCENARIO_QUERY' }
   if (/report|pdf|brief/.test(normalized)) return { intent: 'REPORT_QUERY' }
   if (/fir|syn-|case|cases|incident|record|database|search|list|summary|summarize|theft|fraud|burglary|snatching|ಪ್ರಕರಣ/.test(normalized)) return { intent: 'CASE_SEARCH_QUERY' }
-  return { intent: 'AMBIGUOUS_QUERY', reason: 'I can help, but I need a little more investigative detail.' }
+  if (/weather|cricket|stock|movie|election|recipe|quantum|science|history|technology|coding|capital of|recommendation/.test(normalized)) return { intent: 'GENERAL_QUERY' }
+  if (normalized.split(' ').length < 3 && !normalized.includes('?')) return { intent: 'AMBIGUOUS_QUERY', reason: 'I can help, but I need a little more detail about what you want to know.' }
+  return { intent: 'GENERAL_QUERY' }
 }
 
 function conversationalAnswer(query, conversationType) {
@@ -299,6 +364,43 @@ function conversationalAnswer(query, conversationType) {
   if (conversationType === 'identity') return 'I’m SAMVAAD-IQ, the conversational investigation workspace inside NETRA. I search the synthetic FIR database, explain KAVACH case-similarity signals, and return traceable evidence without treating a lead as proof.'
   if (conversationType === 'help') return 'You can ask me in normal English, Kannada, or Kanglish. I can search and summarize FIRs, compare cases with Crime DNA, trace shared signals, show area/time hotspots, test patrol scenarios, and prepare an auditable brief. Try: “Summarize SYN-2025-BLR-014” or “Show motorcycle-theft hotspots in Mysuru.”'
   return 'Hello! I’m SAMVAAD-IQ. I can help you search cases, summarize FIRs, compare Crime DNA, inspect connections, explore hotspots, and plan evidence-backed next steps. What would you like to investigate?'
+}
+
+function knowledgeAnswer(query) {
+  const hasKannada = /[\u0C80-\u0CFF]/u.test(String(query))
+  if (hasKannada) {
+    return 'ಡಿಜಿಟಲ್ ಅಥವಾ ದಾಖಲೆ ಸಾಕ್ಷ್ಯವನ್ನು ಮೂಲ ಸ್ಥಿತಿಯಲ್ಲಿ ಉಳಿಸಿ, ಪ್ರವೇಶವನ್ನು ಮಿತಿಗೊಳಿಸಿ, ಸ್ವೀಕೃತಿ ಸಮಯ ಮತ್ತು ಹಸ್ತಾಂತರವನ್ನು ದಾಖಲಿಸಿ, SHA-256 ಹ್ಯಾಶ್ ಮೂಲಕ ಸಮಗ್ರತೆಯನ್ನು ಪರಿಶೀಲಿಸಿ ಮತ್ತು ಯಾವುದೇ ವಿಶ್ಲೇಷಣೆಯನ್ನು ತನಿಖಾಧಿಕಾರಿ ತಿದ್ದುಪಡಿಗಳಿಂದ ಪ್ರತ್ಯೇಕವಾಗಿ ಗುರುತಿಸಿ. ಪ್ರಕರಣದ ಸಂಪರ್ಕ ಅಥವಾ ವರದಿ ಕ್ರಮಕ್ಕೆ ಮುನ್ನ ಮಾನವ ಪರಿಶೀಲನೆ ಮತ್ತು ಮೇಲ್ವಿಚಾರಕರ ಅನುಮೋದನೆ ಅಗತ್ಯ.'
+  }
+  return 'Preserve the original evidence, restrict access, record collection time and every hand-off, verify integrity with a SHA-256 hash, and keep machine-extracted facts separate from analyst edits. Treat any match as an investigative lead; a human must verify the source and a supervisor must approve an actionable report.'
+}
+
+function generalFallbackAnswer(query) {
+  const hasKannada = /[\u0C80-\u0CFF]/u.test(String(query))
+  if (hasKannada) return 'ಇದು ಸಾಮಾನ್ಯ ಪ್ರಶ್ನೆಯಾಗಿದೆ. ಈ ರನ್‌ನಲ್ಲಿ ಸಾಮಾನ್ಯ AI ಸೇವೆ ಲಭ್ಯವಿಲ್ಲ, ಆದ್ದರಿಂದ ನಾನು ಊಹಿಸಿ ಉತ್ತರಿಸುವುದಿಲ್ಲ. ಸರ್ವರ್ AI ಅನ್ನು ಸಕ್ರಿಯಗೊಳಿಸಿದ ನಂತರ ಇದೇ ಪ್ರಶ್ನೆಯನ್ನು ಮತ್ತೆ ಕೇಳಿ; ಸಿಂಥೆಟಿಕ್ FIR ಡೇಟಾಬೇಸ್ ಕುರಿತು ಪ್ರಶ್ನೆಗಳನ್ನು ನಾನು ಈಗಲೇ ಉಲ್ಲೇಖಗಳೊಂದಿಗೆ ಉತ್ತರಿಸಬಹುದು.'
+  return 'That is a general question. General AI is not available in this runtime, so I will not guess. Ask again when the server AI capability is enabled, or ask about the synthetic FIR database and I can answer now with traceable citations.'
+}
+
+function answerClassForIntent(intent) {
+  if (['CASE_SEARCH_QUERY', 'CASE_LINK_QUERY', 'SIMILAR_CASE_QUERY', 'HOTSPOT_QUERY', 'SCENARIO_QUERY', 'REPORT_QUERY', 'DATABASE_SUMMARY_QUERY', 'INSUFFICIENT_EVIDENCE'].includes(intent)) return 'DATABASE_GROUNDED'
+  if (intent === 'KNOWLEDGE_QUERY') return 'APPROVED_KNOWLEDGE'
+  if (['GENERAL_QUERY', 'CONVERSATIONAL_QUERY'].includes(intent)) return 'GENERAL_AI'
+  if (intent === 'SAFETY_REFUSAL' || intent === 'OUT_OF_SCOPE') return 'SAFETY_REFUSAL'
+  return 'CLARIFICATION'
+}
+
+function publicCase(caseRecord) {
+  if (!caseRecord) return caseRecord
+  return { ...caseRecord }
+}
+
+function publicValue(value) {
+  if (Array.isArray(value)) return value.map(publicValue)
+  if (!value || typeof value !== 'object') return value
+  const safe = {}
+  for (const [key, item] of Object.entries(value)) {
+    safe[key] = publicValue(item)
+  }
+  return safe
 }
 
 function citation(caseRecord, field = 'case_summary') {
@@ -318,20 +420,23 @@ function responseEnvelope({ mode, intent, filters = {}, answer, citations = [], 
   return {
     requestId,
     mode,
+    answerClass: answerClassForIntent(intent),
     intent,
     filters,
     answer,
     citations,
+    claimCitations: citations,
     confidence: {
       score,
       band: score >= 0.8 ? 'high' : score >= 0.55 ? 'medium' : 'low',
       calibration: 'Measured against deterministic planted-truth evaluation cases; not a probability of guilt.',
     },
-    evidence,
-    visualizations,
+    evidence: evidence.map(publicCase),
+    visualizations: publicValue(visualizations),
     limitations: unique([...(limitations || []), includeDisclaimer ? DISCLAIMER : null]),
     nextActions,
     auditRef,
+    approvalState: answerClassForIntent(intent) === 'DATABASE_GROUNDED' ? 'human-review-required' : 'not-required',
   }
 }
 
@@ -342,16 +447,24 @@ export function createIntelligenceCore(baseSeed, options = {}) {
 
   function search(query, filters = {}, limit = 8) {
     const queryTokens = tokenize(query)
+    const hasRestrictiveFilter = Boolean(filters.district || filters.crimeType || filters.stationId || filters.status || filters.dateFrom || filters.dateTo || filters.timeBand || filters.bnsSections?.length || filters.entityRefs?.length)
     const results = cases
       .filter((item) => !filters.district || item.district === filters.district)
       .filter((item) => !filters.crimeType || item.crime_type === filters.crimeType)
+      .filter((item) => !filters.stationId || item.station_id === filters.stationId)
+      .filter((item) => !filters.status || item.status === filters.status)
+      .filter((item) => !filters.dateFrom || item.date >= filters.dateFrom)
+      .filter((item) => !filters.dateTo || item.date <= filters.dateTo)
+      .filter((item) => !filters.timeBand || timeBand(item.time) === filters.timeBand)
+      .filter((item) => !filters.bnsSections?.length || filters.bnsSections.some((section) => String(item.bns_sections || '').toUpperCase().includes(section.replace('BNS ', ''))))
+      .filter((item) => !filters.entityRefs?.length || filters.entityRefs.some((entity) => [item.phone_hash, item.vehicle, ...(item.accused_ids || [])].map(String).map((value) => value.toUpperCase()).includes(entity)))
       .map((item) => {
         const haystack = tokenize(`${item.fir_id} ${item.crime_type} ${item.district} ${item.mo} ${item.case_summary} ${(item.accused_ids || []).join(' ')}`)
         const overlap = [...queryTokens].filter((token) => haystack.has(token)).length
         const exactFir = normalizeQuery(query).includes(normalizeQuery(item.fir_id)) ? 8 : 0
         return { case: item, score: exactFir + overlap }
       })
-      .filter((entry) => entry.score > 0 || filters.district || filters.crimeType)
+      .filter((entry) => entry.score > 0 || hasRestrictiveFilter)
       .sort((left, right) => right.score - left.score || right.case.date.localeCompare(left.case.date))
       .slice(0, limit)
     return results
@@ -422,11 +535,31 @@ export function createIntelligenceCore(baseSeed, options = {}) {
     const mode = context.mode || 'offline-demo'
     const requestId = context.requestId || stableId()
     const classified = classifyIntent(query)
-    const filters = { district: extractDistrict(query), crimeType: extractCrimeType(query), firIds: extractFirIds(query) }
+    const filters = extractStructuredFilters(query)
+    if (filters.relativePeriod && !filters.dateFrom) {
+      const latestDate = cases.reduce((latest, item) => item.date > latest ? item.date : latest, '')
+      const boundary = new Date(`${latestDate}T00:00:00Z`)
+      const multiplier = filters.relativePeriod.unit.startsWith('week') ? 7 : filters.relativePeriod.unit.startsWith('month') ? 30 : 1
+      boundary.setUTCDate(boundary.getUTCDate() - filters.relativePeriod.value * multiplier)
+      filters.dateFrom = boundary.toISOString().slice(0, 10)
+      filters.dateTo = latestDate
+    }
     const auditRef = context.auditRef || `AUD-${requestId.replace(/^REQ-/, '')}`
 
     if (classified.intent === 'CONVERSATIONAL_QUERY') {
       return responseEnvelope({ mode, requestId, auditRef, intent: classified.intent, filters, answer: conversationalAnswer(query, classified.conversationType), confidence: 1, limitations: [], nextActions: [], includeDisclaimer: false })
+    }
+
+    if (classified.intent === 'KNOWLEDGE_QUERY') {
+      return responseEnvelope({ mode, requestId, auditRef, intent: classified.intent, filters, answer: knowledgeAnswer(query), confidence: 0.95, limitations: ['Approved prototype guidance only; follow the applicable KSP policy and supervisor direction.'], nextActions: ['Record provenance and preserve the original evidence.', 'Request human review before operational use.'], includeDisclaimer: false })
+    }
+
+    if (classified.intent === 'GENERAL_QUERY') {
+      return responseEnvelope({ mode, requestId, auditRef, intent: classified.intent, filters, answer: generalFallbackAnswer(query), confidence: 0, limitations: ['No database claim was made and no external model response was available.'], nextActions: [], includeDisclaimer: false })
+    }
+
+    if (classified.intent === 'SAFETY_REFUSAL') {
+      return responseEnvelope({ mode, requestId, auditRef, intent: classified.intent, filters, answer: `${classified.reason} I can provide a source-cited synthetic database summary or explain safe evidence-review steps instead.`, confidence: 0, limitations: [classified.reason], nextActions: ['Ask for an aggregate, evidence-grounded, human-reviewable analysis.'], includeDisclaimer: false })
     }
 
     if (classified.intent === 'OUT_OF_SCOPE') {

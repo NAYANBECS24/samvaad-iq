@@ -1,29 +1,61 @@
-# KAVACH QuickML Pipeline
+# NETRA OS QuickML Pipelines
 
-This pipeline is a secondary case-link classifier. It never replaces the deterministic KAVACH score, evidence citations, or supervisor review.
+The repository prepares two synthetic training artifacts. Neither artifact is a live or published model. QuickML becomes available only after a published endpoint passes a real canary and its own held-out evaluation is recorded.
 
-## Prepared assets
+## Pipeline A — Case-link classification
 
-- `data/generated/quickml-case-link-training.csv`: reproducible labeled pair features.
-- Target column: `linked` (`1` only when the pair shares a planted truth group).
-- Identifier-only columns: `pair_id`, `left_fir_id`, `right_fir_id`, `truth_group`. Exclude these from model features to prevent label leakage.
-- Model features: `crime_type_match`, `mo_similarity`, `geography_match`, `time_pattern_match`, `shared_entity_score`, `narrative_similarity`, and `deterministic_score`.
+### Prepared artifact
 
-Regenerate all assets with `npm run generate:data`. The manifest records the seed, corpus size, pattern count, class count, and target.
+- File: `data/generated/quickml-case-link-training.csv`
+- Rows: 1,452
+- Positive rows: 252
+- Target: `linked`
+- Split column: `split`
+- Features: `crime_type_match`, `mo_similarity`, `geography_match`, `time_pattern_match`, `shared_entity_score`, `narrative_similarity`
 
-## Build in Catalyst QuickML Development
+FIR IDs, truth-group labels, source-seed identifiers, and the deterministic final KAVACH score are excluded. This prevents the classifier from memorizing identities, hidden evaluation groups, or the answer produced by the deterministic engine.
 
-1. Open QuickML in the same Catalyst project and import `quickml-case-link-training.csv` as a dataset.
-2. Create a Data Pipeline. Set `linked` as a categorical target, exclude the four identifier columns, validate numeric types, and split the data using a fixed seed.
-3. Create an ML Pipeline for binary classification. Start with AutoML or a tree-based classifier and retain class weighting if the UI reports class imbalance.
-4. Evaluate precision, recall, F1, confusion matrix, and false positives on the held-out split. The release gate is at least 90% precision for the positive/high-confidence class; do not publish an unmeasured claim.
-5. Publish the accepted model as an internal endpoint. Copy only its endpoint key into the function environment variable `QUICKML_ENDPOINT_KEY` and set `SAMVAAD_QUICKML_ENABLED=true`.
-6. Set `QUICKML_MODEL_NAME` to the published model/version label. Never commit the endpoint key or OAuth token.
-7. Call `/api/v1/capabilities` and a similarity query. The response must identify Catalyst QuickML and include `modelSignal`; if the call fails, the UI keeps the deterministic cited result and reports the limitation.
+### QuickML Development procedure
 
-## Safety and retraining
+1. Import the CSV in the intended Catalyst Development project.
+2. Declare `linked` as the binary target and preserve the fixed split boundary.
+3. Verify numeric feature types and class balance; do not reintroduce excluded columns.
+4. Train and compare suitable classification candidates.
+5. Record held-out precision, recall, F1, confusion matrix, threshold, false positives, dataset checksum, pipeline version, model version, and evaluation run.
+6. Require at least 90% precision for the positive/high-confidence class before publishing.
+7. Publish internally and configure only the endpoint secret/name in the Advanced I/O environment.
+8. Run a live similarity canary. QuickML must appear as a secondary `modelSignal`; deterministic KAVACH evidence and citations remain authoritative.
 
-- Training data is synthetic and labeled; no operational FIR or personal information belongs in this public project.
-- Do not use analyst accept/reject feedback as a training label until it has been reviewed for bias and leakage.
-- Version the dataset, pipeline, model, endpoint, and evaluation run together.
-- QuickML predictions are investigative prioritization signals, never proof of a connection or individual risk.
+The verified 95.5% high-confidence planted-link precision in `evaluation-metrics.json` is the deterministic KAVACH reference evaluation, not a QuickML result.
+
+## Pipeline B — Aggregate area/time/category early warning
+
+### Prepared artifact
+
+- File: `data/generated/quickml-area-pattern-training.csv`
+- Rows: 6,935
+- Target: `target_next_week_count`
+- Dimensions: synthetic district, station, crime category, and week
+- Historical features: week/month, prior-week count, rolling four-week mean/std/trend, rolling night share, and seasonality encodings
+- Split column: `split`
+
+The artifact contains no person, victim, accused, phone, vehicle, account, or demographic feature.
+
+### QuickML Development procedure
+
+1. Import and validate weekly ordering so future weeks never leak into earlier training rows.
+2. Preserve the provided temporal split.
+3. Train count/regression candidates and compare them with a simple rolling baseline.
+4. Record MAE/RMSE or the platform-equivalent error, calibration/interval coverage where supported, station/category slices, and failure examples.
+5. Publish only when backtesting, uncertainty, and feature explanations can be displayed honestly.
+6. Run a live endpoint canary before setting `quickMl.available=true`.
+
+Outputs are aggregate planning signals, not predictions about a person, guilt, or enforcement need. Deterministic descriptive trends and synthetic anomaly flags remain available when the model is absent.
+
+## Governance
+
+- Version data, checksum, split, pipeline, model, endpoint, threshold, and evaluation together.
+- Never train on unreviewed analyst accept/reject feedback.
+- Never expose restricted evaluation truth in runtime queries or provider prompts.
+- Record drift and retraining decisions; a new model version requires a new canary and held-out evaluation.
+- Human review remains mandatory for every case-link or area-planning output.

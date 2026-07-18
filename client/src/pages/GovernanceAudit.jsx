@@ -1,7 +1,7 @@
 import { AlertTriangle, CheckCircle2, ClipboardCheck, CloudOff, History, LockKeyhole, Scale, ShieldAlert, UserCheck } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../services/api.js'
-import { demoUsers, getStoredUser } from '../services/prototypeEngine.js'
+import { demoUsers, getStoredUser } from '../services/intelligenceRepository.js'
 import { useRuntime } from '../services/runtime.jsx'
 
 const permissions = [
@@ -23,10 +23,10 @@ function GovernanceAudit() {
   const user = useMemo(() => getStoredUser(), [])
   const { runtime, offlineCore } = useRuntime()
   const [audit, setAudit] = useState({ events: [], message: 'Audit access has not been requested.' })
-  const canReadAudit = runtime.mode === 'catalyst-live' && ['Supervisor', 'Admin'].includes(user?.role)
+  const canReadAudit = runtime.apiReachable === true && ['Supervisor', 'Admin'].includes(user?.role)
   const displayedAudit = canReadAudit
     ? audit
-    : { events: [], message: runtime.mode === 'catalyst-live' ? 'This role cannot read the server audit trail.' : 'Offline mode has no persisted server audit trail.' }
+    : { events: [], message: runtime.apiReachable ? 'This role cannot read the server audit trail.' : 'Offline mode has no server audit trail.' }
 
   useEffect(() => {
     if (!canReadAudit) return
@@ -35,7 +35,9 @@ function GovernanceAudit() {
     return () => { active = false }
   }, [canReadAudit])
 
-  const capabilityRows = Object.entries(runtime.capabilities || {}).map(([key, value]) => ({ key, ...value }))
+  const capabilityRows = Object.entries(runtime.truth || {})
+    .filter(([key, value]) => key !== 'apiReachable' && value && typeof value === 'object')
+    .map(([key, value]) => ({ key, ...value }))
 
   return (
     <div className="page-stack">
@@ -47,14 +49,14 @@ function GovernanceAudit() {
       <section className="kpi-grid compact-kpis">
         <article className="kpi-card"><UserCheck size={22} /><span>Defined roles</span><strong>{demoUsers.length}</strong></article>
         <article className="kpi-card"><LockKeyhole size={22} /><span>Public records</span><strong>{offlineCore.cases.length} synthetic</strong></article>
-        <article className="kpi-card"><ClipboardCheck size={22} /><span>Persisted audit events</span><strong>{displayedAudit.events.length}</strong></article>
+        <article className="kpi-card"><ClipboardCheck size={22} /><span>Authorized audit events</span><strong>{displayedAudit.events.length}</strong></article>
         <article className="kpi-card emphasis"><Scale size={22} /><span>Human review</span><strong>Required</strong></article>
       </section>
 
       <section className="dossier-grid">
         <article className="panel">
-          <div className="section-heading"><div><p className="eyebrow">Live capability registry</p><h2>No simulated service claims</h2></div>{runtime.mode === 'catalyst-live' ? <CheckCircle2 size={20} /> : <CloudOff size={20} />}</div>
-          {capabilityRows.length ? <div className="table-wrap"><table className="case-table"><thead><tr><th>Capability</th><th>Provider</th><th>Verified status</th></tr></thead><tbody>{capabilityRows.map((item) => <tr key={item.key}><td>{item.key}</td><td>{item.provider}</td><td>{item.available ? 'Available' : 'Unavailable'}</td></tr>)}</tbody></table></div> : <p>Capability details are unavailable because the Catalyst API health check did not complete.</p>}
+          <div className="section-heading"><div><p className="eyebrow">Live capability registry</p><h2>No simulated service claims</h2></div>{runtime.apiReachable ? <CheckCircle2 size={20} /> : <CloudOff size={20} />}</div>
+          {capabilityRows.length ? <div className="table-wrap"><table className="case-table"><thead><tr><th>Capability</th><th>Provider</th><th>Verified status</th></tr></thead><tbody>{capabilityRows.map((item) => <tr key={item.key}><td>{item.key}</td><td>{item.provider || 'No provider verified'}</td><td>{item.available ? 'Available' : item.configured ? 'Configured · awaiting canary' : 'Unavailable'}</td></tr>)}</tbody></table></div> : <p>Capability details are unavailable because the Catalyst API health check did not complete.</p>}
         </article>
 
         <article className="panel">

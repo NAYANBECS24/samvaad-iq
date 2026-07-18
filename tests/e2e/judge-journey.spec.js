@@ -2,9 +2,9 @@ import { expect, test } from '@playwright/test'
 
 const roles = [
   { role: 'Admin', landing: 'dashboard', nav: ['Dashboard', 'Ask SAMVAAD', 'Case Workspace', 'Evidence Lab', 'Intelligence Analytics', 'Hotspots', 'Network', 'Digital Evidence', 'Crime DNA', 'Cold Cases', 'Diffusion', 'Patrol', 'Tablet Patrol', 'Reports', 'Pipeline', 'Governance', 'Admin Data'] },
-  { role: 'Investigator', landing: 'chat', nav: ['Dashboard', 'Ask SAMVAAD', 'Case Workspace', 'Evidence Lab', 'Intelligence Analytics', 'Hotspots', 'Network', 'Digital Evidence', 'Crime DNA', 'Cold Cases', 'Diffusion', 'Patrol', 'Tablet Patrol', 'Reports', 'Pipeline', 'Governance'] },
-  { role: 'Analyst', landing: 'dashboard', nav: ['Dashboard', 'Ask SAMVAAD', 'Case Workspace', 'Intelligence Analytics', 'Hotspots', 'Network', 'Digital Evidence', 'Crime DNA', 'Cold Cases', 'Diffusion', 'Patrol', 'Reports', 'Pipeline', 'Governance'] },
-  { role: 'Supervisor', landing: 'analytics', nav: ['Dashboard', 'Ask SAMVAAD', 'Case Workspace', 'Evidence Lab', 'Intelligence Analytics', 'Hotspots', 'Network', 'Digital Evidence', 'Crime DNA', 'Cold Cases', 'Diffusion', 'Patrol', 'Tablet Patrol', 'Reports', 'Pipeline', 'Governance'] },
+  { role: 'Investigator', landing: 'chat', nav: ['Dashboard', 'Ask SAMVAAD', 'Case Workspace', 'Evidence Lab', 'Intelligence Analytics', 'Hotspots', 'Network', 'Digital Evidence', 'Crime DNA', 'Cold Cases', 'Diffusion', 'Patrol', 'Tablet Patrol', 'Reports', 'Governance'] },
+  { role: 'Analyst', landing: 'dashboard', nav: ['Dashboard', 'Ask SAMVAAD', 'Case Workspace', 'Intelligence Analytics', 'Hotspots', 'Network', 'Digital Evidence', 'Crime DNA', 'Cold Cases', 'Diffusion', 'Reports', 'Governance'] },
+  { role: 'Supervisor', landing: 'analytics', nav: ['Dashboard', 'Ask SAMVAAD', 'Case Workspace', 'Evidence Lab', 'Intelligence Analytics', 'Hotspots', 'Network', 'Digital Evidence', 'Crime DNA', 'Cold Cases', 'Diffusion', 'Patrol', 'Tablet Patrol', 'Reports', 'Governance'] },
 ]
 
 async function signIn(page, profile) {
@@ -12,11 +12,11 @@ async function signIn(page, profile) {
   await expect(page.getByRole('heading', { name: 'SAMVAAD-IQ' })).toBeVisible()
   await expect(page.locator('input[type="password"]')).toBeDisabled()
   await page.locator('.credential-card').filter({ hasText: profile.role }).click()
-  await page.getByRole('button', { name: 'Enter Command Workspace' }).click()
+  await page.getByRole('button', { name: 'Enter NETRA OS' }).click()
   await expect(page).toHaveURL(new RegExp(`#/${profile.landing}$`))
   await expect(page.locator('.sidebar')).toBeVisible()
   await expect(page.locator('.session-panel')).toContainText(profile.role)
-  await expect(page.locator('.runtime-badge')).toContainText(/Offline Demo|Catalyst Live/)
+  await expect(page.locator('.runtime-badge')).toContainText(/Offline Demo|Catalyst Live|Server AI · Synthetic Seed|Server · Synthetic Seed/)
 }
 
 test('login uses the direct role gateway without embedded Catalyst authentication', async ({ page }) => {
@@ -45,6 +45,12 @@ for (const profile of roles) {
       await page.goto('/#/admin-data')
       await expect(page).toHaveURL(/#\/chat$/)
       await expect(page.getByRole('link', { name: 'Admin Data' })).toHaveCount(0)
+      await expect(navigation.getByRole('link', { name: 'Pipeline' })).toHaveCount(0)
+    }
+    if (profile.role === 'Analyst') {
+      await page.goto('/#/patrol')
+      await expect(page).toHaveURL(/#\/chat$/)
+      await expect(navigation.getByRole('link', { name: 'Patrol' })).toHaveCount(0)
     }
   })
 }

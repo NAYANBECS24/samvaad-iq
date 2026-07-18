@@ -1,4 +1,6 @@
 {
+  "archive_status": "OBSOLETE — retained only for Git history; do not import, demo, or submit",
+  "superseded_by": "data/generated/cases-1000.csv and data/generated/manifest.json",
   "users": [
     {
       "email": "admin@samvaad.local",

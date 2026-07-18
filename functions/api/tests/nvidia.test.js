@@ -86,3 +86,28 @@ test('NVIDIA adapter does not call the model for out-of-scope or uncited request
   assert.equal(generated, null)
   assert.equal(called, false)
 })
+
+test('NVIDIA adapter supports clearly separated general chat without FIR context', async () => {
+  let request
+  const generated = await nvidia.generateGeneralAnswer({
+    query: 'Explain how hashing helps verify file integrity',
+    fetchImpl: async (url, options) => {
+      request = { url, options }
+      return { ok: true, json: async () => ({ choices: [{ message: { content: 'A cryptographic hash acts like a repeatable fingerprint for a file. If the file changes, its hash normally changes too.' } }] }) }
+    },
+  })
+  assert.match(generated.answer, /cryptographic hash/i)
+  const payload = JSON.parse(request.options.body)
+  assert.match(payload.messages[0].content, /GENERAL AI mode/)
+  assert.doesNotMatch(payload.messages[0].content, /test-key-never-logged/)
+})
+
+test('general chat rejects invented FIR identifiers', async () => {
+  await assert.rejects(
+    nvidia.generateGeneralAnswer({
+      query: 'Tell me something',
+      fetchImpl: async () => ({ ok: true, json: async () => ({ choices: [{ message: { content: 'Open SYN-2026-BLR-9999.' } }] }) }),
+    }),
+    (error) => error.code === 'LLM_UNGROUNDED_IDENTIFIER',
+  )
+})

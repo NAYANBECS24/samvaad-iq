@@ -2,7 +2,7 @@ import { FileSearch, Filter, GitBranch, ListChecks, Search, Sparkles } from 'luc
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import CaseCard from '../components/CaseCard.jsx'
-import { cases, findSimilarCases, getStation } from '../services/prototypeEngine.js'
+import { cases, findSimilarCases, getStation } from '../services/intelligenceRepository.js'
 
 const allValue = 'All'
 

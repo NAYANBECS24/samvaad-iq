@@ -1,20 +1,20 @@
-station_id,station_name,district,synthetic
-PS-BLR-JYN,PS-BLR-JYN,Bengaluru South,true
-PS-BLR-BSK,PS-BLR-BSK,Bengaluru South,true
-PS-MYS-LKR,PS-MYS-LKR,Mysuru,true
-PS-MYS-VVP,PS-MYS-VVP,Mysuru,true
-PS-HUB-KES,PS-HUB-KES,Hubballi-Dharwad,true
-PS-MNG-PAN,PS-MNG-PAN,Mangaluru,true
-PS-MYS-DVR,PS-MYS-DVR,Mysuru,true
-PS-BLR-SYN-01,Synthetic Station 01,Bengaluru South,true
-PS-MYS-SYN-02,Synthetic Station 02,Mysuru,true
-PS-HBL-SYN-03,Synthetic Station 03,Hubballi-Dharwad,true
-PS-MNG-SYN-04,Synthetic Station 04,Mangaluru,true
-PS-BLG-SYN-05,Synthetic Station 05,Belagavi,true
-PS-KLB-SYN-06,Synthetic Station 06,Kalaburagi,true
-PS-BLR-SYN-07,Synthetic Station 07,Bengaluru South,true
-PS-MYS-SYN-08,Synthetic Station 08,Mysuru,true
-PS-HBL-SYN-09,Synthetic Station 09,Hubballi-Dharwad,true
-PS-MNG-SYN-10,Synthetic Station 10,Mangaluru,true
-PS-BLG-SYN-11,Synthetic Station 11,Belagavi,true
-PS-KLB-SYN-12,Synthetic Station 12,Kalaburagi,true
+station_id,station_name,station_name_kn,district,district_kn,synthetic
+PS-BLR-JYN,PS-BLR-JYN,ಜಯನಗರ ಪೊಲೀಸ್ ಠಾಣೆ,Bengaluru South,ಬೆಂಗಳೂರು ದಕ್ಷಿಣ,true
+PS-BLR-BSK,PS-BLR-BSK,ಬನಶಂಕರಿ ಪೊಲೀಸ್ ಠಾಣೆ,Bengaluru South,ಬೆಂಗಳೂರು ದಕ್ಷಿಣ,true
+PS-MYS-LKR,PS-MYS-LKR,ಲಷ್ಕರ್ ಪೊಲೀಸ್ ಠಾಣೆ,Mysuru,ಮೈಸೂರು,true
+PS-MYS-VVP,PS-MYS-VVP,ವಿ.ವಿ. ಪುರಂ ಪೊಲೀಸ್ ಠಾಣೆ,Mysuru,ಮೈಸೂರು,true
+PS-HUB-KES,PS-HUB-KES,ಕೇಶ್ವಾಪುರ ಪೊಲೀಸ್ ಠಾಣೆ,Hubballi-Dharwad,ಹುಬ್ಬಳ್ಳಿ-ಧಾರವಾಡ,true
+PS-MNG-PAN,PS-MNG-PAN,ಪಣಂಬೂರು ಪೊಲೀಸ್ ಠಾಣೆ,Mangaluru,ಮಂಗಳೂರು,true
+PS-MYS-DVR,PS-MYS-DVR,ದೇವರಾಜ ಪೊಲೀಸ್ ಠಾಣೆ,Mysuru,ಮೈಸೂರು,true
+PS-BLR-SYN-01,Synthetic Station 01,ಕೃತಕ ಪೊಲೀಸ್ ಠಾಣೆ 08,Bengaluru South,ಬೆಂಗಳೂರು ದಕ್ಷಿಣ,true
+PS-MYS-SYN-02,Synthetic Station 02,ಕೃತಕ ಪೊಲೀಸ್ ಠಾಣೆ 09,Mysuru,ಮೈಸೂರು,true
+PS-HBL-SYN-03,Synthetic Station 03,ಕೃತಕ ಪೊಲೀಸ್ ಠಾಣೆ 10,Hubballi-Dharwad,ಹುಬ್ಬಳ್ಳಿ-ಧಾರವಾಡ,true
+PS-MNG-SYN-04,Synthetic Station 04,ಕೃತಕ ಪೊಲೀಸ್ ಠಾಣೆ 11,Mangaluru,ಮಂಗಳೂರು,true
+PS-BLG-SYN-05,Synthetic Station 05,ಕೃತಕ ಪೊಲೀಸ್ ಠಾಣೆ 12,Belagavi,ಬೆಳಗಾವಿ,true
+PS-KLB-SYN-06,Synthetic Station 06,ಕೃತಕ ಪೊಲೀಸ್ ಠಾಣೆ 13,Kalaburagi,ಕಲಬುರಗಿ,true
+PS-BLR-SYN-07,Synthetic Station 07,ಕೃತಕ ಪೊಲೀಸ್ ಠಾಣೆ 14,Bengaluru South,ಬೆಂಗಳೂರು ದಕ್ಷಿಣ,true
+PS-MYS-SYN-08,Synthetic Station 08,ಕೃತಕ ಪೊಲೀಸ್ ಠಾಣೆ 15,Mysuru,ಮೈಸೂರು,true
+PS-HBL-SYN-09,Synthetic Station 09,ಕೃತಕ ಪೊಲೀಸ್ ಠಾಣೆ 16,Hubballi-Dharwad,ಹುಬ್ಬಳ್ಳಿ-ಧಾರವಾಡ,true
+PS-MNG-SYN-10,Synthetic Station 10,ಕೃತಕ ಪೊಲೀಸ್ ಠಾಣೆ 17,Mangaluru,ಮಂಗಳೂರು,true
+PS-BLG-SYN-11,Synthetic Station 11,ಕೃತಕ ಪೊಲೀಸ್ ಠಾಣೆ 18,Belagavi,ಬೆಳಗಾವಿ,true
+PS-KLB-SYN-12,Synthetic Station 12,ಕೃತಕ ಪೊಲೀಸ್ ಠಾಣೆ 19,Kalaburagi,ಕಲಬುರಗಿ,true

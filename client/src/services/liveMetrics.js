@@ -1,4 +1,4 @@
-import { cases, stations } from './prototypeEngine.js'
+import { cases, stations } from './intelligenceRepository.js'
 
 const WEATHER_BASE = 'https://api.open-meteo.com/v1/forecast'
 const API_HEALTH_URL = 'http://127.0.0.1:3001/api/health'

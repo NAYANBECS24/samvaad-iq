@@ -2,7 +2,7 @@ import L from 'leaflet'
 import { useMemo, useState } from 'react'
 import { Circle, MapContainer, Marker, Popup, TileLayer } from 'react-leaflet'
 import CaseCard from '../components/CaseCard.jsx'
-import { buildDiffusionModel, getHotspots } from '../services/prototypeEngine.js'
+import { buildDiffusionModel, getHotspots } from '../services/intelligenceRepository.js'
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -20,18 +20,18 @@ const crimePeakHours = {
   'House Burglary': 2,
 }
 
-function riskFor(caseRecord, stationCounts) {
+function concentrationFor(caseRecord, stationCounts) {
   const station = stationCounts.find((item) => item.station_id === caseRecord.station_id)
   if ((station?.count || 0) >= 2 || caseRecord.status === 'Open') return 'high'
   if (caseRecord.status === 'Under Investigation') return 'medium'
   return 'low'
 }
 
-function markerIcon(risk) {
+function markerIcon(concentration) {
   const colors = { high: '#ef4444', medium: '#f59e0b', low: '#10b981' }
-  const color = colors[risk] || colors.low
+  const color = colors[concentration] || colors.low
   return L.divIcon({
-    className: `risk-marker risk-${risk}`,
+    className: `risk-marker risk-${concentration}`,
     html: `<span style="box-shadow: 0 0 12px ${color}88"></span>`,
     iconSize: [22, 22],
     iconAnchor: [11, 11],
@@ -43,7 +43,7 @@ function circularDistance(hour, peak) {
   return Math.min(distance, 24 - distance)
 }
 
-function buildPredictionZones(hotspots, diffusionModel, crimeType, hour) {
+function buildPatternWindows(hotspots, diffusionModel, crimeType, hour) {
   const peak = crimePeakHours[crimeType] ?? 20
   const timeCurve = Math.max(0.18, 1 - circularDistance(hour, peak) / 9)
   const baseZones = hotspots.clusters.length
@@ -52,22 +52,22 @@ function buildPredictionZones(hotspots, diffusionModel, crimeType, hour) {
         lat: cluster.centroid.lat,
         lon: cluster.centroid.lon,
         count: cluster.count,
-        risk: cluster.risk,
+        concentration: cluster.concentration || cluster.risk,
         cases: cluster.cases,
       }))
     : hotspots.points.slice(0, 5).map((caseRecord, index) => ({
-        id: `PRED-${index + 1}`,
+        id: `PATTERN-${index + 1}`,
         lat: caseRecord.lat,
         lon: caseRecord.lon,
         count: 1,
-        risk: riskFor(caseRecord, hotspots.stationCounts),
+        concentration: concentrationFor(caseRecord, hotspots.stationCounts),
         cases: [caseRecord.fir_id],
       }))
 
   return baseZones.map((zone, index) => {
     const rcBoost = Math.min(0.28, (diffusionModel.zones[index]?.rc || diffusionModel.rc) * 0.08)
-    const riskBoost = zone.risk === 'high' ? 0.24 : zone.risk === 'medium' ? 0.14 : 0.05
-    const score = Math.min(0.96, 0.32 + zone.count * 0.08 + timeCurve * 0.34 + riskBoost + rcBoost)
+    const concentrationBoost = zone.concentration === 'high' ? 0.24 : zone.concentration === 'medium' ? 0.14 : 0.05
+    const score = Math.min(0.96, 0.32 + zone.count * 0.08 + timeCurve * 0.34 + concentrationBoost + rcBoost)
     return {
       ...zone,
       score,
@@ -81,17 +81,17 @@ function buildPredictionZones(hotspots, diffusionModel, crimeType, hour) {
 function HotspotMap() {
   const [district, setDistrict] = useState('Mysuru')
   const [crimeType, setCrimeType] = useState('Chain Snatching')
-  const [predictionHour, setPredictionHour] = useState(21)
+  const [patternHour, setPatternHour] = useState(21)
   const hotspots = useMemo(() => getHotspots({ district, crimeType }), [district, crimeType])
   const diffusionModel = useMemo(() => buildDiffusionModel({ district, crimeType }), [district, crimeType])
-  const predictionZones = useMemo(
-    () => buildPredictionZones(hotspots, diffusionModel, crimeType, predictionHour),
-    [crimeType, diffusionModel, hotspots, predictionHour],
+  const patternWindows = useMemo(
+    () => buildPatternWindows(hotspots, diffusionModel, crimeType, patternHour),
+    [crimeType, diffusionModel, hotspots, patternHour],
   )
   const center = hotspots.points[0] ? [hotspots.points[0].lat, hotspots.points[0].lon] : [12.9716, 77.5946]
 
   const totalCases = hotspots.points.length
-  const highRisk = hotspots.clusters.filter((c) => c.risk === 'high').length
+  const highConcentration = hotspots.clusters.filter((c) => (c.concentration || c.risk) === 'high').length
   const clusters = hotspots.clusters.length
 
   return (
@@ -115,7 +115,7 @@ function HotspotMap() {
         </div>
       </header>
 
-      {/* Threat assessment strip */}
+      {/* Historical aggregate activity strip */}
       <div style={{
         display: 'flex',
         gap: 12,
@@ -124,7 +124,7 @@ function HotspotMap() {
         {[
           { label: 'Cases in View', value: totalCases, color: 'var(--cyan)' },
           { label: 'Clusters', value: clusters, color: 'var(--amber)' },
-          { label: 'High Risk', value: highRisk, color: 'var(--red)' },
+          { label: 'High Concentration', value: highConcentration, color: 'var(--red)' },
         ].map((stat) => (
           <div key={stat.label} style={{
             display: 'flex',
@@ -166,7 +166,7 @@ function HotspotMap() {
               <Marker
                 key={caseRecord.fir_id}
                 position={[caseRecord.lat, caseRecord.lon]}
-                icon={markerIcon(riskFor(caseRecord, hotspots.stationCounts))}
+                icon={markerIcon(concentrationFor(caseRecord, hotspots.stationCounts))}
               >
                 <Popup>
                   <strong>{caseRecord.fir_id}</strong>
@@ -177,7 +177,7 @@ function HotspotMap() {
                 </Popup>
               </Marker>
             ))}
-            {predictionZones.map((zone) => (
+            {patternWindows.map((zone) => (
               <Circle
                 key={zone.id}
                 center={[zone.lat, zone.lon]}
@@ -193,7 +193,7 @@ function HotspotMap() {
                 <Popup>
                   <strong>{zone.id}</strong>
                   <br />
-                  Prediction score {Math.round(zone.score * 100)}%
+                  Historical pattern index {Math.round(zone.score * 100)}%
                   <br />
                   {zone.cases.join(', ')}
                 </Popup>
@@ -221,22 +221,22 @@ function HotspotMap() {
               <div className="section-heading compact-heading">
                 <div>
                   <p className="eyebrow">Clusters</p>
-                  <h2>DBSCAN-Style Risk</h2>
+                  <h2>DBSCAN-Style Concentration</h2>
                 </div>
               </div>
               {hotspots.clusters.map((cluster) => (
                 <div key={cluster.cluster_id} className="station-row">
                   <strong>{cluster.cluster_id}</strong>
-                  <span>{cluster.risk} risk</span>
+                  <span>{cluster.concentration || cluster.risk} concentration</span>
                   <small>{cluster.cases.join(', ')}</small>
                 </div>
               ))}
             </>
           ) : null}
           <div className="map-legend">
-            <span><i className="risk-dot high" /> High risk</span>
-            <span><i className="risk-dot medium" /> Medium risk</span>
-            <span><i className="risk-dot low" /> Low risk</span>
+            <span><i className="risk-dot high" /> High concentration</span>
+            <span><i className="risk-dot medium" /> Medium concentration</span>
+            <span><i className="risk-dot low" /> Low concentration</span>
           </div>
         </aside>
       </section>
@@ -244,31 +244,33 @@ function HotspotMap() {
       <section className="forecast-strip">
         <div className="forecast-header">
           <div>
-            <p className="eyebrow">Predictive Threat Heatmap</p>
-            <h2>{String(predictionHour).padStart(2, '0')}:00 forecast window</h2>
+            <p className="eyebrow">Historical Time-Pattern Heatmap</p>
+            <h2>{String(patternHour).padStart(2, '0')}:00 comparison window</h2>
           </div>
           <div className="diffusion-score compact">
             <span>Rc</span>
             <strong>{diffusionModel.rc}</strong>
-            <small>{diffusionModel.risk}</small>
+            <small>{diffusionModel.patternBand}</small>
           </div>
         </div>
         <input
           className="forecast-range"
           min="0"
           max="23"
-          value={predictionHour}
-          onChange={(event) => setPredictionHour(Number(event.target.value))}
+          value={patternHour}
+          onChange={(event) => setPatternHour(Number(event.target.value))}
           type="range"
         />
         <div className="forecast-zones">
-          {predictionZones.slice(0, 4).map((zone) => (
+          {patternWindows.slice(0, 4).map((zone) => (
             <span key={zone.id} style={{ '--zone-color': zone.color }}>
               {zone.id} - {Math.round(zone.score * 100)}%
             </span>
           ))}
         </div>
       </section>
+
+      <p className="disclaimer">This view compares historical synthetic area, time, and category patterns. It does not predict an individual, guilt, or a future incident.</p>
 
       <section className="case-grid">
         {hotspots.points.map((caseRecord) => (

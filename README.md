@@ -1,192 +1,161 @@
-# SAMVAAD-IQ
+# NETRA OS / SAMVAAD-IQ
 
-SAMVAAD-IQ is the conversational investigation workspace for **NETRA**, with the explainable **KAVACH Crime DNA** engine providing case-similarity reasoning.
+NETRA OS is a role-aware police-intelligence workspace for [**Datathon 2026 Challenge 1 — Intelligent Conversational AI for the KSP Crime Database**](https://hack2skill.com/event/datathon2026). **SAMVAAD-IQ** is its text-and-voice copilot, and **KAVACH** is its explainable intelligence kernel.
 
-It addresses **Datathon 2026 Challenge 1 — Intelligent Conversational AI for the KSP Crime Database**.
+> This repository and public demonstration contain synthetic data only. A result is an investigative lead, never proof, a legal conclusion, or an individual risk score. Human verification and supervisory approval remain mandatory.
 
-> This public build contains synthetic demonstration data only. Every result is an investigative lead that requires human verification and, where applicable, supervisory approval.
+## What is implemented
 
-## What the winner build demonstrates
+- A responsive NETRA OS shell with a system bar, `Ctrl+K` launcher, shared investigation context, role-aware navigation, evidence/task inspector, and a guided three-minute judge mission.
+- Preserved deep links for Mission Control, Ask SAMVAAD, Case Desk, Evidence Vault, Intelligence Studio, Field Operations, Briefing & Governance, and the Administrative Console.
+- English, Kannada, and Kanglish text queries, `en-IN`/`kn-IN` browser speech input, speech output, four answer modes, follow-up context, citations, timelines, skeptic checks, feedback, and complete conversation-history reporting.
+- Five explicit chat outcomes: database-grounded answer, approved prototype-knowledge answer, general AI answer, focused clarification, or safety/jurisdiction refusal.
+- A deterministic fallback that never returns an empty answer when NVIDIA NIM is unavailable.
+- KAVACH factor-level similarity, source-backed graphs, aggregate area/time/category hotspots, descriptive trends, synthetic anomaly alerts, cohorts with minimum group-size controls, and patrol what-if scenarios.
+- A versioned 1,000-case server dataset and a 250-case read-only browser fallback generated from the same domain logic.
+- Local Evidence Lab processing for PDF, DOCX, XLSX, CSV, JSON, PNG, and JPEG files up to 10 MB, including SHA-256 provenance and capability-aware limitations.
+- A Node 24 Catalyst Advanced I/O API with validation, security headers, role checks, structured errors, runtime capability reporting, deterministic analytics, and browser-print report fallback.
 
-The product follows one evidence-grounded loop:
+The server binary-upload path now validates base64 payloads, enforces the 10 MB decoded-byte limit, recalculates SHA-256, and calls Stratus/File Store adapters. The Data Store seed endpoint now stages, validates, checksums, and activates a version before it becomes readable. Managed conversation persistence, Catalyst Auth, live Data Store activation, NVIDIA NIM, QuickML, Zia OCR, live Stratus/File Store persistence, SmartBrowz, and Circuits remain unavailable until each service is provisioned and passes a live Development canary. The UI must not present a configured flag as proof of availability.
 
-1. Ask in English, Kannada, or Kanglish.
-2. Retrieve synthetic FIR evidence and show exact citations.
-3. Open the case workspace and inspect source fields.
-4. Run KAVACH similarity, network, area-hotspot, or patrol-scenario analysis.
-5. Validate and hash an evidence file in Evidence Lab.
-6. Accept, reject, or escalate the lead through a human review action.
-7. Produce an auditable supervisor-approved evidence brief.
+## Investigation workflow
 
-The conversational workspace opens as a familiar user/assistant transcript rather than an analysis form. Greetings, thanks, identity/help questions, short prompts, database summaries, and natural follow-ups receive readable responses; case claims add clickable source chips and expand into the complete investigation detail view. It also includes four additive response modes—Investigator, Command Brief, Timeline, and Skeptic—plus bounded multi-turn FIR context, a visible six-stage retrieval pipeline, claim-to-source coverage, chronological evidence, and structured consistency checks. These views use the same citations and do not remove or bypass the original KAVACH, map, graph, voice, evidence, reporting, or governance features.
+1. Start an investigation or open a pinned case.
+2. Ask SAMVAAD in English, Kannada, or Kanglish.
+3. Inspect claim-to-source citations, confidence, limitations, and the query plan.
+4. Hand the same context to Case Desk, KAVACH, network, hotspot, trend, or patrol analysis.
+5. Validate a synthetic evidence file and keep extracted facts separate from analyst notes.
+6. Request human review; only a Supervisor or Admin may approve an official export.
+7. Export a brief containing the complete conversation, query IDs, filters, citations, data version, provider, approval, audit reference, and safety disclaimer.
 
-The application never presents a person-level risk score, automated guilt label, or unsupported legal conclusion.
+## Runtime truth
 
-## Runtime modes
+Runtime is represented independently, not as one optimistic live/offline flag:
 
-| Mode | Meaning |
+`apiReachable`, `authentication`, `dataSource`, `persistence`, `generativeAi`, `quickMl`, `ocr`, `storage`, `reports`, and `orchestration`.
+
+| UI label | Meaning |
 | --- | --- |
-| `Catalyst Live` | The versioned API is reachable and the configured Catalyst capabilities are verified at runtime. |
-| `Offline Demo` | The shared deterministic engine is running locally against a smaller synthetic dataset. Changes are not persisted. |
-| `Capability Unavailable` | A specific provider such as OCR, object storage, or server PDF rendering is not enabled. The UI does not simulate success. |
+| `Catalyst Live` | Required Catalyst services for the current operation have passed live canaries. |
+| `Server AI · Synthetic Seed` | The API is reachable and may use verified server AI, but managed case persistence is unavailable. |
+| `Offline Demo` | The read-only browser repository and deterministic engine are active; changes are not server-persisted. |
+| `Capability Unavailable` | A requested provider has not passed verification; no success is simulated. |
 
-The public UI displays the current mode at all times. Provider availability comes from `GET /api/v1/capabilities`; it is not hard-coded into presentation labels.
+`GET /api/v1/health`, `/capabilities`, and `/ai/status` must return JSON. A Slate route that returns the SPA HTML is not a working API.
 
-## Architecture
+## Verified synthetic dataset
 
-```text
-React/Vite client
-  ├── Catalyst runtime and capability probe
-  ├── Ask SAMVAAD evidence workspace
-  ├── Case and intelligence workspaces
-  ├── Real browser evidence parsers
-  └── Read-only offline repository
-             │
-             ▼
-Versioned /api/v1 contract
-  ├── Advanced I/O request handler
-  ├── server-side validation, role checks, CORS and rate limits
-  ├── tamper-evident audit hash chain
-  └── Catalyst provider adapters
-             │
-             ▼
-Shared explainable intelligence core
-  ├── deterministic synthetic generator
-  ├── multilingual intent and filter extraction
-  ├── evidence retrieval and citations
-  ├── optional NVIDIA NIM grounded response phrasing
-  ├── KAVACH factor-level similarity
-  ├── graph, area hotspots and scenarios
-  └── insufficient-evidence and out-of-scope refusals
-```
+The machine-readable release authority is [release-manifest.json](data/generated/release-manifest.json), generated from [manifest.json](data/generated/manifest.json) and [evaluation-metrics.json](data/generated/evaluation-metrics.json). Do not copy a metric or live-service claim into submission material without matching those files.
 
-The same shared core runs in the API and in the labeled offline fallback, preventing frontend/backend scoring drift.
+| Item | Verified value |
+| --- | ---: |
+| Data version | `synthetic-20260717-1000` |
+| Seed | `20260717` |
+| Synthetic cases | 1,000 |
+| Stations | 19 |
+| English/Kannada translation rows | 2,000 |
+| Planted pattern families | 6 |
+| Evaluation-truth rows | 58 |
+| Case-link training rows | 1,452 |
+| Positive case-link rows | 252 |
+| Area-pattern training rows | 6,935 |
 
-## Verified baseline
+The generated model assets are **training artifacts only, not live models**. Evaluation truth is restricted to evaluation jobs and must never appear in runtime records, query responses, citations, or the browser bundle.
 
-The current automated evaluation uses 1,000 deterministic synthetic FIRs and 30 English, Kannada, and Kanglish queries.
+## Verified evaluation
+
+The current reference run covers 30 English, Kannada, and Kanglish evaluation queries over 1,000 deterministic synthetic cases.
 
 | Metric | Measured result |
 | --- | ---: |
 | Intent accuracy | 100% |
 | Citation coverage for supported evaluation queries | 100% |
-| Refusal queries with fabricated citations | 0 |
+| Refusal fabrication failures | 0 |
 | High-confidence planted-link precision | 95.5% |
 | Planted-link recall | 100% |
-| Reference-run deterministic p95 evaluation time | 120 ms |
-| Initial application JavaScript | ~101 KB gzip |
+| Evaluated planted pairs | 252 |
+| Deterministic p95 | 118.03 ms |
 
-Run `npm run evaluate` to reproduce the intelligence metrics. Claims in submission materials must be updated if the measured output changes.
-`npm run validate` also runs role-aware browser checks, the complete judge journey, and text/voice grounded-response coverage.
+These are prototype measurements on synthetic data, not operational KSP accuracy, safety, latency, or impact claims. Reproduce them with `npm run evaluate`.
+
+## Role model
+
+| Role | Access |
+| --- | --- |
+| Admin | All applications and administration. |
+| Investigator | Operational applications except the Administrative Console. |
+| Analyst | Mission Control, Ask SAMVAAD, Case Desk, Intelligence Studio, reports, and governance. |
+| Supervisor | Operational applications except the Administrative Console; may approve and export official reports. |
+
+All roles may draft a report. Only Supervisor/Admin may approve and produce an official server report. The API derives the role from the session; it does not accept a client-supplied role as authorization.
 
 ## Local development
 
-Requirements:
-
-- Node.js 24
-- npm
-- Zoho Catalyst CLI for Catalyst validation/deployment
-
-Install dependencies:
+Requirements: Node.js 24, npm, and the Zoho Catalyst CLI for Catalyst validation or deployment.
 
 ```bash
 npm ci
 npm --prefix client ci
 npm --prefix functions/api ci
+npm run api:dev
 ```
 
-Start the API and client in separate terminals:
+In a second terminal:
 
 ```bash
-npm run api:dev
 npm run client:dev
 ```
 
 The Vite development server proxies `/api/v1` to `http://127.0.0.1:3001`.
 
-Validate everything:
+Run the complete local gate:
 
 ```bash
 npm run validate
-npm --prefix client audit --omit=dev
-npm --prefix functions/api audit --omit=dev
+npm --prefix client audit --omit=dev --audit-level=high
+npm --prefix functions/api audit --omit=dev --audit-level=high
 ```
 
-The visible gateway is a read-only role selector for the synthetic judge demonstration. When `VITE_OFFLINE_DEMO_PASSWORD` is unset, choosing one of the four profiles opens its role-aware workspace without a password; hosts may set that variable to add a private presentation gate. Embedded Catalyst sign-in and public registration are intentionally not loaded in the browser. Catalyst server-side authorization adapters remain available for a later private operational deployment. Local API demo authentication additionally requires `ALLOW_DEMO_AUTH=true`, `DEMO_PASSWORD`, and `DEMO_AUTH_SECRET`; live deployments keep demo authentication disabled. Credentials and endpoint keys are distributed out of band, never committed.
+The branded `/login` gateway offers fixed synthetic Judge Demo profiles. Secure access is invitation-only through a configured Catalyst Auth redirect; public registration and the embedded Catalyst widget are intentionally absent. Demo/session secrets, judge instructions, NVIDIA keys, QuickML keys, and storage identifiers are distributed outside Git.
 
-## API contract
+## API surface
 
-The versioned interface includes:
+All routes are versioned under `/api/v1`.
 
-- `GET /api/v1/health`
-- `GET /api/v1/capabilities`
-- `GET /api/v1/ai/status`
-- `GET /api/v1/auth/me`
-- `GET /api/v1/cases` and `/cases/:firId`
-- `POST /api/v1/query`
-- `POST /api/v1/analytics/similarity`
-- `POST /api/v1/analytics/graph`
-- `POST /api/v1/analytics/hotspots`
-- `POST /api/v1/scenarios`
-- `POST /api/v1/evidence/uploads`
-- `POST /api/v1/evidence/:id/analyze`
-- `POST /api/v1/reports`
-- `POST /api/v1/admin/seed` (Admin-only, safe one-time synthetic seed)
-- `GET /api/v1/audit`
-- `POST /api/v1/feedback`
+- Runtime: `GET /health`, `/capabilities`, `/ai/status`, `/data/versions`
+- Authentication: `POST /auth/demo-session`, `GET /auth/secure-url`, `POST /auth/logout`, `GET /auth/me`
+- Cases and search: `GET /cases`, `/cases/:id`, `/search`, `/knowledge/search`
+- Context: `GET/POST/PATCH /investigations`, `GET /conversations`, `/conversations/:id/messages`
+- Copilot: `POST /query`
+- Intelligence: `POST /analytics/similarity`, `/graph`, `/hotspots`, `/trends`, `/alerts`, `/cohorts`, and `/scenarios`
+- Evidence and review: `POST /evidence/uploads`, `/evidence/:id/analyze`, `GET /tasks`, `POST/PATCH /approvals`
+- Reports and governance: `POST /reports`, `GET /reports/:id`, `GET /audit`, `POST /feedback`
+- Administration: `POST /admin/seed` with an authenticated Admin session
 
-Successful query responses contain `requestId`, `mode`, `intent`, `filters`, `answer`, `citations`, `confidence`, `evidence`, `visualizations`, `limitations`, `nextActions`, and `auditRef`. Query responses additionally expose `responseMode`, `pipeline`, and `investigationInsights` with coverage, timeline, consistency checks, and normalized entities.
+The upload route returns an explicit unavailable error until real storage is configured. When storage is verified, the server revalidates the decoded bytes and hash before persisting them; local file processing never masquerades as server persistence.
 
-## Catalyst configuration
+Query input accepts `message`, `conversationId`, `investigationId`, `answerMode`, `language`, `contextRefs`, and optional `dataVersion`. The response includes the answer class, identifiers, runtime mode, data version, query plan, filters, citations, confidence, evidence, visualizations, limitations, next actions, provider, latency, approval state, and audit reference.
 
-The Advanced I/O function is under `functions/api` and includes a Node 24 `catalyst-config.json`.
+Failures use `requestId`, `code`, `message`, `retryable`, and `mode`.
 
-Capabilities are opt-in environment flags and become `available` only when both the Catalyst runtime and the relevant service flag are enabled:
+## Catalyst-first release
 
-- `SAMVAAD_AUTH_ENABLED`
-- `SAMVAAD_DATASTORE_ENABLED`
-- `SAMVAAD_SMARTBROWZ_ENABLED`
-- `SAMVAAD_STRATUS_ENABLED` or `SAMVAAD_FILESTORE_ENABLED`
-- `SAMVAAD_CIRCUITS_ENABLED`
-- `SAMVAAD_ZIA_ENABLED`
-- `SAMVAAD_QUICKML_ENABLED`
-- `SAMVAAD_NVIDIA_LLM_ENABLED` with server-only `NVIDIA_API_KEY`
+The canonical judge target is Catalyst Web Client plus the Node 24 Advanced I/O API. Slate is a synchronized mirror and rollback, and must build with an absolute approved Catalyst/API Gateway origin when it cannot use same-origin API routing.
 
-The canonical Catalyst-hosted client should build with `VITE_API_BASE=/server/api/api/v1` unless API Gateway maps `/api/v1/*` to the Advanced I/O function. Slate uses the full approved API origin or the Gateway path configured for that site.
+No current public URL is documented as release-ready until the deployed smoke test verifies JSON routing, authentication, data version, AI status, and the complete judge mission. See [Catalyst deployment](docs/catalyst-deployment.md) and [GitHub/Catalyst/Slate release flow](docs/catalyst-github-deployment.md).
 
-See [Catalyst deployment](docs/catalyst-deployment.md), [capability matrix](docs/capability-matrix.md), [Data Store schema](data/catalyst-schema.md), and [NVIDIA grounded chat](docs/nvidia-grounded-chat.md).
+## Documentation
 
-The NVIDIA adapter runs after deterministic retrieval. It receives only cited synthetic evidence, rejects uncited FIR identifiers, and falls back to the deterministic answer on any provider error. The API key is a Catalyst function secret and is never included in the client build.
-
-The verified Development candidate is available at `https://project-rainfall-60073323871.development.catalystserverless.in/app/index.html`. Its versioned health endpoint returns JSON at `/server/api/api/v1/health`. It remains honestly labeled `Offline Demo` while managed services are disabled. With Catalyst Auth, Advanced I/O, and NVIDIA NIM verified, it may run as `Catalyst Live` over the labeled server seed while explicitly reporting that persistence is unavailable; enabling Data Store replaces that seed with managed case rows and persistence.
-
-## Evidence Lab
-
-Accepted files are PDF, DOCX, XLSX, CSV, JSON, PNG, and JPEG up to 10 MB.
-
-- SHA-256 is calculated from the actual file bytes.
-- PDF, DOCX, first-sheet XLSX, CSV, and JSON text is extracted in the browser.
-- Images expose verified dimensions and provenance; OCR is not inferred unless a live OCR capability is enabled.
-- Extracted facts remain distinct from matched cases and analyst decisions.
-- Offline analysis is not persisted and says so explicitly.
-
-## Safety and privacy
-
-- All public identifiers are synthetic or illustrative hashes.
-- No real KSP FIR, complainant, accused, phone, bank, or location-level personal data belongs in this repository.
-- Hotspots are area/time/category summaries, not person-level predictions.
-- Legal mappings are review support only.
-- Reports require Supervisor or Admin approval.
-- API roles are derived from an authenticated session, never a request body.
-- CORS uses an allowlist and API responses include security headers and request IDs.
-
-See the [data card](docs/data-card.md) and [privacy and threat model](docs/privacy-threat-model.md).
-
-## Submission assets
-
+- [Verified state manifest](docs/verified-state.md)
+- [NETRA OS applications](docs/netra-os.md)
+- [Architecture](docs/architecture.md)
+- [Investigation workflow](docs/workflow.md)
+- [Capability matrix](docs/capability-matrix.md)
+- [Data card](docs/data-card.md)
+- [Privacy and threat model](docs/privacy-threat-model.md)
+- [Three-minute judge demo](docs/judge-demo.md)
+- [Judge access instructions](docs/judge-access.md)
 - [Master project document](docs/submission/SAMVAAD-IQ_Master_Project_Document.md)
 - [Technical appendix](docs/submission/SAMVAAD-IQ_Technical_Appendix.md)
-- [Three-minute judge demo](docs/judge-demo.md)
-- Editable PowerPoint deck in `docs/submission/`
 
-Earlier prototype documents are retained under `docs/submission/archive/` for traceability and are not the source of current deployment claims.
+Earlier binary documents are retained in `docs/submission/archive/` for history only. They are not the source for challenge numbering, architecture, provider status, metrics, or deployment claims.

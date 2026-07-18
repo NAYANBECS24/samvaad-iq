@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "generatedBy": "npm run evaluate",
+  "seed": 20260717,
+  "datasetVersion": "synthetic-20260717-1000",
+  "datasetCases": 1000,
+  "evaluationQueries": 30,
+  "intentAccuracy": 1,
+  "citationCoverage": 1,
+  "refusalFabricationFailures": 0,
+  "deterministicP95Ms": 118.03,
+  "highConfidenceLinkPrecision": 0.955,
+  "plantedLinkRecall": 1,
+  "evaluatedPlantedPairs": 252,
+  "failures": []
+}

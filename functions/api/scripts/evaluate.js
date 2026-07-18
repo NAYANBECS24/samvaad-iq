@@ -1,6 +1,13 @@
 const assert = require('node:assert/strict')
+const fs = require('node:fs')
+const path = require('node:path')
 const { performance } = require('node:perf_hooks')
 const seed = require('../data/seed-data.json')
+
+function evaluationFamily(caseRecord) {
+  const opaquePhone = String(caseRecord?.phone_hash || '')
+  return /^PH-SYN-[A-F0-9]{8}$/.test(opaquePhone) ? opaquePhone : null
+}
 
 const scenarios = [
   ['Mysuru motorcycle theft hotspot show maadi', 'HOTSPOT_QUERY', true],
@@ -26,13 +33,13 @@ const scenarios = [
   ['Bengaluru burglary cases', 'CASE_SEARCH_QUERY', true],
   ['ತೋರಿಸಿ', 'AMBIGUOUS_QUERY', false],
   ['hello', 'CONVERSATIONAL_QUERY', false],
-  ['Explain quantum physics', 'AMBIGUOUS_QUERY', false],
-  ['What is the cricket score?', 'OUT_OF_SCOPE', false],
-  ['Give medical advice', 'OUT_OF_SCOPE', false],
-  ['Show stock prices', 'OUT_OF_SCOPE', false],
-  ['Weather in Mysuru', 'OUT_OF_SCOPE', false],
-  ['Election result', 'OUT_OF_SCOPE', false],
-  ['Movie recommendation', 'OUT_OF_SCOPE', false],
+  ['Explain quantum physics', 'GENERAL_QUERY', false],
+  ['What is the cricket score?', 'GENERAL_QUERY', false],
+  ['Give medical advice', 'SAFETY_REFUSAL', false],
+  ['Show stock prices', 'GENERAL_QUERY', false],
+  ['Weather in Mysuru', 'GENERAL_QUERY', false],
+  ['Election result', 'GENERAL_QUERY', false],
+  ['Movie recommendation', 'GENERAL_QUERY', false],
 ]
 
 async function main() {
@@ -72,7 +79,8 @@ async function main() {
     const left = core.cases[leftIndex]
     for (let rightIndex = leftIndex + 1; rightIndex < core.cases.length; rightIndex += 1) {
       const right = core.cases[rightIndex]
-      const isPlantedLink = Boolean(left.truth_group && left.truth_group === right.truth_group)
+      const leftFamily = evaluationFamily(left)
+      const isPlantedLink = Boolean(leftFamily && leftFamily === evaluationFamily(right))
       if (!isPlantedLink && (leftIndex * 37 + rightIndex * 17) % 401 !== 0) continue
       const isHighConfidence = crimeDna(left, right).score >= 0.72
       if (isPlantedLink) {
@@ -89,6 +97,10 @@ async function main() {
   const linkPrecision = highConfidenceTruePositives / Math.max(1, highConfidenceTruePositives + highConfidenceFalsePositives)
   const plantedRecall = detectedPlantedPairs / Math.max(1, plantedPositivePairs)
   const metrics = {
+    schemaVersion: 1,
+    generatedBy: 'npm run evaluate',
+    seed: 20260717,
+    datasetVersion: core.dataset.version,
     datasetCases: core.cases.length,
     evaluationQueries: scenarios.length,
     intentAccuracy: Number(intentAccuracy.toFixed(3)),
@@ -101,6 +113,11 @@ async function main() {
     failures,
   }
 
+  if (process.argv.includes('--write')) {
+    const outputPath = path.resolve(__dirname, '../../../data/generated/evaluation-metrics.json')
+    fs.mkdirSync(path.dirname(outputPath), { recursive: true })
+    fs.writeFileSync(outputPath, `${JSON.stringify(metrics, null, 2)}\n`, 'utf8')
+  }
   console.log(JSON.stringify(metrics, null, 2))
   assert.ok(intentAccuracy >= 0.9, `intent accuracy ${intentAccuracy}`)
   assert.equal(citationCoverage, 1)

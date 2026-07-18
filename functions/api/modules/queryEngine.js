@@ -57,7 +57,7 @@ function buildSourceChunks(payload) {
   const selected = cases.filter((caseRecord) => (payload.sources || []).includes(caseRecord.fir_id)).slice(0, 3)
   const chunks = selected.map((caseRecord, index) => ({
     id: `RAG-FIR-${String(index + 1).padStart(2, '0')}`,
-    service: 'Catalyst QuickML RAG',
+    service: 'Deterministic local retrieval',
     title: `${caseRecord.fir_id} narrative and MO`,
     text: `${caseRecord.case_summary} MO: ${caseRecord.mo}`,
     confidence: Math.max(0.72, Number(((payload.confidence || 0.78) - index * 0.04).toFixed(2))),
@@ -67,7 +67,7 @@ function buildSourceChunks(payload) {
     const legal = legalExplainabilityForCase(selected[0].fir_id)
     chunks.push({
       id: 'RAG-LEGAL-01',
-      service: 'Catalyst QuickML RAG',
+      service: 'Deterministic local legal lookup',
       title: `BNS / IPC support for ${legal.crimeType}`,
       text: `BNS ${legal.bns}; ${legal.legalNote} ${legal.humanActionNote}`,
       confidence: 0.86,
@@ -76,7 +76,7 @@ function buildSourceChunks(payload) {
 
   chunks.push({
     id: 'RAG-SOP-01',
-    service: 'Catalyst QuickML RAG',
+    service: 'Approved local safety guidance',
     title: 'Investigation SOP guardrail',
     text: 'Use source FIRs, masked identifiers, supervisor review, and human verification before operational action.',
     confidence: 0.94,
@@ -104,8 +104,10 @@ function decorate(payload) {
     riskFlags: ['Synthetic dataset only', 'Not an automated guilt prediction'],
     sourceChunks,
     quickMlRag: {
-      knowledgeBase: 'FIR + BNS + SOP + evidence metadata demo KB',
-      retrievalMode: 'Prototype deterministic retrieval mapped to Catalyst QuickML',
+      available: false,
+      verified: false,
+      knowledgeBase: 'Local synthetic FIR + BNS + safety guidance seed',
+      retrievalMode: 'Deterministic local retrieval; no QuickML call was made',
       sourceCount: sourceChunks.length,
     },
     audit: {

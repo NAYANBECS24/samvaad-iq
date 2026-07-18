@@ -1,146 +1,115 @@
 import blueprint from '../../../data/evidence-intelligence.json'
-import {
-  buildGraph,
-  cases,
-  findSimilarCases,
-  getStation,
-  legalExplainabilityForCase,
-} from './prototypeEngine.js'
+import { DATA_VERSION, cases, getStation, legalExplainabilityForCase } from './intelligenceRepository.js'
 
 const LAB_AUDIT_KEY = 'samvaad_evidence_audit'
 
-function profileById(profileId = 'fir-pdf') {
+function profileById(profileId = 'document') {
   return blueprint.evidenceProfiles.find((profile) => profile.id === profileId) || blueprint.evidenceProfiles[0]
 }
 
-function caseById(firId) {
-  return cases.find((caseRecord) => caseRecord.fir_id === firId)
+function terms(value = '') {
+  return new Set(String(value).toLowerCase().match(/[a-z0-9-]{3,}/g) || [])
 }
 
-function scoreCase(profile, caseRecord) {
-  const extracted = profile.extracted
-  let score = 0.36
-  if (profile.linkedCaseIds.includes(caseRecord.fir_id)) score += 0.28
-  if (caseRecord.crime_type === extracted.crimeType) score += 0.14
-  if (caseRecord.district === extracted.district) score += 0.1
-  if (caseRecord.vehicle !== 'NA' && caseRecord.vehicle === extracted.vehicle) score += 0.06
-  if (caseRecord.phone_hash !== 'NA' && caseRecord.phone_hash === extracted.phoneHash) score += 0.06
-  return Number(Math.min(0.97, score).toFixed(2))
+function groundedMatches(text) {
+  const queryTerms = terms(text)
+  if (!queryTerms.size) return []
+  return cases
+    .map((caseRecord) => {
+      const searchable = [
+        caseRecord.fir_id,
+        caseRecord.crime_type,
+        caseRecord.district,
+        caseRecord.station_id,
+        caseRecord.case_summary,
+        caseRecord.mo,
+        caseRecord.vehicle,
+        caseRecord.phone_hash,
+        ...caseRecord.accused_ids,
+      ].join(' ')
+      const sourceTerms = terms(searchable)
+      const matchedTerms = [...queryTerms].filter((term) => sourceTerms.has(term))
+      return {
+        caseRecord,
+        matchedTerms,
+        score: Number(Math.min(0.92, matchedTerms.length / Math.max(4, queryTerms.size)).toFixed(2)),
+      }
+    })
+    .filter((match) => match.matchedTerms.length >= 2)
+    .sort((a, b) => b.score - a.score || b.matchedTerms.length - a.matchedTerms.length)
+    .slice(0, 6)
 }
 
-function buildSourceChunks(profile, matchedCases) {
-  const topCase = matchedCases[0]?.caseRecord
+function localAudit(uploaded, matchCount) {
+  const generatedAt = new Date().toISOString()
   return [
     {
-      id: 'RAG-FIR-01',
-      service: 'Catalyst QuickML RAG',
-      title: `${topCase?.fir_id || 'FIR'} narrative and metadata`,
-      text: topCase ? `${topCase.case_summary} MO: ${topCase.mo}` : profile.sourceText,
-      confidence: 0.9,
-    },
-    {
-      id: 'RAG-EVIDENCE-02',
-      service: profile.extractionMode,
-      title: `${profile.kind} extracted evidence`,
-      text: profile.sourceText,
-      confidence: profile.extracted.confidence,
-    },
-    {
-      id: 'RAG-SOP-03',
-      service: 'Catalyst QuickML RAG',
-      title: 'Human review and privacy guardrail',
-      text: 'Treat this as an investigative lead. Verify source evidence, keep identifiers masked, and require supervisor approval before circulation.',
-      confidence: 0.96,
+      id: `LOCAL-EV-${uploaded.sha256?.slice(0, 10) || Date.now()}`,
+      actor: 'Browser evidence parser',
+      event: 'Local provenance analyzed',
+      detail: `${matchCount} source-backed synthetic case candidates returned; no server persistence occurred.`,
+      target: uploaded.name,
+      timestamp: generatedAt,
     },
   ]
 }
 
-function buildReport(analysis) {
-  const reportId = `RPT-${Date.now().toString().slice(-6)}`
-  return {
-    reportId,
-    title: `${analysis.profile.label} Intelligence Brief`,
-    generatedAt: new Date().toISOString(),
-    cases: analysis.matchedCases.map((match) => match.caseRecord),
-    smartBrowz: {
-      renderJobId: `SBZ-${Date.now().toString().slice(-6)}`,
-      status: 'queued-for-headless-render',
-      service: 'Catalyst SmartBrowz',
-    },
-    stratusObject: {
-      bucket: 'samvaad-intelligence-briefs',
-      key: `reports/${reportId}.pdf`,
-      service: 'Catalyst Stratus',
-    },
-    mailEvent: {
-      template: 'Supervisor evidence review',
-      status: 'ready-to-send',
-      service: 'Catalyst Mail',
-    },
-  }
-}
-
-function buildAuditTrail(analysis) {
-  return blueprint.workflowEvents.map((event, index) => ({
-    id: `AUD-EV-${String(index + 1).padStart(2, '0')}`,
-    actor: event.service,
-    event: event.name,
-    detail: event.detail,
-    target: analysis.uploaded.fileName,
-    timestamp: new Date(Date.now() + index * 1100).toISOString(),
-  }))
-}
-
-export function buildEvidenceAnalysis({ profileId = 'fir-pdf', file } = {}) {
+export function buildEvidenceAnalysis({ profileId = 'document', prepared } = {}) {
   const profile = profileById(profileId)
-  const matchedCases = profile.linkedCaseIds
-    .map(caseById)
-    .filter(Boolean)
-    .map((caseRecord) => ({
-      caseRecord,
-      score: scoreCase(profile, caseRecord),
-      station: getStation(caseRecord)?.station_name || caseRecord.station_id,
-      legal: legalExplainabilityForCase(caseRecord),
-      reasons: [
-        caseRecord.crime_type === profile.extracted.crimeType ? profile.extracted.crimeType : null,
-        caseRecord.vehicle === profile.extracted.vehicle ? profile.extracted.vehicle : null,
-        caseRecord.phone_hash === profile.extracted.phoneHash ? profile.extracted.phoneHash : null,
-        caseRecord.district === profile.extracted.district ? profile.extracted.district : null,
-      ].filter(Boolean),
-    }))
-    .sort((a, b) => b.score - a.score)
-  const focusFirId = matchedCases[0]?.caseRecord.fir_id || profile.linkedCaseIds[0]
-  const crimeDna = findSimilarCases(focusFirId)
-  const uploaded = {
-    fileName: file?.name || profile.sampleFileName,
-    size: file?.size || 248000,
-    accepted: profile.accepted,
-    objectKey: `stratus://samvaad-iq/evidence/${Date.now()}-${file?.name || profile.sampleFileName}`,
-    checksum: `SYN-${profile.id.toUpperCase()}-${String(Date.now()).slice(-6)}`,
+  const uploaded = prepared?.file || {
+    name: 'No file selected',
+    size: 0,
+    sha256: null,
+    type: 'unknown',
   }
-  const analysis = {
-    profile,
-    uploaded,
-    extracted: profile.extracted,
-    matchedCases,
-    crimeDna: {
-      source: crimeDna.source,
-      matches: crimeDna.matches.slice(0, 4),
-    },
-    sourceChunks: buildSourceChunks(profile, matchedCases),
-    workflowEvents: blueprint.workflowEvents,
-    cachePlan: blueprint.cachePlan,
-    ragCorpus: blueprint.ragCorpus,
-    graph: buildGraph(focusFirId),
-    leadSummary: `${profile.label} linked ${matchedCases.length} synthetic FIR records. Top lead: ${
-      matchedCases[0]?.caseRecord.fir_id || 'NA'
-    }. Supervisor review required before circulation.`,
-  }
+  const matchedCases = prepared ? groundedMatches(`${uploaded.name}\n${prepared.text || ''}`) : []
+  const sourceChunks = matchedCases.map((match, index) => ({
+    id: `SRC-EVIDENCE-${String(index + 1).padStart(2, '0')}`,
+    service: 'Shared synthetic repository',
+    title: `${match.caseRecord.fir_id} matched source fields`,
+    text: match.caseRecord.case_summary,
+    confidence: match.score,
+    matchedTerms: match.matchedTerms,
+  }))
+  const limitations = [
+    ...(prepared?.limitations || []),
+    'Analysis ran in the browser and was not persisted to Catalyst.',
+    'A lexical match is an investigative lead, not proof that evidence belongs to a case.',
+  ]
+  const auditTrail = localAudit(uploaded, matchedCases.length)
 
   return {
-    ...analysis,
-    report: buildReport(analysis),
-    auditTrail: buildAuditTrail(analysis),
+    profile,
+    uploaded: {
+      ...uploaded,
+      objectKey: null,
+      persistence: 'browser-local-metadata',
+    },
+    dataVersion: DATA_VERSION,
+    extracted: {
+      parser: prepared?.parser || 'none',
+      characters: prepared?.text?.length || 0,
+      facts: [],
+    },
+    matchedCases: matchedCases.map((match) => ({
+      ...match,
+      station: getStation(match.caseRecord)?.station_name || match.caseRecord.station_id,
+      legal: legalExplainabilityForCase(match.caseRecord),
+      reasons: match.matchedTerms,
+    })),
+    sourceChunks,
+    limitations,
+    workflowEvents: blueprint.workflowEvents,
+    auditTrail,
+    report: {
+      status: 'local-draft-only',
+      renderer: 'browser-print',
+      storageKey: null,
+      approvalRequired: true,
+    },
+    leadSummary: matchedCases.length
+      ? `${matchedCases.length} synthetic FIR candidates share terms with the actual parser output. Verify every source field before linking the evidence.`
+      : 'No source-backed synthetic case match was found; the system did not invent a link.',
   }
 }
 
@@ -148,62 +117,37 @@ export function buildEvidenceChatResponse(analysis) {
   const sources = analysis.matchedCases.map((match) => match.caseRecord.fir_id)
   return {
     conversationId: `EVLAB-${Date.now().toString().slice(-6)}`,
-    role: 'Supervisor',
-    query: `Analyze uploaded ${analysis.profile.kind}: ${analysis.uploaded.fileName}`,
+    role: 'Investigator',
+    query: `Analyze prepared evidence: ${analysis.uploaded.name}`,
     timestamp: new Date().toISOString(),
     intent: 'EVIDENCE_INTELLIGENCE',
-    answer: `${analysis.leadSummary} Extracted ${analysis.extracted.vehicle !== 'NA' ? analysis.extracted.vehicle : analysis.extracted.phoneHash}, ${analysis.extracted.location}, and ${analysis.extracted.suspectMentions.join(', ')}. Report is staged for SmartBrowz render, Stratus storage, supervisor review, and audit logging.`,
-    confidence: analysis.extracted.confidence,
-    leadStrength: analysis.extracted.confidence >= 0.86 ? 'Strong evidence-linked lead' : 'Moderate evidence-linked lead',
-    evidence: [
-      { type: 'upload', label: analysis.uploaded.fileName, value: analysis.uploaded.objectKey },
-      { type: 'vehicle', label: 'Vehicle / Object', value: analysis.extracted.vehicle },
-      { type: 'phone_hash', label: 'Phone Hash', value: analysis.extracted.phoneHash },
-      { type: 'location', label: 'Location', value: analysis.extracted.location },
-      { type: 'suspect', label: 'Entity Mentions', value: analysis.extracted.suspectMentions.join(', ') },
-    ],
+    answer: analysis.leadSummary,
+    confidence: sources.length ? Math.max(...analysis.matchedCases.map((match) => match.score)) : 0,
+    evidence: analysis.sourceChunks,
     sources,
-    visuals: {
-      report: analysis.report,
-      graph: analysis.graph,
-      similar: analysis.crimeDna.matches,
-      evidenceLab: analysis,
-    },
+    visuals: { evidenceLab: analysis },
     agents: [
-      { agent: 'Detective Agent', note: `Opened ${analysis.profile.kind} intake and selected ${analysis.profile.extractionMode}`, status: 'complete' },
-      { agent: 'Data Agent', note: `Linked ${sources.length} FIR records from extracted district, crime type, vehicle, and phone hash`, status: 'complete' },
-      { agent: 'Network Agent', note: `Crime DNA checked ${analysis.crimeDna.matches.length} nearby matches and graph context`, status: 'complete' },
-      { agent: 'Skeptic Agent', note: 'Kept biometric/entity outputs as masked investigative leads requiring supervisor review', status: 'complete' },
-      { agent: 'Report Agent', note: `${analysis.report.smartBrowz.service} job ${analysis.report.smartBrowz.renderJobId} prepared`, status: 'complete' },
+      { agent: 'Evidence Parser', note: `Used ${analysis.extracted.parser} on the selected file`, status: 'complete' },
+      { agent: 'Case Retriever', note: `Returned ${sources.length} source-backed candidates from data version ${analysis.dataVersion}`, status: 'complete' },
+      { agent: 'Skeptic Review', note: 'Kept all matches as unverified investigative leads', status: 'complete' },
     ],
     nextSteps: [
-      { id: 'STEP-1', text: 'Supervisor validates extracted vehicle, phone hash, location, and witness text before circulation' },
-      { id: 'STEP-2', text: 'Open graph view for the top matched FIR and verify repeated entity trail' },
-      { id: 'STEP-3', text: 'Render official PDF through SmartBrowz and store the file in Stratus' },
-      { id: 'STEP-4', text: 'Write audit log and notify assigned reviewer through Catalyst Mail' },
+      { id: 'STEP-1', text: 'Verify the selected file hash and parser limitations.' },
+      { id: 'STEP-2', text: 'Open each cited synthetic FIR and compare the matched source fields.' },
+      { id: 'STEP-3', text: 'Request supervisor review before including a link in a report.' },
     ],
-    suggestedQuestions: [
-      `Open network graph for ${sources[0] || 'SYN-2025-BLR-001'}`,
-      `Find similar cases to ${sources[0] || 'SYN-2025-BLR-027'}`,
-      'Generate official evidence review brief',
-    ],
-    riskFlags: [
-      'Synthetic evidence simulation only',
-      'No automated identity or guilt conclusion',
-      'Supervisor review required',
-      'SmartBrowz and Stratus are staged deployment services',
-    ],
+    riskFlags: ['Synthetic data only', 'No automated identity or guilt conclusion', 'No server persistence in offline mode'],
     sourceChunks: analysis.sourceChunks,
-    quickMlRag: {
-      knowledgeBase: 'FIR + BNS + SOP + evidence metadata demo KB',
-      retrievalMode: 'Prototype deterministic retrieval mapped to Catalyst QuickML',
+    retrieval: {
+      provider: 'Shared synthetic repository',
+      mode: 'deterministic lexical field match',
       sourceCount: analysis.sourceChunks.length,
     },
     audit: {
-      policy: 'synthetic-evidence-only',
+      policy: 'local-metadata-only',
       sourceCount: sources.length,
       generatedAt: new Date().toISOString(),
-      signalEvents: analysis.auditTrail.length,
+      persisted: false,
     },
     disclaimer: blueprint.summary.disclaimer,
   }

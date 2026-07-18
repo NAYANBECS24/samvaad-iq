@@ -1,6 +1,6 @@
 import { BadgeCheck, FileSearch } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { cases } from '../services/prototypeEngine.js'
+import { cases } from '../services/intelligenceRepository.js'
 
 const knownFirs = new Set(cases.map((caseRecord) => caseRecord.fir_id))
 

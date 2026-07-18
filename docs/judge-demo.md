@@ -1,37 +1,76 @@
-# Three-Minute Judge Demo
+# NETRA OS Three-Minute Judge Mission
 
-## 0:00–0:25 — Problem and trust boundary
+This mission demonstrates **Datathon 2026 Challenge 1 — Intelligent Conversational AI for the KSP Crime Database**. Every visible record is synthetic.
 
-“Crime data is valuable only when an investigator can ask a natural question, verify the source, understand why cases were linked, and keep human authority over the decision. NETRA provides that loop; SAMVAAD-IQ is the workspace and KAVACH is the explainable similarity engine.”
+## Before judges arrive
 
-Point out the runtime badge and `SYNTHETIC DEMO DATA` label.
+- Open a fresh browser profile at the verified canonical URL.
+- Confirm `/api/v1/health`, `/capabilities`, and `/ai/status` return JSON rather than SPA HTML.
+- Confirm the shell and API show the same active data version.
+- Use only the fixed Judge Demo profiles or invitation instructions provided out of band; never put credentials in the repository or deck.
+- Prepare one small synthetic JSON/CSV/document file under 10 MB.
+- If any provider has not passed its live canary, leave it labeled unavailable and demonstrate the deterministic fallback.
 
-## 0:25–1:05 — Multilingual, cited investigation
+## 0:00–0:25 — Enter NETRA OS
 
-Sign in as Investigator and open Ask SAMVAAD. Run:
+Choose the **Investigator** Judge Demo profile. Point to the runtime/data-version indicators, active investigation, notifications/approvals, language control, and `Ctrl+K` application launcher.
 
-`ಮೈಸೂರು ಬೈಕ್ ಕಳ್ಳತನ ಹಾಟ್‌ಸ್ಪಾಟ್ ತೋರಿಸಿ`
+Say:
 
-Show the detected hotspot intent, confidence explanation, cited FIR cards, limitations, and next actions. Open one citation to prove that the answer is traceable.
+“NETRA OS is the role-aware workspace, SAMVAAD-IQ is the universal copilot, and KAVACH is the explainable intelligence kernel.”
 
-## 1:05–1:40 — Explainable cross-case intelligence
+## 0:25–1:05 — Ask, follow up, and verify
 
-Run:
+Open **Ask SAMVAAD** and ask by text or voice:
 
-`Are SYN-2025-BLR-001 and SYN-2025-BLR-014 connected?`
+`Mysuru alli motorcycle theft hotspot show maadi`
 
-Show the shared hashed entity, KAVACH factor weights and contributions, the human accept/reject control, and the warning that a lead is not proof.
+Show the answer class, synthetic citations, data version, confidence explanation, limitations, and next actions. Open a citation to prove the prose is traceable.
 
-## 1:40–2:15 — Real evidence handling
+Then ask:
 
-Open Evidence Lab and choose a synthetic JSON, CSV, PDF, DOCX, XLSX, or image file. Show actual SHA-256 provenance, extracted facts, grounded matches, and capability limitations. Emphasize that image OCR is not invented when Zia is unavailable.
+`Compare the first two and explain the strongest shared evidence.`
 
-## 2:15–2:40 — Governance and operational safety
+Show that the follow-up resolves the previous context instead of starting an unrelated search. Pin the leading case to the active investigation.
 
-Open Intelligence Analytics and show the area-level hotspot/scenario boundary. Open Governance and show the live capability registry, role matrix, and tamper-evident audit state.
+## 1:05–1:40 — Explain a connection
 
-## 2:40–3:00 — Approved report and closing
+Use Case Desk or `Ctrl+K` to open KAVACH and compare:
 
-Sign in as Supervisor, approve the evidence brief, and generate the report. Close with:
+`SYN-2026-BLR-0103` and `SYN-2026-BLR-0205`
 
-“SAMVAAD-IQ does not replace investigation. It reduces time-to-evidence while making every machine-assisted lead easier to question, verify, approve, and audit.”
+Show raw factors, weights, contributions, matched source fields, threshold, contradictions/limitations, and exclusion reasoning. Hand the same pinned context to the source-backed network or aggregate hotspot view.
+
+Say:
+
+“This is a reviewable lead from synthetic records, never proof of guilt or a person-level risk score.”
+
+## 1:40–2:15 — Establish evidence provenance
+
+Open **Evidence Vault** and choose the prepared synthetic file. Show:
+
+- validated file type and size;
+- SHA-256 calculated from actual bytes;
+- extracted document facts or image dimensions;
+- matches against the active synthetic data version;
+- separation between machine extraction and analyst decision.
+
+If OCR or storage is unavailable, point to `Capability Unavailable`. Do not substitute an invented percentage, object, identity, plate, bucket key, or workflow ID.
+
+## 2:15–2:45 — Human review and full context
+
+Request Supervisor review from the shared context inspector. Open the review task and show that an Investigator can draft but cannot approve an official export.
+
+Switch to the **Supervisor** Judge Demo profile, review the same context, and approve or reject with a note. Open the report preview and show complete conversation history, query IDs, filters, citations, provider/model where applicable, data version, analyst, approval, audit reference, and safety disclaimer.
+
+Use the labeled browser-print fallback if SmartBrowz has not passed its canary.
+
+## 2:45–3:00 — Close
+
+Say:
+
+“NETRA OS does not replace investigation. It shortens the path from question to reviewable evidence while making every machine-assisted lead easier to question, verify, approve, and audit.”
+
+## Contingency
+
+If the API is unreachable, explicitly show `Offline Demo` and complete the read-only query, KAVACH, and local evidence-provenance path. Do not claim persistence, server AI, official PDF, or a live Catalyst provider. A failed deployed JSON smoke test blocks promotion even when the offline demo remains usable.

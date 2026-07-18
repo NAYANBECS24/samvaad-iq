@@ -1,6 +1,6 @@
 import { AlertTriangle, ArchiveRestore, Sparkles } from 'lucide-react'
 import CaseCard from '../components/CaseCard.jsx'
-import { findColdCaseMatches } from '../services/prototypeEngine.js'
+import { findColdCaseMatches } from '../services/intelligenceRepository.js'
 
 function ColdCases() {
   const matches = findColdCaseMatches()

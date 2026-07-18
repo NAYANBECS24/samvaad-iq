@@ -1,13 +1,33 @@
 const ACCEPTED = new Set(['pdf', 'docx', 'xlsx', 'csv', 'json', 'png', 'jpg', 'jpeg'])
 const MAX_BYTES = 10 * 1024 * 1024
+const EVIDENCE_INDEX_KEY = 'netra_evidence_index_v1'
+const MIME_BY_EXTENSION = {
+  pdf: 'application/pdf',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  csv: 'text/csv',
+  json: 'application/json',
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+}
 
 function extension(name = '') {
   return name.toLowerCase().split('.').pop()
 }
 
-async function sha256(file) {
-  const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer())
+async function sha256(bytes) {
+  const digest = await crypto.subtle.digest('SHA-256', bytes)
   return [...new Uint8Array(digest)].map((value) => value.toString(16).padStart(2, '0')).join('')
+}
+
+function toBase64(bytes) {
+  const view = new Uint8Array(bytes)
+  let binary = ''
+  for (let index = 0; index < view.length; index += 32_768) {
+    binary += String.fromCharCode(...view.subarray(index, Math.min(index + 32_768, view.length)))
+  }
+  return btoa(binary)
 }
 
 async function extractPdf(file) {
@@ -58,6 +78,7 @@ export async function prepareEvidenceFile(file) {
   if (!file.size) throw new Error('The selected file is empty.')
   if (file.size > MAX_BYTES) throw new Error('The selected file exceeds the 10 MB evidence limit.')
 
+  const bytes = await file.arrayBuffer()
   let extracted
   if (ext === 'pdf') extracted = await extractPdf(file)
   else if (ext === 'docx') extracted = await extractDocx(file)
@@ -71,13 +92,42 @@ export async function prepareEvidenceFile(file) {
 
   return {
     text: extracted.text.slice(0, 200000),
+    parser: ['png', 'jpg', 'jpeg'].includes(ext) ? 'image-metadata' : `${ext}-text-extractor`,
+    contentBase64: toBase64(bytes),
+    collectedAt: new Date(file.lastModified).toISOString(),
     file: {
       name: file.name,
-      type: file.type || `application/${ext}`,
+      type: file.type || MIME_BY_EXTENSION[ext],
+      extension: ext,
       size: file.size,
-      sha256: await sha256(file),
+      sha256: await sha256(bytes),
       lastModified: new Date(file.lastModified).toISOString(),
     },
     limitations: extracted.limitations,
   }
+}
+
+export function readEvidenceRecords() {
+  try {
+    const records = JSON.parse(window.localStorage.getItem(EVIDENCE_INDEX_KEY) || '[]')
+    return Array.isArray(records) ? records : []
+  } catch {
+    return []
+  }
+}
+
+export function rememberPreparedEvidence(prepared) {
+  const record = {
+    evidenceId: `EV-${prepared.file.sha256.slice(0, 12).toUpperCase()}`,
+    ...prepared.file,
+    parser: prepared.parser,
+    extractedCharacters: prepared.text.length,
+    limitations: prepared.limitations || [],
+    storedAt: new Date().toISOString(),
+    persistence: 'browser-local-metadata',
+    reviewStatus: 'unreviewed',
+  }
+  const existing = readEvidenceRecords().filter((item) => item.sha256 !== record.sha256)
+  window.localStorage.setItem(EVIDENCE_INDEX_KEY, JSON.stringify([record, ...existing].slice(0, 24)))
+  return record
 }

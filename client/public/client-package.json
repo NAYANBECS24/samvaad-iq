@@ -1,8 +1,8 @@
 {
   "name": "samvaad-iq-netra",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "homepage": "index.html",
   "login_redirect": "index.html",
   "404": "404.html",
-  "description": "SAMVAAD-IQ NETRA crime intelligence command prototype for Catalyst hosting"
+  "description": "NETRA OS with the SAMVAAD-IQ conversational workspace and explainable KAVACH intelligence kernel"
 }

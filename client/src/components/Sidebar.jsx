@@ -28,7 +28,7 @@ const navigationGroups = [
   {
     label: 'Core workspaces',
     items: [
-      { to: '/dashboard', icon: BarChart3, labelKey: 'nav.commandCenter', roles: ['Admin', 'Analyst', 'Supervisor'] },
+      { to: '/dashboard', icon: BarChart3, labelKey: 'nav.dashboard', roles: allRoles },
       { to: '/chat', icon: Bot, labelKey: 'nav.askSamvaad', roles: allRoles, badge: 'AI' },
       { to: '/cases', icon: FolderSearch, labelKey: 'nav.caseWorkspace', roles: allRoles },
       { to: '/evidence-lab', icon: FlaskConical, labelKey: 'nav.evidenceLab', roles: ['Admin', 'Investigator', 'Supervisor'] },

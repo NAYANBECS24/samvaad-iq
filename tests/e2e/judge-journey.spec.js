@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test'
 
 const roles = [
-  { role: 'Admin', landing: 'dashboard', nav: ['Command Center', 'Ask SAMVAAD', 'Case Workspace', 'Evidence Lab', 'Intelligence Analytics', 'Hotspots', 'Network', 'Digital Evidence', 'Crime DNA', 'Cold Cases', 'Diffusion', 'Patrol', 'Tablet Patrol', 'Reports', 'Pipeline', 'Governance', 'Admin Data'] },
-  { role: 'Investigator', landing: 'chat', nav: ['Ask SAMVAAD', 'Case Workspace', 'Evidence Lab', 'Intelligence Analytics', 'Hotspots', 'Network', 'Digital Evidence', 'Crime DNA', 'Cold Cases', 'Diffusion', 'Patrol', 'Tablet Patrol', 'Reports', 'Pipeline', 'Governance'] },
-  { role: 'Analyst', landing: 'dashboard', nav: ['Command Center', 'Ask SAMVAAD', 'Case Workspace', 'Intelligence Analytics', 'Hotspots', 'Network', 'Digital Evidence', 'Crime DNA', 'Cold Cases', 'Diffusion', 'Patrol', 'Reports', 'Pipeline', 'Governance'] },
-  { role: 'Supervisor', landing: 'analytics', nav: ['Command Center', 'Ask SAMVAAD', 'Case Workspace', 'Evidence Lab', 'Intelligence Analytics', 'Hotspots', 'Network', 'Digital Evidence', 'Crime DNA', 'Cold Cases', 'Diffusion', 'Patrol', 'Tablet Patrol', 'Reports', 'Pipeline', 'Governance'] },
+  { role: 'Admin', landing: 'dashboard', nav: ['Dashboard', 'Ask SAMVAAD', 'Case Workspace', 'Evidence Lab', 'Intelligence Analytics', 'Hotspots', 'Network', 'Digital Evidence', 'Crime DNA', 'Cold Cases', 'Diffusion', 'Patrol', 'Tablet Patrol', 'Reports', 'Pipeline', 'Governance', 'Admin Data'] },
+  { role: 'Investigator', landing: 'chat', nav: ['Dashboard', 'Ask SAMVAAD', 'Case Workspace', 'Evidence Lab', 'Intelligence Analytics', 'Hotspots', 'Network', 'Digital Evidence', 'Crime DNA', 'Cold Cases', 'Diffusion', 'Patrol', 'Tablet Patrol', 'Reports', 'Pipeline', 'Governance'] },
+  { role: 'Analyst', landing: 'dashboard', nav: ['Dashboard', 'Ask SAMVAAD', 'Case Workspace', 'Intelligence Analytics', 'Hotspots', 'Network', 'Digital Evidence', 'Crime DNA', 'Cold Cases', 'Diffusion', 'Patrol', 'Reports', 'Pipeline', 'Governance'] },
+  { role: 'Supervisor', landing: 'analytics', nav: ['Dashboard', 'Ask SAMVAAD', 'Case Workspace', 'Evidence Lab', 'Intelligence Analytics', 'Hotspots', 'Network', 'Digital Evidence', 'Crime DNA', 'Cold Cases', 'Diffusion', 'Patrol', 'Tablet Patrol', 'Reports', 'Pipeline', 'Governance'] },
 ]
 
 async function signIn(page, profile) {

@@ -12,6 +12,9 @@
       "SAMVAAD_CIRCUITS_ENABLED": "false",
       "SAMVAAD_ZIA_ENABLED": "false",
       "SAMVAAD_QUICKML_ENABLED": "false",
+      "SAMVAAD_NVIDIA_LLM_ENABLED": "false",
+      "NVIDIA_LLM_BASE_URL": "https://integrate.api.nvidia.com/v1",
+      "NVIDIA_LLM_MODEL": "z-ai/glm-5.2",
       "ALLOW_DEMO_AUTH": "false",
       "DATASTORE_CACHE_MS": "60000"
     }

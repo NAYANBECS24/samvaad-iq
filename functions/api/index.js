@@ -4,6 +4,7 @@ const { URL } = require('url')
 const { z } = require('zod')
 const seed = require('./data/seed-data.json')
 const catalyst = require('./providers/catalyst')
+const nvidia = require('./providers/nvidia')
 
 const corePromise = import('./core/index.mjs')
 let memoryCorePromise = null
@@ -118,6 +119,16 @@ async function baseCore() {
 
 async function runtime(req) {
   const capabilities = catalyst.capabilitySnapshot(req)
+  const languageModel = nvidia.configuration()
+  capabilities.generativeAi = {
+    available: languageModel.available,
+    provider: languageModel.provider,
+    model: languageModel.model,
+    grounding: 'Server-retrieved cited evidence only',
+  }
+  const serverGroundedMode = capabilities.runtime.available && capabilities.auth.available && capabilities.generativeAi.available
+    ? 'catalyst-live'
+    : 'offline-demo'
   if (capabilities.datastore.available) {
     try {
       if (catalystCoreCache && catalystCoreCacheExpiresAt > Date.now()) {
@@ -133,12 +144,14 @@ async function runtime(req) {
         catalystCoreCacheExpiresAt = Date.now() + Number(process.env.DATASTORE_CACHE_MS || 60_000)
         return { core: catalystCoreCache.core, mode: 'catalyst-live', capabilities, limitations: [] }
       }
-      return { core: await baseCore(), mode: 'offline-demo', capabilities, limitations: ['Catalyst Data Store is enabled but contains no Cases rows; using the labeled synthetic fallback.'] }
+      return { core: await baseCore(), mode: serverGroundedMode, capabilities, limitations: ['Catalyst Data Store is enabled but contains no Cases rows; using the labeled server seed without persistence.'] }
     } catch (error) {
-      return { core: await baseCore(), mode: 'offline-demo', capabilities, limitations: [`Catalyst Data Store was unavailable: ${error.message}`] }
+      return { core: await baseCore(), mode: serverGroundedMode, capabilities, limitations: [`Catalyst Data Store was unavailable: ${error.message}. The labeled server seed is being used without persistence.`] }
     }
   }
-  return { core: await baseCore(), mode: 'offline-demo', capabilities, limitations: ['Catalyst Data Store is not enabled; using the labeled deterministic demo dataset.'] }
+  return { core: await baseCore(), mode: serverGroundedMode, capabilities, limitations: [serverGroundedMode === 'catalyst-live'
+    ? 'Catalyst Auth, Advanced I/O, and NVIDIA NIM are live; Data Store is not enabled, so the labeled server seed is used without persistence.'
+    : 'Catalyst Data Store is not enabled; using the labeled deterministic demo dataset.'] }
 }
 
 async function appendAudit(req, { actor, action, resource, requestId: id, mode, details = {} }) {
@@ -210,6 +223,37 @@ async function attachQuickMlSignal(req, active, result) {
   return result
 }
 
+function retrievalQuery(query, context = {}) {
+  const previousFirIds = Array.isArray(context.previousFirIds)
+    ? context.previousFirIds.filter((item) => /^SYN-[A-Z0-9-]+$/i.test(String(item))).slice(0, 3)
+    : []
+  const looksLikeFollowUp = /\b(it|that|those|this|them|first|second|same|previous|what about|compare|summari[sz]e)\b|ಅದು|ಇದು|ಮೊದಲ|ಹಿಂದಿನ/i.test(query)
+  return looksLikeFollowUp && previousFirIds.length ? `${query} Context FIRs: ${previousFirIds.join(' ')}` : query
+}
+
+async function attachGenerativeAnswer(active, query, context, result) {
+  if (!active.capabilities.generativeAi.available) return result
+  try {
+    const generated = await nvidia.generateGroundedAnswer({ query, result, context })
+    if (!generated) return result
+    result.deterministicAnswer = result.answer
+    result.answer = generated.answer
+    result.modelSignals = {
+      ...(result.modelSignals || {}),
+      generativeAnswer: {
+        provider: generated.provider,
+        model: generated.model,
+        grounded: true,
+        citedEvidenceCount: result.citations.length,
+      },
+    }
+    result.limitations.push('The language model only phrased the retrieved result; cited records and KAVACH calculations remain authoritative.')
+  } catch (error) {
+    result.limitations.push(`Generative phrasing was unavailable (${error.code || 'NVIDIA_LLM_UNAVAILABLE'}); the deterministic cited answer is shown.`)
+  }
+  return result
+}
+
 function caseToDataStoreRow(item) {
   return {
     fir_id: item.fir_id,
@@ -275,7 +319,7 @@ async function handleRequest(req, res) {
     const active = await runtime(req)
 
     if (req.method === 'GET' && path === '/api/v1/health') {
-      return sendJson(req, res, 200, { requestId: id, status: 'ok', name: 'SAMVAAD-IQ API', version: '1.1.0', mode: active.mode, dataVersion: active.core.dataset.version, timestamp: new Date().toISOString() }, id)
+      return sendJson(req, res, 200, { requestId: id, status: 'ok', name: 'SAMVAAD-IQ API', version: '1.2.0', mode: active.mode, dataVersion: active.core.dataset.version, timestamp: new Date().toISOString() }, id)
     }
 
     if (req.method === 'GET' && path === '/api/v1/capabilities') {
@@ -337,9 +381,12 @@ async function handleRequest(req, res) {
       if (access.error) return sendJson(req, res, access.error.status, errorPayload(id, access.error.code, access.error.message, false, active.mode), id)
       const session = access.user
       const audit = await appendAudit(req, { actor: session?.email || 'anonymous-demo', action: 'QUERY', resource: 'CaseIndex', requestId: id, mode: active.mode, details: { queryLength: body.query.length } })
-      const result = active.core.answer(body.query, { mode: active.mode, requestId: id, auditRef: audit.id })
+      const groundedQuery = retrievalQuery(body.query, body.context)
+      const result = active.core.answer(groundedQuery, { mode: active.mode, requestId: id, auditRef: audit.id })
+      if (groundedQuery !== body.query) result.contextUsed = { previousFirIds: body.context?.previousFirIds?.slice(0, 3) || [] }
       result.limitations = [...active.limitations, ...result.limitations]
       await attachQuickMlSignal(req, active, result)
+      await attachGenerativeAnswer(active, body.query, body.context, result)
       if (active.capabilities.datastore.available) await catalyst.appendRow(req, 'QueryRuns', { request_id: id, conversation_id: body.context?.conversationId || `CONV-${crypto.randomUUID()}`, actor: session?.email || 'anonymous-demo', intent: result.intent, filters_json: JSON.stringify(result.filters || {}), mode: active.mode, created_at: new Date().toISOString() }).catch(() => null)
       return sendJson(req, res, 200, result, id)
     }

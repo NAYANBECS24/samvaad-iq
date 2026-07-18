@@ -116,6 +116,8 @@ function InvestigationChat() {
       const result = await runQuery(trimmed, {
         previousRequestId: latest?.requestId || null,
         previousIntent: latest?.intent || null,
+        previousQuery: latest?.query || null,
+        previousFirIds: (latest?.citations || []).map((item) => item.firId).filter(Boolean).slice(0, 5),
         interfaceLanguage: language,
       })
       if (!result?.answer) throw new Error('The intelligence engine returned no grounded answer.')
@@ -317,7 +319,12 @@ function InvestigationChat() {
             </div>
             <div className="lead-banner"><strong>{latest.confidence?.band || 'low'} evidence strength</strong><span>{latest.requestId}</span></div>
             <p className="answer-text">{latest.answer}</p>
-            <div className="answer-meta-row"><span>{latest.mode}</span><span>{latest.auditRef || 'No persisted audit reference'}</span><span>{latest.citations?.length || 0} citations</span></div>
+            <div className="answer-meta-row">
+              <span>{latest.mode}</span>
+              <span>{latest.auditRef || 'No persisted audit reference'}</span>
+              <span>{latest.citations?.length || 0} citations</span>
+              {latest.modelSignals?.generativeAnswer ? <span>{latest.modelSignals.generativeAnswer.provider} · {latest.modelSignals.generativeAnswer.model} · grounded</span> : null}
+            </div>
 
             <div className={`voice-output-strip ${isSpeaking ? 'is-speaking' : ''}`}>
               <button className="secondary-button voice-output-button" type="button" onClick={toggleSpeech}>

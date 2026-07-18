@@ -10,8 +10,8 @@ Verified Development deployment (17 July 2026):
 
 - Web Client: `https://project-rainfall-60073323871.development.catalystserverless.in/app/index.html`
 - Advanced I/O API: `https://project-rainfall-60073323871.development.catalystserverless.in/server/api/api/v1/health`
-- Deployed API version: `1.1.0` on Node 24
-- Current honest mode: `offline-demo` until the console-created Data Store schema and optional services are enabled
+- Previously verified deployed API version: `1.1.0` on Node 24; repository candidate: `1.2.0`
+- Current deployed mode: `offline-demo`; the repository switches to `catalyst-live` only when either Data Store is active or Catalyst Auth + Advanced I/O + NVIDIA NIM are configured, while reporting any unavailable persistence
 
 ## 2. Configure the Catalyst candidate
 
@@ -23,6 +23,7 @@ Verified Development deployment (17 July 2026):
 6. Keep optional service flags false until each provider call is verified in Development.
 7. Store allowed origins, secrets, project IDs, bucket names, and tokens in Catalyst variables rather than Git.
 8. Create and publish the QuickML pipeline using `docs/quickml-pipeline.md`; keep `SAMVAAD_QUICKML_ENABLED=false` until a published endpoint call succeeds in Development.
+9. Revoke any exposed NVIDIA key, create a replacement, and configure it only in the `api` function environment using `docs/nvidia-grounded-chat.md`. Enable `SAMVAAD_NVIDIA_LLM_ENABLED` only after a grounded Development response succeeds.
 
 Data Store table creation and QuickML pipeline publication are Catalyst console operations. The repository supplies the complete schema, generated 1,000-case import, 1,452-row QuickML training file, and safe Admin-only seed route; it does not claim either capability is live before those console operations succeed.
 

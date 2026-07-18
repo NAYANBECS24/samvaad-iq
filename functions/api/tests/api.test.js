@@ -39,7 +39,7 @@ test('health is versioned JSON and exposes the honest runtime mode', async () =>
   assert.match(response.headers.get('content-type'), /application\/json/)
   const payload = await response.json()
   assert.equal(payload.mode, 'offline-demo')
-  assert.equal(payload.version, '1.1.0')
+  assert.equal(payload.version, '1.2.0')
 })
 
 test('query returns the standardized evidence envelope', async () => {

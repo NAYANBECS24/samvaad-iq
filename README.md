@@ -52,6 +52,7 @@ Shared explainable intelligence core
   ├── deterministic synthetic generator
   ├── multilingual intent and filter extraction
   ├── evidence retrieval and citations
+  ├── optional NVIDIA NIM grounded response phrasing
   ├── KAVACH factor-level similarity
   ├── graph, area hotspots and scenarios
   └── insufficient-evidence and out-of-scope refusals
@@ -146,12 +147,15 @@ Capabilities are opt-in environment flags and become `available` only when both 
 - `SAMVAAD_CIRCUITS_ENABLED`
 - `SAMVAAD_ZIA_ENABLED`
 - `SAMVAAD_QUICKML_ENABLED`
+- `SAMVAAD_NVIDIA_LLM_ENABLED` with server-only `NVIDIA_API_KEY`
 
 The canonical Catalyst-hosted client should build with `VITE_API_BASE=/server/api/api/v1` unless API Gateway maps `/api/v1/*` to the Advanced I/O function. Slate uses the full approved API origin or the Gateway path configured for that site.
 
-See [Catalyst deployment](docs/catalyst-deployment.md), [capability matrix](docs/capability-matrix.md), and [Data Store schema](data/catalyst-schema.md).
+See [Catalyst deployment](docs/catalyst-deployment.md), [capability matrix](docs/capability-matrix.md), [Data Store schema](data/catalyst-schema.md), and [NVIDIA grounded chat](docs/nvidia-grounded-chat.md).
 
-The verified Development candidate is available at `https://project-rainfall-60073323871.development.catalystserverless.in/app/index.html`. Its versioned health endpoint returns JSON at `/server/api/api/v1/health`. It remains honestly labeled `Offline Demo` until the documented Data Store schema is created and the Data Store capability is enabled; this avoids presenting an unconfigured database or model as live.
+The NVIDIA adapter runs after deterministic retrieval. It receives only cited synthetic evidence, rejects uncited FIR identifiers, and falls back to the deterministic answer on any provider error. The API key is a Catalyst function secret and is never included in the client build.
+
+The verified Development candidate is available at `https://project-rainfall-60073323871.development.catalystserverless.in/app/index.html`. Its versioned health endpoint returns JSON at `/server/api/api/v1/health`. It remains honestly labeled `Offline Demo` while managed services are disabled. With Catalyst Auth, Advanced I/O, and NVIDIA NIM verified, it may run as `Catalyst Live` over the labeled server seed while explicitly reporting that persistence is unavailable; enabling Data Store replaces that seed with managed case rows and persistence.
 
 ## Evidence Lab
 

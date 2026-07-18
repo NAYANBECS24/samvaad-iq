@@ -97,6 +97,11 @@ function Sidebar({ user, onLogout }) {
         <span>Challenge 1</span>
         <LiveClock />
       </div>
+      <div className="sidebar-role-card" aria-label="Current role access">
+        <span>Current role</span>
+        <strong>{user?.role || 'Demo'}</strong>
+        <small>{user?.access || 'Role-aware synthetic investigation workspace'}</small>
+      </div>
       <nav className="nav-list" aria-label="Primary workspace">
         {groups.map((group) => (
           <div className="nav-group" key={group.label}>
@@ -104,7 +109,11 @@ function Sidebar({ user, onLogout }) {
             {group.items.map((item) => {
               const Icon = item.icon
               return (
-                <NavLink key={item.to} to={item.to} className="nav-link">
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+                >
                   <Icon size={17} />
                   <span>{t(item.labelKey)}</span>
                   {item.badge ? <span className="nav-badge" aria-hidden="true">{item.badge}</span> : null}

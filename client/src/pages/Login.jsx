@@ -1,4 +1,4 @@
-import { Bot, FileText, GitBranch, KeyRound, Languages, LogIn, MapPinned, RadioTower, ShieldCheck } from 'lucide-react'
+import { Bot, CheckCircle2, FileText, GitBranch, KeyRound, Languages, LogIn, MapPinned, RadioTower, ShieldCheck } from 'lucide-react'
 import { useCallback, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import loginWallpaper from '../assets/ksp-police-command-wallpaper.png'
@@ -31,6 +31,7 @@ function CredentialCard({ user, isSelected, onSelect }) {
       onClick={() => onSelect(user)}
     >
       <KeyRound size={16} />
+      {isSelected ? <span className="credential-selected"><CheckCircle2 size={13} />Selected</span> : null}
       <span>{user.role}</span>
       <small>{user.email}</small>
       <em>{user.access}</em>
@@ -158,6 +159,7 @@ function Login({ onLogin }) {
             <form className="login-form" onSubmit={submit}>
               <label>Email<input value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="username" autoCapitalize="none" spellCheck="false" /></label>
               <label>{passwordRequired ? 'Password' : 'Password (not required for demo)'}<input value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="current-password" disabled={!passwordRequired} required={passwordRequired} placeholder={passwordRequired ? 'Enter password' : 'Choose a role profile below'} /></label>
+              {!passwordRequired ? <p className="form-notice compact">No password is needed for this read-only public demo. Choose a role and enter.</p> : null}
               {error ? <p className="form-error" role="alert">{error}</p> : null}
               <button type="submit" className="primary-button" disabled={isSubmitting}><LogIn size={18} />{isSubmitting ? 'Opening workspace…' : 'Enter Command Workspace'}</button>
             </form>

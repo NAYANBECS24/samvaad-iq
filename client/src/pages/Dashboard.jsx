@@ -2,8 +2,11 @@ import {
   Activity,
   AlertTriangle,
   BellRing,
+  Bot,
   BrainCircuit,
   Database,
+  FileCheck2,
+  FileText,
   FolderSearch,
   MapPinned,
   RadioTower,
@@ -14,7 +17,6 @@ import {
   Workflow,
   Zap,
 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Bar,
@@ -37,32 +39,17 @@ import { buildDashboardSummary, seedSummary } from '../services/prototypeEngine.
 
 const palette = ['#00f0ff', '#f59e0b', '#a78bfa', '#ef4444', '#60a5fa', '#10b981']
 
+const judgeWorkflow = [
+  { to: '/chat', title: 'Ask SAMVAAD', text: 'Natural question, grounded answer, citations.', Icon: Bot },
+  { to: '/cases', title: 'Open case', text: 'Inspect FIR narrative, station, entities, status.', Icon: FolderSearch },
+  { to: '/evidence-lab', title: 'Evidence Lab', text: 'Upload synthetic files and preserve provenance.', Icon: FileCheck2 },
+  { to: '/similar', title: 'Crime DNA', text: 'Explain weights, matched fields, and exclusions.', Icon: BrainCircuit },
+  { to: '/patrol', title: 'Patrol what-if', text: 'Area and time pattern planning only.', Icon: Route },
+  { to: '/report', title: 'Audit report', text: 'Export a supervisor-reviewed evidence brief.', Icon: FileText },
+]
+
 function AnimatedCounter({ target, suffix = '' }) {
-  const numTarget = typeof target === 'number' ? target : parseInt(target, 10) || 0
-  const [value, setValue] = useState(numTarget)
-  const ref = useRef(null)
-
-  useEffect(() => {
-    if (numTarget === 0) return
-
-    let frame
-    const duration = 1200
-    const start = performance.now()
-
-    function animate(now) {
-      const elapsed = now - start
-      const progress = Math.min(elapsed / duration, 1)
-      const eased = 1 - Math.pow(1 - progress, 3)
-      setValue(Math.round(numTarget * eased))
-      if (progress < 1) frame = requestAnimationFrame(animate)
-    }
-
-    frame = requestAnimationFrame(animate)
-    return () => cancelAnimationFrame(frame)
-  }, [numTarget])
-
-  if (numTarget === 0) return <strong ref={ref}>{target}{suffix}</strong>
-  return <strong ref={ref}>{value}{suffix}</strong>
+  return <strong>{target}{suffix}</strong>
 }
 
 function ThreatGauge({ level }) {
@@ -235,9 +222,20 @@ function Dashboard() {
         </div>
       </section>
 
+      <section className="dashboard-journey-grid" aria-label="Recommended judge workflow">
+        {judgeWorkflow.map(({ to, title, text, Icon }, index) => (
+          <Link to={to} className="journey-card" key={to}>
+            <span className="journey-step">{String(index + 1).padStart(2, '0')}</span>
+            <Icon size={20} />
+            <strong>{title}</strong>
+            <p>{text}</p>
+          </Link>
+        ))}
+      </section>
+
       <IntelTicker cases={summary.latestCases} />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 180px', gap: 16, alignItems: 'start' }}>
+      <div className="dashboard-kpi-layout">
         <section className="kpi-grid">
           <article className="kpi-card">
             <ShieldCheck size={22} />

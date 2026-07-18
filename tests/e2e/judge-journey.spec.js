@@ -37,7 +37,10 @@ for (const profile of roles) {
   test(`${profile.role} receives the correct role-aware workspace`, async ({ page }) => {
     await signIn(page, profile)
     const navigation = page.getByRole('navigation', { name: 'Primary workspace' })
-    for (const label of profile.nav) await expect(navigation.getByRole('link', { name: label, exact: true })).toBeVisible()
+    for (const label of profile.nav) {
+      const link = navigation.getByRole('link', { name: label, exact: true })
+      await expect(link).toBeAttached()
+    }
     if (profile.role !== 'Admin') {
       await page.goto('/#/admin-data')
       await expect(page).toHaveURL(/#\/chat$/)
@@ -50,10 +53,11 @@ test('three-minute judge journey remains cited, provenance-aware, and supervisor
   await signIn(page, roles[3])
 
   await page.getByRole('link', { name: 'Ask SAMVAAD' }).click()
-  await expect(page.getByRole('heading', { name: 'Evidence-grounded answer' })).toBeVisible()
+  await expect(page.getByText(/Hello! I’m SAMVAAD-IQ/)).toBeVisible()
   await page.getByLabel('Investigation query').fill('Mysuru alli motorcycle theft hotspot show maadi')
   await page.locator('.query-form').getByRole('button', { name: 'Ask', exact: true }).click()
-  await expect(page.locator('.query-status').first()).toContainText(/Offline (AI )?demo response completed|Catalyst response completed/)
+  await expect(page.locator('.query-status').first()).toContainText(/SAMVAAD replied/)
+  await expect(page.getByRole('heading', { name: 'Investigation details' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Why this answer can be checked' })).toBeVisible()
   await expect(page.locator('.citation-card')).not.toHaveCount(0)
 
@@ -100,17 +104,31 @@ test('text and voice queries both return grounded AI demo replies', async ({ pag
   })
 
   await signIn(page, roles[1])
-  await expect(page.getByRole('heading', { name: 'Evidence-grounded answer' })).toBeVisible()
+  await expect(page.getByText(/Hello! I’m SAMVAAD-IQ/)).toBeVisible()
 
   await page.getByLabel('Investigation query').fill('Are SYN-2025-BLR-001 and SYN-2025-BLR-014 connected?')
   await page.locator('.query-form').getByRole('button', { name: 'Ask', exact: true }).click()
-  await expect(page.locator('.query-status').first()).toContainText(/AI demo response completed|Catalyst response completed/)
+  await expect(page.locator('.query-status').first()).toContainText(/SAMVAAD replied/)
   await expect(page.locator('.citation-card')).not.toHaveCount(0)
 
   await page.locator('.query-form').getByRole('button', { name: 'Voice' }).click()
-  await expect(page.getByLabel('Investigation query')).toHaveValue('Find similar cases to SYN-2025-BLR-001 using Crime DNA')
-  await expect(page.locator('.query-status').first()).toContainText(/AI demo response completed|Catalyst response completed/)
+  await expect(page.locator('.chat-message.is-user').last()).toContainText('Find similar cases to SYN-2025-BLR-001 using Crime DNA')
+  await expect(page.getByLabel('Investigation query')).toHaveValue('')
+  await expect(page.locator('.query-status').first()).toContainText(/SAMVAAD replied/)
   await expect(page.getByRole('heading', { name: 'Factor-level explanation' })).toBeVisible()
+})
+
+test('greetings receive a normal conversational reply without a fake evidence failure', async ({ page }) => {
+  await signIn(page, roles[1])
+  await page.getByLabel('Investigation query').fill('HELLO')
+  await page.locator('.query-form').getByRole('button', { name: 'Ask', exact: true }).click()
+
+  const assistantReply = page.locator('.chat-message.is-assistant').last()
+  await expect(assistantReply).toContainText('Hello! I’m SAMVAAD-IQ')
+  await expect(assistantReply).toContainText('Conversational response · no database claim made')
+  await expect(page.getByText('AMBIGUOUS QUERY')).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Investigation details' })).toHaveCount(0)
+  await expect(page.locator('.query-status').first()).toContainText('SAMVAAD replied in read-only demo mode')
 })
 
 test('next-level copilot modes expose pipeline, coverage, timeline, and skeptic checks', async ({ page }) => {
@@ -134,5 +152,5 @@ test('next-level copilot modes expose pipeline, coverage, timeline, and skeptic 
   await expect(page.getByText('contradictions mode', { exact: true })).toBeVisible()
 
   await page.getByRole('button', { name: 'New investigation' }).click()
-  await expect(page.getByText('New investigation session ready. Select a response mode or ask a cited database question.')).toBeVisible()
+  await expect(page.getByText('New conversation ready. Ask naturally by text or voice.')).toBeVisible()
 })

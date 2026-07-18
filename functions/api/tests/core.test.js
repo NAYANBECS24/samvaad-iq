@@ -33,13 +33,32 @@ test('understands Kannada and Kanglish hotspot requests', () => {
   assert.ok(kannada.citations.length > 0)
 })
 
+test('replies naturally to greetings without inventing database evidence', () => {
+  for (const query of ['hi', 'Hello', 'ನಮಸ್ಕಾರ']) {
+    const response = core.answer(query)
+    assert.equal(response.intent, 'CONVERSATIONAL_QUERY')
+    assert.equal(response.citations.length, 0)
+    assert.equal(response.confidence.score, 1)
+    assert.match(response.answer, /SAMVAAD-IQ|ನಮಸ್ಕಾರ/)
+  }
+})
+
 test('does not fabricate evidence for ambiguous or out-of-scope prompts', () => {
-  for (const query of ['hi', 'Give medical advice', 'What is the cricket score?']) {
+  for (const query of ['do something', 'Give medical advice', 'What is the cricket score?']) {
     const response = core.answer(query)
     assert.ok(['AMBIGUOUS_QUERY', 'OUT_OF_SCOPE'].includes(response.intent))
     assert.equal(response.citations.length, 0)
     assert.equal(response.confidence.score, 0)
   }
+})
+
+test('answers natural database summary questions with readable grounded counts', () => {
+  const response = core.answer('How many motorcycle theft cases are in Mysuru?')
+  assert.equal(response.intent, 'DATABASE_SUMMARY_QUERY')
+  assert.equal(response.filters.district, 'Mysuru')
+  assert.equal(response.filters.crimeType, 'Motorcycle Theft')
+  assert.match(response.answer, /database summary/i)
+  assert.ok(response.citations.length > 0)
 })
 
 test('requires sufficient evidence before asserting case links', () => {

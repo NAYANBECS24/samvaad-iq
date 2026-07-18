@@ -39,7 +39,7 @@ test('health is versioned JSON and exposes the honest runtime mode', async () =>
   assert.match(response.headers.get('content-type'), /application\/json/)
   const payload = await response.json()
   assert.equal(payload.mode, 'offline-demo')
-  assert.equal(payload.version, '1.3.0')
+  assert.equal(payload.version, '1.4.0')
 })
 
 test('query returns the standardized evidence envelope', async () => {
@@ -81,6 +81,19 @@ test('query supports timeline response mode and bounded conversation context', a
   assert.match(payload.investigationInsights.modeSummary, /Timeline prepared/)
 })
 
+test('short conversational prompts receive a normal assistant response', async () => {
+  const response = await fetch(`${baseUrl}/api/v1/query`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ query: 'hi' }),
+  })
+  assert.equal(response.status, 200)
+  const payload = await response.json()
+  assert.equal(payload.intent, 'CONVERSATIONAL_QUERY')
+  assert.match(payload.answer, /SAMVAAD-IQ/)
+  assert.equal(payload.citations.length, 0)
+})
+
 test('AI status reports provider safeguards without exposing credentials', async () => {
   const response = await fetch(`${baseUrl}/api/v1/ai/status`)
   assert.equal(response.status, 200)
@@ -94,7 +107,7 @@ test('invalid requests use the standard error contract', async () => {
   const response = await fetch(`${baseUrl}/api/v1/query`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ query: 'x' }),
+    body: JSON.stringify({ query: '' }),
   })
   assert.equal(response.status, 400)
   const payload = await response.json()

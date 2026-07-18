@@ -25,7 +25,7 @@ const scenarios = [
   ['Find UPI fraud FIRs in Mangaluru', 'CASE_SEARCH_QUERY', true],
   ['Bengaluru burglary cases', 'CASE_SEARCH_QUERY', true],
   ['ತೋರಿಸಿ', 'AMBIGUOUS_QUERY', false],
-  ['hello', 'AMBIGUOUS_QUERY', false],
+  ['hello', 'CONVERSATIONAL_QUERY', false],
   ['Explain quantum physics', 'AMBIGUOUS_QUERY', false],
   ['What is the cricket score?', 'OUT_OF_SCOPE', false],
   ['Give medical advice', 'OUT_OF_SCOPE', false],

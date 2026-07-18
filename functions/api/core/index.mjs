@@ -83,7 +83,7 @@ export function normalizeQuery(value = '') {
     .replace(/jodi/g, ' link ')
     .replace(/mysore/g, 'mysuru')
     .replace(/mangalore/g, 'mangaluru')
-    .replace(/[^\p{L}\p{N}\s-]/gu, ' ')
+    .replace(/[^\p{L}\p{M}\p{N}\s-]/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim()
 }
@@ -261,17 +261,44 @@ function extractCrimeType(query) {
 
 function classifyIntent(query) {
   const normalized = normalizeQuery(query)
-  if (!normalized || normalized.length < 4) return { intent: 'AMBIGUOUS_QUERY', reason: 'Add a case ID, place, crime category, or time range.' }
+  if (!normalized) return { intent: 'AMBIGUOUS_QUERY', reason: 'Please type a question so I can help.' }
+  if (/^(hi|hii+|hello|hey|hlo|hai|namaste|namaskara|ನಮಸ್ಕಾರ|ಶುಭೋದಯ)( everyone| samvaad| there| sir| madam)?$/.test(normalized)) {
+    return { intent: 'CONVERSATIONAL_QUERY', conversationType: 'greeting' }
+  }
+  if (/^(thanks|thank you|thankyou|ಧನ್ಯವಾದ|ಧನ್ಯವಾದಗಳು|ok thanks|great thanks)/.test(normalized)) {
+    return { intent: 'CONVERSATIONAL_QUERY', conversationType: 'thanks' }
+  }
+  if (/who are you|what is samvaad|your name|introduce yourself|ನೀವು ಯಾರು|ನಿನ್ನ ಹೆಸರೇನು/.test(normalized)) {
+    return { intent: 'CONVERSATIONAL_QUERY', conversationType: 'identity' }
+  }
+  if (/what can you do|how can you help|help me|how (do i|to) use|capabilit|commands|examples|ಏನು ಮಾಡಬಹುದು|ಸಹಾಯ/.test(normalized)) {
+    return { intent: 'CONVERSATIONAL_QUERY', conversationType: 'help' }
+  }
   if (/weather|cricket|stock|movie|medical|election|recipe/.test(normalized)) {
     return { intent: 'OUT_OF_SCOPE', reason: 'The workspace answers only evidence-grounded crime-database questions.' }
   }
-  if (/hotspot|map|where|area pattern/.test(normalized)) return { intent: 'HOTSPOT_QUERY' }
+  if (/how many|count|overview|database summary|data summary|statistics|stats|total cases|crime breakdown|district breakdown/.test(normalized)) return { intent: 'DATABASE_SUMMARY_QUERY' }
+  if (/hotspot|map|where|area pattern|high crime|most incidents|crime trend|crime pattern/.test(normalized)) return { intent: 'HOTSPOT_QUERY' }
   if (/connected|connection|link|network|graph/.test(normalized)) return { intent: 'CASE_LINK_QUERY' }
   if (/similar|match|crime dna|cold|unsolved/.test(normalized)) return { intent: 'SIMILAR_CASE_QUERY' }
   if (/patrol|what if|scenario|units/.test(normalized)) return { intent: 'SCENARIO_QUERY' }
   if (/report|pdf|brief/.test(normalized)) return { intent: 'REPORT_QUERY' }
-  if (/fir|syn-|case|summary|summarize|theft|fraud|burglary|snatching|ಪ್ರಕರಣ/.test(normalized)) return { intent: 'CASE_SEARCH_QUERY' }
-  return { intent: 'AMBIGUOUS_QUERY', reason: 'The requested investigative operation is unclear.' }
+  if (/fir|syn-|case|cases|incident|record|database|search|list|summary|summarize|theft|fraud|burglary|snatching|ಪ್ರಕರಣ/.test(normalized)) return { intent: 'CASE_SEARCH_QUERY' }
+  return { intent: 'AMBIGUOUS_QUERY', reason: 'I can help, but I need a little more investigative detail.' }
+}
+
+function conversationalAnswer(query, conversationType) {
+  const hasKannada = /[\u0C80-\u0CFF]/u.test(String(query))
+  if (hasKannada) {
+    if (conversationType === 'thanks') return 'ಸ್ವಾಗತ! ಇನ್ನೊಂದು ಪ್ರಕರಣ, ಹಾಟ್‌ಸ್ಪಾಟ್, ಸಂಪರ್ಕ ಅಥವಾ ಸಾಕ್ಷ್ಯದ ಬಗ್ಗೆ ಕೇಳಿ.'
+    if (conversationType === 'identity') return 'ನಾನು SAMVAAD-IQ — NETRA ವೇದಿಕೆಯ ಸಂವಾದಾತ್ಮಕ ತನಿಖಾ ಸಹಾಯಕ. ನಾನು ಸಿಂಥೆಟಿಕ್ FIR ಡೇಟಾವನ್ನು ಹುಡುಕಿ, ಉಲ್ಲೇಖಗಳೊಂದಿಗೆ ಉತ್ತರಿಸಿ, KAVACH ಮೂಲಕ ಪ್ರಕರಣಗಳ ಹೋಲಿಕೆ ವಿವರಿಸುತ್ತೇನೆ.'
+    if (conversationType === 'help') return 'ನೀವು ಸಹಜ ಕನ್ನಡದಲ್ಲಿ ಕೇಳಬಹುದು. ಉದಾಹರಣೆ: “ಮೈಸೂರು ಬೈಕ್ ಕಳ್ಳತನದ ಹಾಟ್‌ಸ್ಪಾಟ್ ತೋರಿಸಿ”, “SYN-2025-BLR-001 ಪ್ರಕರಣವನ್ನು ಸಂಕ್ಷಿಪ್ತಗೊಳಿಸಿ”, ಅಥವಾ “ಎರಡು ಪ್ರಕರಣಗಳ ನಡುವೆ ಸಂಪರ್ಕವಿದೆಯೇ?”'
+    return 'ನಮಸ್ಕಾರ! ನಾನು SAMVAAD-IQ. ಪ್ರಕರಣ ಹುಡುಕಾಟ, ಹಾಟ್‌ಸ್ಪಾಟ್, ಪ್ರಕರಣಗಳ ಸಂಪರ್ಕ, Crime DNA ಹೋಲಿಕೆ ಮತ್ತು ಸಾಕ್ಷ್ಯಾಧಾರಿತ ಸಾರಾಂಶದಲ್ಲಿ ನಿಮಗೆ ಸಹಾಯ ಮಾಡಬಹುದು. ನೀವು ಏನು ಪರಿಶೀಲಿಸಲು ಬಯಸುತ್ತೀರಿ?'
+  }
+  if (conversationType === 'thanks') return 'You’re welcome. Ask another question whenever you’re ready—I can keep the current case context or start a new investigation.'
+  if (conversationType === 'identity') return 'I’m SAMVAAD-IQ, the conversational investigation workspace inside NETRA. I search the synthetic FIR database, explain KAVACH case-similarity signals, and return traceable evidence without treating a lead as proof.'
+  if (conversationType === 'help') return 'You can ask me in normal English, Kannada, or Kanglish. I can search and summarize FIRs, compare cases with Crime DNA, trace shared signals, show area/time hotspots, test patrol scenarios, and prepare an auditable brief. Try: “Summarize SYN-2025-BLR-014” or “Show motorcycle-theft hotspots in Mysuru.”'
+  return 'Hello! I’m SAMVAAD-IQ. I can help you search cases, summarize FIRs, compare Crime DNA, inspect connections, explore hotspots, and plan evidence-backed next steps. What would you like to investigate?'
 }
 
 function citation(caseRecord, field = 'case_summary') {
@@ -286,7 +313,7 @@ function citation(caseRecord, field = 'case_summary') {
   }
 }
 
-function responseEnvelope({ mode, intent, filters = {}, answer, citations = [], confidence = 0, evidence = [], visualizations = {}, limitations = [], nextActions = [], auditRef = null, requestId = stableId() }) {
+function responseEnvelope({ mode, intent, filters = {}, answer, citations = [], confidence = 0, evidence = [], visualizations = {}, limitations = [], nextActions = [], auditRef = null, requestId = stableId(), includeDisclaimer = true }) {
   const score = Number(Math.max(0, Math.min(1, confidence)).toFixed(3))
   return {
     requestId,
@@ -302,7 +329,7 @@ function responseEnvelope({ mode, intent, filters = {}, answer, citations = [], 
     },
     evidence,
     visualizations,
-    limitations: unique([...(limitations || []), DISCLAIMER]),
+    limitations: unique([...(limitations || []), includeDisclaimer ? DISCLAIMER : null]),
     nextActions,
     auditRef,
   }
@@ -398,14 +425,36 @@ export function createIntelligenceCore(baseSeed, options = {}) {
     const filters = { district: extractDistrict(query), crimeType: extractCrimeType(query), firIds: extractFirIds(query) }
     const auditRef = context.auditRef || `AUD-${requestId.replace(/^REQ-/, '')}`
 
-    if (classified.intent === 'OUT_OF_SCOPE' || classified.intent === 'AMBIGUOUS_QUERY') {
-      return responseEnvelope({ mode, requestId, auditRef, intent: classified.intent, filters, answer: classified.reason, confidence: 0, limitations: [classified.reason], nextActions: ['Add a synthetic FIR ID, district, crime category, or requested analysis.'] })
+    if (classified.intent === 'CONVERSATIONAL_QUERY') {
+      return responseEnvelope({ mode, requestId, auditRef, intent: classified.intent, filters, answer: conversationalAnswer(query, classified.conversationType), confidence: 1, limitations: [], nextActions: [], includeDisclaimer: false })
+    }
+
+    if (classified.intent === 'OUT_OF_SCOPE') {
+      return responseEnvelope({ mode, requestId, auditRef, intent: classified.intent, filters, answer: 'I can’t reliably answer that from the SAMVAAD-IQ crime database. I can help with synthetic FIR search, case summaries, Crime DNA comparisons, network links, hotspots, evidence review, and patrol scenarios. What would you like to investigate?', confidence: 0, limitations: [classified.reason], nextActions: ['Ask a question about the synthetic crime database.'], includeDisclaimer: false })
+    }
+
+    if (classified.intent === 'AMBIGUOUS_QUERY') {
+      return responseEnvelope({ mode, requestId, auditRef, intent: classified.intent, filters, answer: `${classified.reason} Ask me naturally—for example: “Show motorcycle-theft cases in Mysuru,” “Summarize SYN-2025-BLR-014,” or “Which cases are similar to SYN-2025-BLR-001?”`, confidence: 0, limitations: ['No database claim was made because the request did not identify a usable case, place, crime category, or analysis.'], nextActions: ['Add a FIR ID, district, crime category, time range, or requested analysis.'], includeDisclaimer: false })
+    }
+
+    if (classified.intent === 'DATABASE_SUMMARY_QUERY') {
+      const filtered = cases.filter((item) => (!filters.district || item.district === filters.district) && (!filters.crimeType || item.crime_type === filters.crimeType))
+      const districtCounts = [...new Set(filtered.map((item) => item.district))].map((district) => ({ district, count: filtered.filter((item) => item.district === district).length })).sort((left, right) => right.count - left.count)
+      const crimeCounts = [...new Set(filtered.map((item) => item.crime_type))].map((crimeType) => ({ crimeType, count: filtered.filter((item) => item.crime_type === crimeType).length })).sort((left, right) => right.count - left.count)
+      const selected = filtered.slice(0, 5)
+      const scope = [filters.crimeType, filters.district].filter(Boolean).join(' in ') || 'the complete synthetic dataset'
+      const answer = `Here’s the database summary for ${scope}:\n\n• ${filtered.length} synthetic FIR records match the selected scope.\n• Largest area grouping: ${districtCounts[0]?.district || 'none'} (${districtCounts[0]?.count || 0} records).\n• Most frequent recorded category: ${crimeCounts[0]?.crimeType || 'none'} (${crimeCounts[0]?.count || 0} records).\n\nThese are descriptive counts from the seeded dataset, not forecasts or individual risk scores.`
+      return responseEnvelope({ mode, requestId, auditRef, intent: classified.intent, filters, answer, confidence: filtered.length ? 0.96 : 0, citations: selected.map((item) => citation(item)), evidence: selected, visualizations: { resultCount: filtered.length, districtCounts, crimeCounts }, limitations: ['Citations are representative source records; the aggregate is computed over the current deterministic data version.'], nextActions: ['Narrow the result by district or crime category.', 'Open a cited FIR before making an investigative decision.'] })
     }
 
     if (classified.intent === 'HOTSPOT_QUERY') {
       const result = hotspots(filters)
       const selected = result.points.slice(0, 5)
-      return responseEnvelope({ mode, requestId, auditRef, intent: classified.intent, filters, answer: `${result.total} synthetic ${filters.crimeType || 'crime'} records match ${filters.district || 'the selected Karnataka regions'}. The map groups records by station area and time; it does not predict individual behaviour.`, confidence: result.total ? 0.88 : 0.22, citations: selected.map((item) => citation(item)), evidence: selected, visualizations: { hotspots: result }, limitations: result.total ? [] : ['No records matched the selected filters.'], nextActions: ['Inspect the highest-volume station cluster.', 'Compare time bands and verify source FIR narratives.'] })
+      const strongest = result.clusters[0]
+      const answer = result.total
+        ? `I found ${result.total} synthetic ${filters.crimeType || 'crime'} records for ${filters.district || 'the selected Karnataka regions'}. The strongest area-level cluster is ${strongest?.stationId || 'not available'} with ${strongest?.count || 0} records.\n\nThis is a descriptive area-and-time pattern from the database—not a prediction about any person. Open the cited FIRs or the hotspot map to verify the pattern before planning action.`
+        : `I couldn’t find a synthetic record matching those hotspot filters. Try another district, crime category, or time range and I’ll search again.`
+      return responseEnvelope({ mode, requestId, auditRef, intent: classified.intent, filters, answer, confidence: result.total ? 0.88 : 0.22, citations: selected.map((item) => citation(item)), evidence: selected, visualizations: { hotspots: result }, limitations: result.total ? [] : ['No records matched the selected filters.'], nextActions: ['Inspect the highest-volume station cluster.', 'Compare time bands and verify source FIR narratives.'] })
     }
 
     if (classified.intent === 'CASE_LINK_QUERY') {
@@ -436,7 +485,9 @@ export function createIntelligenceCore(baseSeed, options = {}) {
     const results = search(query, filters, 5)
     if (!results.length) return responseEnvelope({ mode, requestId, auditRef, intent: 'INSUFFICIENT_EVIDENCE', filters, answer: 'No synthetic record supports an answer to this query.', confidence: 0, limitations: ['No matching evidence was retrieved.'], nextActions: ['Change the district, crime category, date, or FIR ID.'] })
     const selected = results.map((entry) => entry.case)
-    return responseEnvelope({ mode, requestId, auditRef, intent: classified.intent, filters, answer: `${selected.length} synthetic records were retrieved. ${selected[0].fir_id}: ${selected[0].case_summary}`, confidence: Math.min(0.92, 0.62 + results[0].score * 0.04), citations: selected.map((item) => citation(item)), evidence: selected, visualizations: { resultCount: selected.length }, nextActions: ['Open the leading case dossier.', 'Run KAVACH similarity and verify cited fields.'] })
+    const leading = selected[0]
+    const answer = `I found ${selected.length} relevant synthetic record${selected.length === 1 ? '' : 's'}. The strongest match is ${leading.fir_id}, recorded as ${leading.crime_type} in ${leading.district}.\n\n${leading.case_summary}\n\nI’ve attached the matching source excerpts below. Treat this as an investigative starting point and verify the original record before taking action.`
+    return responseEnvelope({ mode, requestId, auditRef, intent: classified.intent, filters, answer, confidence: Math.min(0.92, 0.62 + results[0].score * 0.04), citations: selected.map((item) => citation(item)), evidence: selected, visualizations: { resultCount: selected.length }, nextActions: ['Open the leading case dossier.', 'Run KAVACH similarity and verify cited fields.'] })
   }
 
   function analyzeEvidence(input = {}) {

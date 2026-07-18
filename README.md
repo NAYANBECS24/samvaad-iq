@@ -18,7 +18,7 @@ The product follows one evidence-grounded loop:
 6. Accept, reject, or escalate the lead through a human review action.
 7. Produce an auditable supervisor-approved evidence brief.
 
-The conversational workspace also includes four additive response modes—Investigator, Command Brief, Timeline, and Skeptic—plus bounded multi-turn FIR context, a visible six-stage retrieval pipeline, claim-to-source coverage, chronological evidence, and structured consistency checks. These views use the same citations and do not remove or bypass the original KAVACH, map, graph, voice, evidence, reporting, or governance features.
+The conversational workspace opens as a familiar user/assistant transcript rather than an analysis form. Greetings, thanks, identity/help questions, short prompts, database summaries, and natural follow-ups receive readable responses; case claims add clickable source chips and expand into the complete investigation detail view. It also includes four additive response modes—Investigator, Command Brief, Timeline, and Skeptic—plus bounded multi-turn FIR context, a visible six-stage retrieval pipeline, claim-to-source coverage, chronological evidence, and structured consistency checks. These views use the same citations and do not remove or bypass the original KAVACH, map, graph, voice, evidence, reporting, or governance features.
 
 The application never presents a person-level risk score, automated guilt label, or unsupported legal conclusion.
 

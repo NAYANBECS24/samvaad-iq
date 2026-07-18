@@ -315,7 +315,7 @@ const QueryContextSchema = z.object({
     firIds: z.array(z.string().regex(/^SYN-[A-Z0-9-]+$/i)).max(5),
   })).max(4).optional(),
 }).passthrough()
-const QuerySchema = z.object({ query: z.string().trim().min(4).max(4000), context: QueryContextSchema.optional().default({ answerMode: 'investigator' }) })
+const QuerySchema = z.object({ query: z.string().trim().min(1).max(4000), context: QueryContextSchema.optional().default({ answerMode: 'investigator' }) })
 const SimilarSchema = z.object({ firId: z.string().min(5).max(64) })
 const HotspotSchema = z.object({ district: z.string().max(80).nullable().optional(), crimeType: z.string().max(80).nullable().optional() })
 const ScenarioSchema = HotspotSchema.extend({ units: z.coerce.number().int().min(0).max(20).default(3) })
@@ -336,7 +336,7 @@ async function handleRequest(req, res) {
     const active = await runtime(req)
 
     if (req.method === 'GET' && path === '/api/v1/health') {
-      return sendJson(req, res, 200, { requestId: id, status: 'ok', name: 'SAMVAAD-IQ API', version: '1.3.0', mode: active.mode, dataVersion: active.core.dataset.version, timestamp: new Date().toISOString() }, id)
+      return sendJson(req, res, 200, { requestId: id, status: 'ok', name: 'SAMVAAD-IQ API', version: '1.4.0', mode: active.mode, dataVersion: active.core.dataset.version, timestamp: new Date().toISOString() }, id)
     }
 
     if (req.method === 'GET' && path === '/api/v1/capabilities') {

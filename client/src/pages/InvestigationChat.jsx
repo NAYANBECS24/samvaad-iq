@@ -1,5 +1,6 @@
 import {
   AlertTriangle,
+  Bot,
   CheckCircle2,
   Clock,
   Database,
@@ -18,6 +19,7 @@ import {
   RefreshCw,
   ThumbsDown,
   ThumbsUp,
+  UserRound,
   Volume2,
   VolumeX,
 } from 'lucide-react'
@@ -102,23 +104,75 @@ function followUpQuestions(result) {
   ].filter(Boolean)
 }
 
+function ChatTranscript({ history, isProcessing, language, endRef }) {
+  const welcome = language === 'kn'
+    ? 'ನಮಸ್ಕಾರ! ನಾನು SAMVAAD-IQ. ಪ್ರಕರಣ ಹುಡುಕಾಟ, FIR ಸಾರಾಂಶ, Crime DNA ಹೋಲಿಕೆ, ಹಾಟ್‌ಸ್ಪಾಟ್ ಮತ್ತು ಸಾಕ್ಷ್ಯ ಪರಿಶೀಲನೆ ಕುರಿತು ಸಹಜವಾಗಿ ಕೇಳಿ.'
+    : 'Hello! I’m SAMVAAD-IQ. Ask me naturally about FIRs, case summaries, Crime DNA matches, network links, hotspots, evidence, or patrol scenarios.'
+  const turns = [...history].reverse()
+
+  return (
+    <div className="samvaad-chat-thread" aria-live="polite" aria-label="SAMVAAD conversation">
+      {!turns.length ? (
+        <article className="chat-message is-assistant is-welcome">
+          <span className="chat-avatar"><Bot size={18} /></span>
+          <div className="chat-bubble">
+            <strong>SAMVAAD-IQ</strong>
+            <p>{welcome}</p>
+            <small>English · ಕನ್ನಡ · Kanglish</small>
+          </div>
+        </article>
+      ) : null}
+
+      {turns.map((turn) => (
+        <div className="chat-turn" key={turn.requestId}>
+          <article className="chat-message is-user">
+            <span className="chat-avatar"><UserRound size={17} /></span>
+            <div className="chat-bubble"><strong>You</strong><p>{turn.query}</p></div>
+          </article>
+          <article className="chat-message is-assistant">
+            <span className="chat-avatar"><Bot size={18} /></span>
+            <div className="chat-bubble">
+              <strong>SAMVAAD-IQ</strong>
+              <p>{turn.answer}</p>
+              {turn.citations?.length ? (
+                <div className="chat-citation-row" aria-label="Cited records">
+                  {turn.citations.slice(0, 5).map((citation) => <Link key={citation.id} to={`/cases/${citation.firId}`}>{citation.firId}</Link>)}
+                </div>
+              ) : null}
+              <small>{turn.citations?.length ? `${turn.citations.length} cited synthetic source${turn.citations.length === 1 ? '' : 's'} · investigative support only` : 'Conversational response · no database claim made'}</small>
+            </div>
+          </article>
+        </div>
+      ))}
+
+      {isProcessing ? (
+        <article className="chat-message is-assistant is-typing" role="status">
+          <span className="chat-avatar"><Bot size={18} /></span>
+          <div className="chat-bubble"><strong>SAMVAAD-IQ</strong><span className="typing-dots" aria-label="Thinking"><i /><i /><i /></span></div>
+        </article>
+      ) : null}
+      <span ref={endRef} />
+    </div>
+  )
+}
+
 function InvestigationChat() {
   const { language, t } = useLanguage()
   const { runtime, runQuery } = useRuntime()
   const user = useMemo(() => getStoredUser(), [])
-  const [query, setQuery] = useState(starterQueries[0])
+  const [query, setQuery] = useState('')
   const [answerMode, setAnswerMode] = useState('investigator')
   const [conversationId, setConversationId] = useState(createConversationId)
   const [history, setHistory] = useState([])
   const [isProcessing, setIsProcessing] = useState(false)
   const [isListening, setIsListening] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
-  const [status, setStatus] = useState('Ask a question to start an evidence-grounded investigation.')
+  const [status, setStatus] = useState('Ready. Ask naturally by text or voice.')
   const [voiceStatus, setVoiceStatus] = useState({ key: 'chat.voiceReady' })
   const [speechStatus, setSpeechStatus] = useState({ key: 'chat.speechReady' })
   const [feedback, setFeedback] = useState(null)
-  const initialized = useRef(false)
   const recognitionRef = useRef(null)
+  const chatEndRef = useRef(null)
   const latest = history[0] || null
 
   async function execute(nextQuery) {
@@ -148,9 +202,11 @@ function InvestigationChat() {
       })
       if (!result?.answer) throw new Error('The intelligence engine returned no grounded answer.')
       setHistory((current) => [{ ...result, query: trimmed }, ...current].slice(0, 8))
+      setQuery((current) => current.trim() === trimmed ? '' : current)
+      const cited = Boolean(result.citations?.length)
       setStatus(result.mode === 'catalyst-live'
-        ? 'Catalyst response completed with cited evidence.'
-        : 'Offline AI demo response completed with cited synthetic evidence; no changes were persisted.')
+        ? cited ? 'SAMVAAD replied with traceable Catalyst evidence.' : 'SAMVAAD replied.'
+        : cited ? 'SAMVAAD replied from the local synthetic database; cited results were not persisted.' : 'SAMVAAD replied in read-only demo mode.')
       return result
     } catch (error) {
       setStatus(`Unable to complete the query: ${error.message}`)
@@ -160,14 +216,6 @@ function InvestigationChat() {
     }
   }
 
-  useEffect(() => {
-    if (initialized.current) return
-    initialized.current = true
-    execute(starterQueries[0])
-    // The guided opening query is intentionally executed once.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
   useEffect(() => () => {
     recognitionRef.current?.abort?.()
     window.speechSynthesis?.cancel()
@@ -176,6 +224,10 @@ function InvestigationChat() {
   useEffect(() => {
     if (latest) window.localStorage.setItem('samvaad_last_chat', JSON.stringify(latest))
   }, [latest])
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' })
+  }, [history, isProcessing])
 
   function submit(event) {
     event.preventDefault()
@@ -193,8 +245,8 @@ function InvestigationChat() {
     setHistory([])
     setFeedback(null)
     setAnswerMode('investigator')
-    setQuery(starterQueries[0])
-    setStatus('New investigation session ready. Select a response mode or ask a cited database question.')
+    setQuery('')
+    setStatus('New conversation ready. Ask naturally by text or voice.')
   }
 
   function startVoiceInput() {
@@ -302,14 +354,15 @@ function InvestigationChat() {
   const consistencyChecks = insights?.consistencyChecks || []
   const languageModel = runtime.capabilities?.generativeAi
   const voiceStatusText = voiceStatus.value ? `${t(voiceStatus.key)} ${voiceStatus.value}` : t(voiceStatus.key)
+  const showInvestigationDetails = Boolean(latest && !['CONVERSATIONAL_QUERY', 'AMBIGUOUS_QUERY', 'OUT_OF_SCOPE'].includes(latest.intent))
 
   return (
     <div className="page-stack">
       <header className="page-header">
         <div>
           <p className="eyebrow">{t('chat.eyebrow')} · Challenge 1</p>
-          <h1>{t('chat.title')}</h1>
-          <p>Ask in English, Kannada, or Kanglish by text or voice. Every supported answer includes traceable synthetic evidence.</p>
+          <h1>Chat with SAMVAAD-IQ</h1>
+          <p>Ask naturally in English, Kannada, or Kanglish. SAMVAAD answers conversationally and cites synthetic FIR evidence whenever it makes a case claim.</p>
         </div>
         <span className="data-label">SYNTHETIC DEMO DATA</span>
       </header>
@@ -318,11 +371,12 @@ function InvestigationChat() {
         <div className="copilot-command-bar">
           <div>
             <span className={`ai-live-dot${languageModel?.available ? ' is-live' : ''}`} />
-            <strong>{languageModel?.available ? `${languageModel.provider} · ${languageModel.model}` : 'Deterministic grounded engine'}</strong>
-            <small>{languageModel?.available ? 'Server-side cited-evidence guard active' : 'NVIDIA adapter ready when configured'}</small>
+            <strong>{languageModel?.available ? `${languageModel.provider} · ${languageModel.model}` : 'SAMVAAD conversational engine'}</strong>
+            <small>{languageModel?.available ? 'Natural server-side answers with a cited-evidence guard' : 'Natural local answers · grounded NVIDIA phrasing activates through the server'}</small>
           </div>
           <button type="button" className="secondary-button" onClick={startNewInvestigation} disabled={isProcessing}><RefreshCw size={16} />New investigation</button>
         </div>
+        <ChatTranscript history={history} isProcessing={isProcessing} language={language} endRef={chatEndRef} />
         <form className="query-form evidence-query" onSubmit={submit}>
           <Search size={21} aria-hidden="true" />
           <label className="sr-only" htmlFor="investigation-query">Investigation query</label>
@@ -362,19 +416,14 @@ function InvestigationChat() {
         </div>
       </section>
 
-      {isProcessing ? (
-        <div className="agent-processing" role="status"><Loader2 size={20} className="spin" /><span>{t('chat.agentAnalyzing')}</span></div>
-      ) : null}
-
-      {latest ? (
+      {showInvestigationDetails ? (
         <section className="answer-layout grounded-answer">
           <article className="panel answer-panel">
             <div className="section-heading">
-              <div><p className="eyebrow">{latest.intent.replaceAll('_', ' ')}</p><h2>Evidence-grounded answer</h2></div>
+              <div><p className="eyebrow">{latest.intent.replaceAll('_', ' ')}</p><h2>Investigation details</h2></div>
               <ConfidenceRing confidence={latest.confidence} />
             </div>
             <div className="lead-banner"><strong>{latest.confidence?.band || 'low'} evidence strength</strong><span>{latest.requestId}</span></div>
-            <p className="answer-text">{latest.answer}</p>
             {insights?.modeSummary ? <p className="mode-summary"><ListChecks size={17} />{insights.modeSummary}</p> : null}
             <div className="answer-meta-row">
               <span>{latest.mode}</span>
@@ -414,7 +463,7 @@ function InvestigationChat() {
         </section>
       ) : null}
 
-      {latest?.pipeline?.length ? (
+      {showInvestigationDetails && latest?.pipeline?.length ? (
         <section className="copilot-insight-grid">
           <article className="panel grounding-scorecard">
             <div className="section-heading"><div><p className="eyebrow">Grounding scorecard</p><h2>Claim-to-source coverage</h2></div><ShieldCheck size={20} /></div>
@@ -434,7 +483,7 @@ function InvestigationChat() {
         </section>
       ) : null}
 
-      {latest ? (
+      {showInvestigationDetails ? (
         <section className="copilot-insight-grid">
           <article className={`panel insight-focus${latest.responseMode === 'timeline' ? ' is-active' : ''}`}>
             <div className="section-heading"><div><p className="eyebrow">Cited chronology</p><h2>Evidence timeline</h2></div><Clock size={20} /></div>
@@ -456,7 +505,7 @@ function InvestigationChat() {
         </section>
       ) : null}
 
-      {latest?.citations?.length ? (
+      {showInvestigationDetails && latest?.citations?.length ? (
         <section className="panel">
           <div className="section-heading"><div><p className="eyebrow">Source citations</p><h2>Why this answer can be checked</h2></div><FileSearch size={20} /></div>
           <div className="citation-grid">
@@ -480,9 +529,9 @@ function InvestigationChat() {
         </section>
       ) : null}
 
-      {latest ? <DetectiveRoom agents={analysisStages(latest)} /> : null}
+      {showInvestigationDetails ? <DetectiveRoom agents={analysisStages(latest)} /> : null}
 
-      {latest ? (
+      {showInvestigationDetails ? (
         <section className="decision-grid">
           <article className="panel">
             <div className="section-heading"><div><p className="eyebrow">Human review</p><h2>Accept or challenge the lead</h2></div><ShieldCheck size={20} /></div>

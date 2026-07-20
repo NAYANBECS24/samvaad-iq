@@ -20,8 +20,6 @@ import { useInvestigation } from '../os/InvestigationContext.jsx'
 import { appsForRole, navigationItemForPath } from '../os/navigation.js'
 import { useRuntime } from '../services/runtime.jsx'
 import CommandPalette from './CommandPalette.jsx'
-import ContextInspector from './ContextInspector.jsx'
-import JudgeMission from './JudgeMission.jsx'
 import MobileNav from './MobileNav.jsx'
 import Sidebar from './Sidebar.jsx'
 
@@ -73,9 +71,6 @@ function AppLayout({ appState }) {
   const { recordWorkspace, setDataVersion, syncLastResult } = investigation
   const [dockCollapsed, setDockCollapsed] = useState(() => window.localStorage.getItem('netra_os_dock_collapsed') === 'true')
   const [paletteOpen, setPaletteOpen] = useState(false)
-  const [missionOpen, setMissionOpen] = useState(false)
-  const [inspectorOpen, setInspectorOpen] = useState(false)
-  const [inspectorTab, setInspectorTab] = useState('evidence')
   const roleApps = useMemo(() => appsForRole(appState.user?.role), [appState.user?.role])
   const visibleQuickWorkflow = roleApps.filter((item) => quickPaths.includes(item.to))
   const openTaskCount = investigation.tasks.filter((task) => task.status !== 'complete').length
@@ -83,12 +78,6 @@ function AppLayout({ appState }) {
   const apiConnected = runtime.mode === 'catalyst-live' || runtime.apiReachable === true
 
   const closePalette = useCallback(() => setPaletteOpen(false), [])
-  const closeInspector = useCallback(() => setInspectorOpen(false), [])
-  const closeMission = useCallback(() => setMissionOpen(false), [])
-  const openInspector = useCallback((tab = 'evidence') => {
-    setInspectorTab(tab)
-    setInspectorOpen(true)
-  }, [])
 
   useEffect(() => {
     window.localStorage.setItem('netra_os_dock_collapsed', String(dockCollapsed))
@@ -126,7 +115,7 @@ function AppLayout({ appState }) {
   }
 
   return (
-    <div className={`app-shell${dockCollapsed ? ' is-dock-collapsed' : ''}${inspectorOpen ? ' is-inspector-open' : ''}`}>
+    <div className={`app-shell${dockCollapsed ? ' is-dock-collapsed' : ''}`}>
       <a className="skip-link" href="#workspace-content" onClick={skipToContent}>Skip to main content</a>
       <Sidebar
         user={appState.user}
@@ -156,11 +145,6 @@ function AppLayout({ appState }) {
             </button>
 
             <div className="os-system-actions">
-              <button className="os-mission-button" type="button" onClick={() => setMissionOpen(true)}><PlayCircle size={17} /><span>3-min mission</span></button>
-              <button className="os-task-button" type="button" onClick={() => openInspector('tasks')} aria-label={`Open review inbox${openTaskCount ? `, ${openTaskCount} pending` : ''}`}>
-                <Bell size={18} />
-                {openTaskCount ? <span>{openTaskCount}</span> : null}
-              </button>
               <details className="os-user-menu">
                 <summary aria-label={`User menu for ${appState.user?.role}`}>
                   <span className="os-user-avatar"><UserRound size={16} /></span>
@@ -178,12 +162,6 @@ function AppLayout({ appState }) {
           </div>
 
           <div className="os-systembar-secondary">
-            <button className="os-investigation-chip" type="button" onClick={() => openInspector('evidence')} title="Open shared investigation context">
-              <ShieldCheck size={16} />
-              <span><small>Active investigation</small><strong>{investigation.activeInvestigation.title}</strong></span>
-              <span className="os-context-count">{investigation.pinnedCases.length}</span>
-            </button>
-
             <nav className="quick-route-strip" aria-label="Fast judge workflow">
               {visibleQuickWorkflow.map((item) => {
                 const Icon = item.icon
@@ -203,7 +181,6 @@ function AppLayout({ appState }) {
                 <button type="button" onClick={probe} aria-label="Recheck Catalyst connection"><RefreshCw size={14} /></button>
               </div>
               <LanguageToggle />
-              <button className="os-inspector-button" type="button" onClick={() => openInspector('evidence')} aria-label="Open evidence and task inspector"><ListChecks size={17} /><span>Context</span></button>
             </div>
           </div>
         </header>
@@ -215,9 +192,7 @@ function AppLayout({ appState }) {
       </main>
 
       <MobileNav role={appState.user?.role} onOpenApps={() => setPaletteOpen(true)} />
-      <ContextInspector open={inspectorOpen} onClose={closeInspector} tab={inspectorTab} onTabChange={setInspectorTab} />
-      <CommandPalette open={paletteOpen} onClose={closePalette} role={appState.user?.role} recentRoutes={investigation.recentRoutes} onOpenInspector={openInspector} />
-      <JudgeMission open={missionOpen} onClose={closeMission} />
+      <CommandPalette open={paletteOpen} onClose={closePalette} role={appState.user?.role} recentRoutes={investigation.recentRoutes} />
     </div>
   )
 }

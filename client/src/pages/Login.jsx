@@ -186,13 +186,13 @@ function Login({ onLogin }) {
               <h2>{accessMode === 'demo' ? 'Role-Based Demo Access' : 'Invited Secure Access'}</h2>
               <p>{accessMode === 'demo'
                 ? offlineDemoPassword
-                  ? 'Choose a demo profile and enter the private demo password.'
-                  : 'Choose a demo profile and enter NETRA OS. No password is required.'
+                  ? 'Choose a judge profile and enter the private demo password.'
+                  : 'Choose a judge profile and enter NETRA OS. No password is required.'
                 : 'Continue through the branded secure redirect. Public registration is disabled and no Catalyst form is embedded here.'}</p>
             </div>
 
             <div className="login-access-switch" role="tablist" aria-label="NETRA OS access mode" onKeyDown={handleAccessModeKeyDown}>
-              <button id="access-tab-demo" type="button" role="tab" aria-selected={accessMode === 'demo'} aria-controls="access-panel-demo" tabIndex={accessMode === 'demo' ? 0 : -1} className={accessMode === 'demo' ? 'is-selected' : ''} onClick={() => selectAccessMode('demo')}>Demo Access</button>
+              <button id="access-tab-demo" type="button" role="tab" aria-selected={accessMode === 'demo'} aria-controls="access-panel-demo" tabIndex={accessMode === 'demo' ? 0 : -1} className={accessMode === 'demo' ? 'is-selected' : ''} onClick={() => selectAccessMode('demo')}>Judge Demo</button>
               <button id="access-tab-secure" type="button" role="tab" aria-selected={accessMode === 'secure'} aria-controls="access-panel-secure" tabIndex={accessMode === 'secure' ? 0 : -1} className={accessMode === 'secure' ? 'is-selected' : ''} onClick={() => selectAccessMode('secure')}>Secure sign-in</button>
             </div>
 
@@ -201,7 +201,7 @@ function Login({ onLogin }) {
                 <form className="login-form" onSubmit={submit}>
                   <label>Email<input value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="username" autoCapitalize="none" spellCheck="false" /></label>
                   <label>{passwordRequired ? 'Password' : 'Password (not required for demo)'}<input value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="current-password" disabled={!passwordRequired} required={passwordRequired} placeholder={passwordRequired ? 'Enter password' : 'Choose a role profile below'} /></label>
-                  {!passwordRequired ? <p className="form-notice compact">No password is needed for this synthetic demonstration. The server assigns the selected demo role when available.</p> : null}
+                  {!passwordRequired ? <p className="form-notice compact">No password is needed for this synthetic judge demonstration. The server assigns the selected demo role when available.</p> : null}
                   {error ? <p className="form-error" role="alert">{error}</p> : null}
                   <button type="submit" className="primary-button" disabled={isSubmitting}><LogIn size={18} />{isSubmitting ? 'Opening NETRA OS…' : 'Enter NETRA OS'}</button>
                 </form>
@@ -219,7 +219,7 @@ function Login({ onLogin }) {
                 <ul><li>No embedded third-party login panel</li><li>No password or token stored in this repository</li><li>Returns to the canonical Catalyst NETRA OS workspace</li></ul>
                 {error ? <p className="form-error" role="alert">{error}</p> : null}
                 <button type="button" className="primary-button" onClick={openSecureSignIn} disabled={isOpeningSecure || runtime.apiReachable === false}><ExternalLink size={18} />{isOpeningSecure ? 'Opening secure sign-in…' : 'Continue to secure sign-in'}</button>
-                {runtime.apiReachable === false ? <p className="form-notice compact">Secure access is unavailable in Offline Demo. Use a demo profile or open the canonical Catalyst deployment.</p> : null}
+                {runtime.apiReachable === false ? <p className="form-notice compact">Secure access is unavailable in Offline Demo. Use a judge profile or open the canonical Catalyst deployment.</p> : null}
               </div>
             )}
           </div>

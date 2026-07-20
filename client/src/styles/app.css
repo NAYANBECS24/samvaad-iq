@@ -100,7 +100,7 @@ h3 {
 
 /* ── Form Elements ── */
 select, input {
-  min-height: 42px;
+  min-height: 44px;
   border: 1px solid var(--line-bright);
   border-radius: 10px;
   padding: 0 12px;
@@ -314,7 +314,7 @@ select:focus, input:focus, button:focus-visible, a:focus-visible {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 40px;
+  min-height: 44px;
   border: 0;
   border-radius: 10px;
   cursor: pointer;
@@ -324,7 +324,7 @@ select:focus, input:focus, button:focus-visible, a:focus-visible {
 }
 
 .icon-button {
-  width: 40px;
+  width: 44px;
   color: var(--red);
   background: var(--red-soft);
 }
@@ -6385,5 +6385,14 @@ textarea {
 
   .workspace {
     padding: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

@@ -144,7 +144,10 @@ function CaseDossier() {
         <div>
           <p className="eyebrow">{caseRecord.crime_type}</p>
           <h2>{caseRecord.case_summary}</h2>
+          <p className="kannada-text">{caseRecord.case_summary_kn}</p>
+          <hr style={{ margin: '1rem 0', opacity: 0.1 }} />
           <p>{caseRecord.mo}</p>
+          <p className="kannada-text"><small>{caseRecord.mo_kn}</small></p>
         </div>
         <div className="dossier-status">
           <span className="status-pill">{caseRecord.status}</span>

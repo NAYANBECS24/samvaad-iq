@@ -70,6 +70,9 @@ export const navigationGroups = [
     items: [
       { to: '/report', icon: FileText, labelKey: 'nav.reports', label: 'Reports', shortLabel: 'Report', roles: ALL_ROLES, keywords: 'brief pdf export approval' },
       { to: '/governance', icon: ShieldAlert, labelKey: 'nav.governance', label: 'Governance', shortLabel: 'Audit', roles: ALL_ROLES, keywords: 'audit safety capability role' },
+      { to: '/alerts', icon: ShieldAlert, labelKey: 'nav.alerts', label: 'Trend Alerts', shortLabel: 'Alerts', roles: ALL_ROLES, keywords: 'anomalies trend alert pattern' },
+      { to: '/cohorts', icon: ShieldAlert, labelKey: 'nav.cohorts', label: 'Cohorts', shortLabel: 'Cohorts', roles: ALL_ROLES, keywords: 'safe demographics insight aggregate' },
+      { to: '/inbox', icon: ShieldAlert, labelKey: 'nav.inbox', label: 'Inbox', shortLabel: 'Inbox', roles: OPERATIONAL_ROLES, keywords: 'approval review task inbox' },
     ],
   },
   {

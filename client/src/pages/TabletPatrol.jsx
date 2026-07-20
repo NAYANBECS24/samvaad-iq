@@ -1,10 +1,8 @@
 import { Clock, MapPin, Mic, Navigation, Radio, Route, Send, ShieldAlert } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { cases, getHotspots, patrolWhatIf } from '../services/intelligenceRepository.js'
+import { api } from '../services/api.js'
 import { useRuntime } from '../services/runtime.jsx'
-
-const activeStatuses = new Set(['Open', 'Under Investigation'])
 
 function TabletPatrol() {
   const { runtime, runQuery } = useRuntime()
@@ -12,9 +10,24 @@ function TabletPatrol() {
   const [voiceStatus, setVoiceStatus] = useState('Voice ready')
   const [result, setResult] = useState(null)
   const [isQuerying, setIsQuerying] = useState(false)
-  const alerts = useMemo(() => cases.filter((caseRecord) => activeStatuses.has(caseRecord.status)).slice(0, 5), [])
-  const hotspots = useMemo(() => getHotspots({ district: 'Bengaluru South', crimeType: 'Motorcycle Theft' }), [])
-  const patrol = useMemo(() => patrolWhatIf({ district: 'Bengaluru South', crimeType: 'Motorcycle Theft', units: 4 }), [])
+  const [alerts, setAlerts] = useState([])
+  const [hotspots, setHotspots] = useState({ points: [] })
+  const [patrol, setPatrol] = useState({ coverageAfter: 0, recommendations: [] })
+
+  useEffect(() => {
+    let active = true
+    Promise.all([
+      api.cases({ status: 'Open' }),
+      api.hotspots({ district: 'Bengaluru South', crimeType: 'Motorcycle Theft' }),
+      api.scenario({ district: 'Bengaluru South', crimeType: 'Motorcycle Theft', units: 4 })
+    ]).then(([casesRes, hotspotsRes, scenarioRes]) => {
+      if (!active) return
+      setAlerts((casesRes.cases || []).slice(0, 5))
+      if (hotspotsRes.hotspots) setHotspots(hotspotsRes.hotspots)
+      if (scenarioRes.scenario) setPatrol(scenarioRes.scenario)
+    }).catch(console.error)
+    return () => { active = false }
+  }, [])
 
   function startVoiceInput() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition

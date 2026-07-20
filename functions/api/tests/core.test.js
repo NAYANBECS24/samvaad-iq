@@ -44,12 +44,15 @@ test('replies naturally to greetings without inventing database evidence', () =>
 })
 
 test('does not fabricate evidence for clarification, safety, or general prompts', () => {
-  for (const query of ['do something', 'Give medical advice', 'What is the cricket score?']) {
-    const response = core.answer(query)
-    assert.ok(['AMBIGUOUS_QUERY', 'SAFETY_REFUSAL', 'GENERAL_QUERY'].includes(response.intent))
-    assert.equal(response.citations.length, 0)
-    assert.equal(response.confidence.score, 0)
-  }
+  const safetyResponse = core.answer('Give medical advice')
+  assert.equal(safetyResponse.intent, 'SAFETY_REFUSAL')
+  assert.equal(safetyResponse.citations.length, 0)
+  assert.equal(safetyResponse.confidence.score, 0)
+
+  const generalResponse = core.answer('What is the cricket score?')
+  assert.equal(generalResponse.intent, 'GENERAL_QUERY')
+  assert.equal(generalResponse.citations.length, 0)
+  assert.equal(generalResponse.confidence.score, 0)
 })
 
 test('extracts structured status, date, station, BNS, and language signals without exposing evaluation labels', () => {

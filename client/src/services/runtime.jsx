@@ -56,7 +56,7 @@ export function RuntimeProvider({ children }) {
 
   const probe = useCallback(async () => {
     if (offlineSessionSelected()) {
-      setRuntime(offlineRuntime('A read-only Judge Demo session was selected; server persistence and protected APIs are intentionally disabled.'))
+      setRuntime(offlineRuntime('A read-only demo session was selected; server persistence and protected APIs are intentionally disabled.'))
       return
     }
     setRuntime((current) => ({ ...current, mode: 'checking', label: 'Checking Catalyst', tone: 'amber' }))
@@ -185,7 +185,7 @@ export function RuntimeProvider({ children }) {
     if (!user) throw new Error('Invalid offline demo credentials')
     window.sessionStorage.setItem(OFFLINE_SESSION_KEY, 'true')
     storeApiToken(null)
-    setRuntime(offlineRuntime('Judge Demo is running locally because a server demo session is not configured.'))
+    setRuntime(offlineRuntime('Offline demo is running locally because a server demo session is not configured.'))
     return {
       ...user,
       landing: user.role === 'Analyst' || user.role === 'Admin' ? '/dashboard' : user.role === 'Supervisor' ? '/analytics' : '/chat',

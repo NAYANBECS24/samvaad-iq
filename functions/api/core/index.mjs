@@ -325,11 +325,14 @@ export function classifyIntent(query) {
   if (/^(thanks|thank you|thankyou|ಧನ್ಯವಾದ|ಧನ್ಯವಾದಗಳು|ok thanks|great thanks)/.test(normalized)) {
     return { intent: 'CONVERSATIONAL_QUERY', conversationType: 'thanks' }
   }
-  if (/who are you|what is samvaad|your name|introduce yourself|ನೀವು ಯಾರು|ನಿನ್ನ ಹೆಸರೇನು/.test(normalized)) {
+  if (/who are you|what is samvaad|what is netra|your name|introduce yourself|ನೀವು ಯಾರು|ನಿನ್ನ ಹೆಸರೇನು/.test(normalized)) {
     return { intent: 'CONVERSATIONAL_QUERY', conversationType: 'identity' }
   }
   if (/what can you do|how can you help|help me|how (do i|to) use|capabilit|commands|examples|ಏನು ಮಾಡಬಹುದು|ಸಹಾಯ/.test(normalized)) {
     return { intent: 'CONVERSATIONAL_QUERY', conversationType: 'help' }
+  }
+  if (/good (morning|afternoon|evening|night)|bye|goodbye|see you|take care/.test(normalized)) {
+    return { intent: 'CONVERSATIONAL_QUERY', conversationType: 'greeting' }
   }
   if (/who is guilty|prove (he|she|they) did|predict (a )?person|person risk score|rank (people|suspects)|identify caste|religion.*risk|bypass|hack.*database|reveal.*personal|real fir|operational deployment/.test(normalized)) {
     return { intent: 'SAFETY_REFUSAL', reason: 'SAMVAAD-IQ cannot determine guilt, rank people, reveal operational or personal data, or bypass safeguards.' }
@@ -347,9 +350,12 @@ export function classifyIntent(query) {
   if (/patrol|what if|scenario|units/.test(normalized)) return { intent: 'SCENARIO_QUERY' }
   if (/report|pdf|brief/.test(normalized)) return { intent: 'REPORT_QUERY' }
   if (/fir|syn-|case|cases|incident|record|database|search|list|summary|summarize|theft|fraud|burglary|snatching|ಪ್ರಕರಣ/.test(normalized)) return { intent: 'CASE_SEARCH_QUERY' }
+  if (/current|latest|recent|today|yesterday|pending|open|active|new|ongoing|status/.test(normalized)) return { intent: 'CASE_SEARCH_QUERY' }
+  if (/tell me|show me|give me|display|fetch|get/.test(normalized)) return { intent: 'DATABASE_SUMMARY_QUERY' }
+  if (/crime|police|station|district|bengaluru|mysuru|mangaluru|hubballi|belagavi|kalaburagi|karnataka/.test(normalized)) return { intent: 'CASE_SEARCH_QUERY' }
   if (/weather|cricket|stock|movie|election|recipe|quantum|science|history|technology|coding|capital of|recommendation/.test(normalized)) return { intent: 'GENERAL_QUERY' }
-  if (normalized.split(' ').length < 3 && !normalized.includes('?')) return { intent: 'AMBIGUOUS_QUERY', reason: 'I can help, but I need a little more detail about what you want to know.' }
-  return { intent: 'GENERAL_QUERY' }
+  if (normalized.split(' ').length < 2 && !normalized.includes('?')) return { intent: 'CONVERSATIONAL_QUERY', conversationType: 'help' }
+  return { intent: 'CASE_SEARCH_QUERY' }
 }
 
 function conversationalAnswer(query, conversationType) {
@@ -376,8 +382,8 @@ function knowledgeAnswer(query) {
 
 function generalFallbackAnswer(query) {
   const hasKannada = /[\u0C80-\u0CFF]/u.test(String(query))
-  if (hasKannada) return 'ಇದು ಸಾಮಾನ್ಯ ಪ್ರಶ್ನೆಯಾಗಿದೆ. ಈ ರನ್‌ನಲ್ಲಿ ಸಾಮಾನ್ಯ AI ಸೇವೆ ಲಭ್ಯವಿಲ್ಲ, ಆದ್ದರಿಂದ ನಾನು ಊಹಿಸಿ ಉತ್ತರಿಸುವುದಿಲ್ಲ. ಸರ್ವರ್ AI ಅನ್ನು ಸಕ್ರಿಯಗೊಳಿಸಿದ ನಂತರ ಇದೇ ಪ್ರಶ್ನೆಯನ್ನು ಮತ್ತೆ ಕೇಳಿ; ಸಿಂಥೆಟಿಕ್ FIR ಡೇಟಾಬೇಸ್ ಕುರಿತು ಪ್ರಶ್ನೆಗಳನ್ನು ನಾನು ಈಗಲೇ ಉಲ್ಲೇಖಗಳೊಂದಿಗೆ ಉತ್ತರಿಸಬಹುದು.'
-  return 'That is a general question. General AI is not available in this runtime, so I will not guess. Ask again when the server AI capability is enabled, or ask about the synthetic FIR database and I can answer now with traceable citations.'
+  if (hasKannada) return 'ಇದು ಸಿಂಥೆಟಿಕ್ FIR ಡೇಟಾಬೇಸ್‌ಗೆ ನೇರವಾಗಿ ಸಂಬಂಧಿಸಿಲ್ಲ. ನಾನು ಈ ಕೆಳಗಿನವುಗಳನ್ನು ಮಾಡಬಲ್ಲೆ:\n\n• FIR ಪ್ರಕರಣಗಳನ್ನು ಹುಡುಕಿ ಮತ್ತು ಸಂಕ್ಷಿಪ್ತಗೊಳಿಸಿ\n• Crime DNA ಮೂಲಕ ಪ್ರಕರಣಗಳನ್ನು ಹೋಲಿಸಿ\n• ಹಾಟ್‌ಸ್ಪಾಟ್ ಮತ್ತು ಅಪರಾಧ ಮಾದರಿಗಳನ್ನು ತೋರಿಸಿ\n• ಪೆಟ್ರೋಲ್ ಯೋಜನೆ ಸನ್ನಿವೇಶಗಳನ್ನು ಚಲಾಯಿಸಿ\n\nಉದಾಹರಣೆ: "ಮೈಸೂರು ಬೈಕ್ ಕಳ್ಳತನ ಹಾಟ್‌ಸ್ಪಾಟ್ ತೋರಿಸಿ"'
+  return `I understand your question, but it falls outside the synthetic crime database I specialize in. Here's what I can help you with:\n\n• **Search & summarize FIR cases** — Try: "Show motorcycle theft cases in Mysuru"\n• **Compare cases using Crime DNA** — Try: "Find similar cases to SYN-2026-BLR-0103"\n• **Explore crime hotspots** — Try: "Mysuru crime hotspots"\n• **Trace case connections** — Try: "Are SYN-2026-BLR-0103 and SYN-2026-BLR-0205 connected?"\n• **Run patrol scenarios** — Try: "What if 3 patrol units are added in Mysuru?"\n• **Generate reports** — Try: "Generate report for latest cases"\n\nAsk me any crime-database question and I'll respond with cited evidence!`
 }
 
 function answerClassForIntent(intent) {
@@ -616,7 +622,10 @@ export function createIntelligenceCore(baseSeed, options = {}) {
     }
 
     const results = search(query, filters, 5)
-    if (!results.length) return responseEnvelope({ mode, requestId, auditRef, intent: 'INSUFFICIENT_EVIDENCE', filters, answer: 'No synthetic record supports an answer to this query.', confidence: 0, limitations: ['No matching evidence was retrieved.'], nextActions: ['Change the district, crime category, date, or FIR ID.'] })
+    if (!results.length) {
+      const allRecent = cases.slice(0, 5)
+      return responseEnvelope({ mode, requestId, auditRef, intent: classified.intent, filters, answer: `I couldn't find a specific record matching "${query.slice(0, 60)}", but here are the most recent synthetic FIR records in the database. You can refine your search by adding a district name (e.g., Mysuru, Bengaluru), crime type (e.g., theft, fraud), or a specific FIR ID.`, confidence: 0.4, citations: allRecent.map((item) => citation(item)), evidence: allRecent, visualizations: { resultCount: allRecent.length }, limitations: ['Broad search returned the latest records. Narrow your query for more specific results.'], nextActions: ['Try adding a district, crime category, or FIR ID to refine results.', 'Browse the Case Explorer for the full database.'] })
+    }
     const selected = results.map((entry) => entry.case)
     const leading = selected[0]
     const answer = `I found ${selected.length} relevant synthetic record${selected.length === 1 ? '' : 's'}. The strongest match is ${leading.fir_id}, recorded as ${leading.crime_type} in ${leading.district}.\n\n${leading.case_summary}\n\nI’ve attached the matching source excerpts below. Treat this as an investigative starting point and verify the original record before taking action.`

@@ -131,8 +131,8 @@ function followUpQuestions(result) {
 
 function ChatTranscript({ history, isProcessing, language, endRef }) {
   const welcome = language === 'kn'
-    ? 'ನಮಸ್ಕಾರ! ನಾನು SAMVAAD-IQ. ಪ್ರಕರಣ ಹುಡುಕಾಟ, FIR ಸಾರಾಂಶ, Crime DNA ಹೋಲಿಕೆ, ಹಾಟ್‌ಸ್ಪಾಟ್ ಮತ್ತು ಸಾಕ್ಷ್ಯ ಪರಿಶೀಲನೆ ಕುರಿತು ಸಹಜವಾಗಿ ಕೇಳಿ.'
-    : 'Hello! I’m SAMVAAD-IQ. Ask me naturally about FIRs, case summaries, Crime DNA matches, network links, hotspots, evidence, or patrol scenarios.'
+    ? 'ನಮಸ್ಕಾರ! ನಾನು SAMVAAD-IQ. ನಿಮ್ಮ ಪ್ರಶ್ನೆಗಳನ್ನು ಕೇಳಿ — FIR ಪ್ರಕರಣಗಳು, ಅಪರಾಧ ವಿಶ್ಲೇಷಣೆ, ಹಾಟ್‌ಸ್ಪಾಟ್‌ಗಳು, ಅಥವಾ ಪೆಟ್ರೋಲ್ ಯೋಜನೆಗಳ ಬಗ್ಗೆ ಸಹಾಯ ಮಾಡಬಲ್ಲೆ.'
+    : 'Hello! I\'m SAMVAAD-IQ. I can help you search cases, summarize FIRs, compare Crime DNA, inspect connections, explore hotspots, and plan evidence-backed next steps. What would you like to investigate?'
   const turns = [...history].reverse()
 
   return (
@@ -398,8 +398,8 @@ function InvestigationChat() {
     <div className="page-stack">
       <header className="page-header">
         <div>
-          <p className="eyebrow">{t('chat.eyebrow')} · Challenge 1</p>
-          <h1>Chat with SAMVAAD-IQ</h1>
+          <p className="eyebrow">{t('chat.eyebrow')} · NETRA OS</p>
+          <h1>Ask SAMVAAD-IQ</h1>
           <p>Ask naturally in English, Kannada, or Kanglish. SAMVAAD answers conversationally and cites synthetic FIR evidence whenever it makes a case claim.</p>
         </div>
         <span className="data-label">SYNTHETIC DEMO DATA</span>

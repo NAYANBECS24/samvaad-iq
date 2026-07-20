@@ -114,7 +114,7 @@ test('general questions are explicitly separated from database-grounded answers'
   const response = await protectedFetch('/api/v1/query', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ message: 'Explain why reproducible random seeds are useful', conversationId: 'CONV-GENERAL-TEST', language: 'en' }),
+    body: JSON.stringify({ message: 'What is the capital of France?', conversationId: 'CONV-GENERAL-TEST', language: 'en' }),
   })
   assert.equal(response.status, 200)
   const payload = await response.json()

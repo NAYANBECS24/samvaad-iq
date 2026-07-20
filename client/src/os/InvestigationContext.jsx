@@ -9,7 +9,7 @@ function createInitialState() {
     version: 1,
     activeInvestigation: {
       id: 'INV-LOCAL-001',
-      title: 'Judge mission workspace',
+      title: 'Active Investigation',
       status: 'Working draft',
     },
     pinnedCases: [],

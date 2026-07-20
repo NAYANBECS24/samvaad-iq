@@ -40,13 +40,13 @@ import { buildDashboardSummary, getStoredUser, seedSummary } from '../services/i
 
 const palette = ['#00f0ff', '#f59e0b', '#a78bfa', '#ef4444', '#60a5fa', '#10b981']
 
-const judgeWorkflow = [
+const quickWorkflow = [
   { to: '/chat', title: 'Ask SAMVAAD', text: 'Natural question, grounded answer, citations.', Icon: Bot },
-  { to: '/cases', title: 'Open case', text: 'Inspect FIR narrative, station, entities, status.', Icon: FolderSearch },
-  { to: '/evidence-lab', title: 'Evidence Lab', text: 'Upload synthetic files and preserve provenance.', Icon: FileCheck2 },
+  { to: '/cases', title: 'Case Explorer', text: 'Search FIR records, inspect narratives, entities.', Icon: FolderSearch },
+  { to: '/evidence-lab', title: 'Evidence Lab', text: 'Upload files and preserve chain of custody.', Icon: FileCheck2 },
   { to: '/similar', title: 'Crime DNA', text: 'Explain weights, matched fields, and exclusions.', Icon: BrainCircuit },
-  { to: '/patrol', title: 'Patrol what-if', text: 'Area and time pattern planning only.', Icon: Route },
-  { to: '/report', title: 'Audit report', text: 'Export a supervisor-reviewed evidence brief.', Icon: FileText },
+  { to: '/patrol', title: 'Patrol Scenario', text: 'Area and time pattern planning.', Icon: Route },
+  { to: '/report', title: 'Report Builder', text: 'Export a supervisor-reviewed evidence brief.', Icon: FileText },
 ]
 
 function AnimatedCounter({ target, suffix = '' }) {
@@ -167,13 +167,13 @@ function Dashboard() {
   const counts = seedSummary()
   const activeShare = Math.round(summary.activeShare * 100)
   const role = getStoredUser()?.role || 'Investigator'
-  const visibleJudgeWorkflow = judgeWorkflow.filter((item) => canAccessPath(role, item.to))
+  const visibleQuickWorkflow = quickWorkflow.filter((item) => canAccessPath(role, item.to))
 
   return (
     <div className="page-stack">
       <header className="page-header">
         <div>
-          <p className="eyebrow">Command Overview</p>
+          <p className="eyebrow">NETRA OS</p>
           <h1>Crime Intelligence Dashboard</h1>
         </div>
         <div className="header-actions">
@@ -186,10 +186,10 @@ function Dashboard() {
 
       <section className="ops-hero">
         <div className="ops-copy">
-          <p className="eyebrow">SAMVAAD-IQ Synthetic Intelligence Workspace</p>
-          <h2>Conversational intelligence, graph reasoning, hotspot context, and report-ready evidence in one workspace.</h2>
+          <p className="eyebrow">SAMVAAD-IQ Intelligence Workspace</p>
+          <h2>Conversational intelligence, graph reasoning, hotspot analysis, and evidence-backed reporting in one platform.</h2>
           <p>
-            Built for Challenge 1: login, ask, retrieve, reason, visualize, run scenarios, and export. All FIR records are
+            Built for KSP Datathon Challenge 1: login, ask, retrieve, reason, visualize, run scenarios, and export. All FIR records are
             synthetic and cite source IDs.
           </p>
           <div className="mini-action-row">
@@ -218,8 +218,8 @@ function Dashboard() {
         </div>
       </section>
 
-      <section className="dashboard-journey-grid" aria-label="Recommended judge workflow">
-        {visibleJudgeWorkflow.map(({ to, title, text, Icon }, index) => (
+      <section className="dashboard-journey-grid" aria-label="Quick access modules">
+        {visibleQuickWorkflow.map(({ to, title, text, Icon }, index) => (
           <Link to={to} className="journey-card" key={to}>
             <span className="journey-step">{String(index + 1).padStart(2, '0')}</span>
             <Icon size={20} />

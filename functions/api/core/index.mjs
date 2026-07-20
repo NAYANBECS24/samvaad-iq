@@ -352,9 +352,9 @@ export function classifyIntent(query) {
   if (/fir|syn-|case|cases|incident|record|database|search|list|summary|summarize|theft|fraud|burglary|snatching|ಪ್ರಕರಣ/.test(normalized)) return { intent: 'CASE_SEARCH_QUERY' }
   if (/current|latest|recent|today|yesterday|pending|open|active|new|ongoing|status/.test(normalized)) return { intent: 'CASE_SEARCH_QUERY' }
   if (/tell me|show me|give me|display|fetch|get/.test(normalized)) return { intent: 'DATABASE_SUMMARY_QUERY' }
-  if (/crime|police|station|district|bengaluru|mysuru|mangaluru|hubballi|belagavi|kalaburagi|karnataka/.test(normalized)) return { intent: 'CASE_SEARCH_QUERY' }
   if (/weather|cricket|stock|movie|election|recipe|quantum|science|history|technology|coding|capital of|recommendation/.test(normalized)) return { intent: 'GENERAL_QUERY' }
-  if (normalized.split(' ').length < 2 && !normalized.includes('?')) return { intent: 'CONVERSATIONAL_QUERY', conversationType: 'help' }
+  if (/crime|police|station|district|bengaluru|mysuru|mangaluru|hubballi|belagavi|kalaburagi|karnataka/.test(normalized)) return { intent: 'CASE_SEARCH_QUERY' }
+  if (normalized.split(' ').length < 2 && !normalized.includes('?')) return { intent: 'AMBIGUOUS_QUERY', reason: 'Please provide more details so I can help.' }
   return { intent: 'CASE_SEARCH_QUERY' }
 }
 
@@ -396,7 +396,12 @@ function answerClassForIntent(intent) {
 
 function publicCase(caseRecord) {
   if (!caseRecord) return caseRecord
-  return { ...caseRecord }
+  const safe = { ...caseRecord }
+  delete safe.truth_group
+  delete safe.truthGroup
+  delete safe.evaluation_label
+  delete safe.evaluationLabel
+  return safe
 }
 
 function publicValue(value) {

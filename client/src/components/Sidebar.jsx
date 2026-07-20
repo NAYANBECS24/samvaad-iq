@@ -42,7 +42,7 @@ function Sidebar({ user, onLogout, collapsed, onToggle, onOpenApps }) {
 
       <div className="sidebar-status">
         <span className="status-dot" />
-        <span>KSP Datathon</span>
+        <span>Challenge 1</span>
         <LiveClock />
       </div>
 

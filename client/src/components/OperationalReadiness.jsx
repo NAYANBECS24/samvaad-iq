@@ -1,13 +1,16 @@
 import { CheckCircle2, FileText, LockKeyhole, Network, ShieldCheck } from 'lucide-react'
-
-const items = [
-  { icon: ShieldCheck, label: 'Synthetic Data', value: 'No real PII', tone: 'teal' },
-  { icon: Network, label: 'Graph Links', value: '12 seeded edges', tone: 'blue' },
-  { icon: FileText, label: 'PDF Brief', value: 'Client export', tone: 'amber' },
-  { icon: LockKeyhole, label: 'RBAC Demo', value: '4 roles', tone: 'violet' },
-]
+import { seedSummary } from '../services/intelligenceRepository.js'
 
 function OperationalReadiness() {
+  const counts = seedSummary()
+
+  const items = [
+    { icon: ShieldCheck, label: 'Synthetic Data', value: 'No real PII', tone: 'teal' },
+    { icon: Network, label: 'Graph Links', value: `${counts.relations} seeded edges`, tone: 'blue' },
+    { icon: FileText, label: 'PDF Brief', value: 'Client export', tone: 'amber' },
+    { icon: LockKeyhole, label: 'RBAC Demo', value: `${counts.users} roles`, tone: 'violet' },
+  ]
+
   return (
     <section className="readiness-grid">
       {items.map((item) => {

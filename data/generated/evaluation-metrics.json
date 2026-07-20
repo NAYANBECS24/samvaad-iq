@@ -8,7 +8,7 @@
   "intentAccuracy": 1,
   "citationCoverage": 1,
   "refusalFabricationFailures": 0,
-  "deterministicP95Ms": 118.03,
+  "deterministicP95Ms": 354.16,
   "highConfidenceLinkPrecision": 0.955,
   "plantedLinkRecall": 1,
   "evaluatedPlantedPairs": 252,

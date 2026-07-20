@@ -26,6 +26,9 @@ const Report = lazy(() => import('./pages/Report.jsx'))
 const SimilarCases = lazy(() => import('./pages/SimilarCases.jsx'))
 const SystemPipeline = lazy(() => import('./pages/SystemPipeline.jsx'))
 const TabletPatrol = lazy(() => import('./pages/TabletPatrol.jsx'))
+const TrendAlerts = lazy(() => import('./pages/TrendAlerts.jsx'))
+const Cohorts = lazy(() => import('./pages/Cohorts.jsx'))
+const ApprovalInbox = lazy(() => import('./pages/ApprovalInbox.jsx'))
 
 function PageLoader() {
   return <div className="page-loader" role="status">Loading secure workspace…</div>
@@ -99,6 +102,9 @@ function WorkspaceRouter() {
           <Route path="diffusion" element={lazyPage(<DiffusionRisk />)} />
           <Route path="pipeline" element={<RequireUser user={user} roles={ADMIN_ROLES}>{lazyPage(<SystemPipeline />)}</RequireUser>} />
           <Route path="governance" element={lazyPage(<GovernanceAudit />)} />
+          <Route path="alerts" element={lazyPage(<TrendAlerts />)} />
+          <Route path="cohorts" element={lazyPage(<Cohorts />)} />
+          <Route path="inbox" element={<RequireUser user={user} roles={OPERATIONAL_ROLES}>{lazyPage(<ApprovalInbox />)}</RequireUser>} />
           <Route path="admin-data" element={<RequireUser user={user} roles={ADMIN_ROLES}>{lazyPage(<AdminData />)}</RequireUser>} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

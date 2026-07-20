@@ -74,7 +74,7 @@ The current reference run covers 30 English, Kannada, and Kanglish evaluation qu
 | High-confidence planted-link precision | 95.5% |
 | Planted-link recall | 100% |
 | Evaluated planted pairs | 252 |
-| Deterministic p95 | 118.03 ms |
+| Deterministic p95 | 354.16 ms |
 
 These are prototype measurements on synthetic data, not operational KSP accuracy, safety, latency, or impact claims. Reproduce them with `npm run evaluate`.
 

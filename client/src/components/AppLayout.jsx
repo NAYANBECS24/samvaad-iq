@@ -7,6 +7,7 @@ import {
   Languages,
   ListChecks,
   LogOut,
+  PlayCircle,
   RefreshCw,
   ServerCog,
   ShieldCheck,
@@ -20,6 +21,7 @@ import { appsForRole, navigationItemForPath } from '../os/navigation.js'
 import { useRuntime } from '../services/runtime.jsx'
 import CommandPalette from './CommandPalette.jsx'
 import ContextInspector from './ContextInspector.jsx'
+import JudgeMission from './JudgeMission.jsx'
 import MobileNav from './MobileNav.jsx'
 import Sidebar from './Sidebar.jsx'
 
@@ -71,6 +73,7 @@ function AppLayout({ appState }) {
   const { recordWorkspace, setDataVersion, syncLastResult } = investigation
   const [dockCollapsed, setDockCollapsed] = useState(() => window.localStorage.getItem('netra_os_dock_collapsed') === 'true')
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [missionOpen, setMissionOpen] = useState(false)
   const [inspectorOpen, setInspectorOpen] = useState(false)
   const [inspectorTab, setInspectorTab] = useState('evidence')
   const roleApps = useMemo(() => appsForRole(appState.user?.role), [appState.user?.role])
@@ -81,6 +84,7 @@ function AppLayout({ appState }) {
 
   const closePalette = useCallback(() => setPaletteOpen(false), [])
   const closeInspector = useCallback(() => setInspectorOpen(false), [])
+  const closeMission = useCallback(() => setMissionOpen(false), [])
   const openInspector = useCallback((tab = 'evidence') => {
     setInspectorTab(tab)
     setInspectorOpen(true)
@@ -152,6 +156,7 @@ function AppLayout({ appState }) {
             </button>
 
             <div className="os-system-actions">
+              <button className="os-mission-button" type="button" onClick={() => setMissionOpen(true)}><PlayCircle size={17} /><span>3-min mission</span></button>
               <button className="os-task-button" type="button" onClick={() => openInspector('tasks')} aria-label={`Open review inbox${openTaskCount ? `, ${openTaskCount} pending` : ''}`}>
                 <Bell size={18} />
                 {openTaskCount ? <span>{openTaskCount}</span> : null}
@@ -179,7 +184,7 @@ function AppLayout({ appState }) {
               <span className="os-context-count">{investigation.pinnedCases.length}</span>
             </button>
 
-            <nav className="quick-route-strip" aria-label="Quick access">
+            <nav className="quick-route-strip" aria-label="Fast judge workflow">
               {visibleQuickWorkflow.map((item) => {
                 const Icon = item.icon
                 return (
@@ -212,6 +217,7 @@ function AppLayout({ appState }) {
       <MobileNav role={appState.user?.role} onOpenApps={() => setPaletteOpen(true)} />
       <ContextInspector open={inspectorOpen} onClose={closeInspector} tab={inspectorTab} onTabChange={setInspectorTab} />
       <CommandPalette open={paletteOpen} onClose={closePalette} role={appState.user?.role} recentRoutes={investigation.recentRoutes} onOpenInspector={openInspector} />
+      <JudgeMission open={missionOpen} onClose={closeMission} />
     </div>
   )
 }

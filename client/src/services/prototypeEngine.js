@@ -35,8 +35,8 @@ function publicCaseRecord(caseRecord) {
     synthetic: true,
     data_label: DATA_LABEL,
     language: 'en',
-    case_summary_kn: `ಕೃತಕ ಪ್ರಕರಣ ದಾಖಲೆ: ${districtKn} ವ್ಯಾಪ್ತಿಯಲ್ಲಿ ${crimeKn}. ಪರಿಶೀಲನೆಗಾಗಿ ${runtimeRecord.fir_id} ಮೂಲ ದಾಖಲೆಯನ್ನು ನೋಡಿ.`,
-    mo_kn: `ಈ ಘಟನೆಗೆ ಸಂಬಂಧಿಸಿದ ಕಾರ್ಯವಿಧಾನ ವಿವರವನ್ನು ${runtimeRecord.fir_id} ಮೂಲ ದಾಖಲೆಯೊಂದಿಗೆ ಮಾನವ ಪರಿಶೀಲನೆ ಮಾಡಬೇಕು.`,
+    case_summary_kn: runtimeRecord.case_summary_kn || `ಕೃತಕ ಪ್ರಕರಣ ದಾಖಲೆ: ${districtKn} ವ್ಯಾಪ್ತಿಯಲ್ಲಿ ${crimeKn}. ಪರಿಶೀಲನೆಗಾಗಿ ${runtimeRecord.fir_id} ಮೂಲ ದಾಖಲೆಯನ್ನು ನೋಡಿ.`,
+    mo_kn: runtimeRecord.mo_kn || `ಈ ಘಟನೆಗೆ ಸಂಬಂಧಿಸಿದ ಕಾರ್ಯವಿಧಾನ ವಿವರವನ್ನು ${runtimeRecord.fir_id} ಮೂಲ ದಾಖಲೆಯೊಂದಿಗೆ ಮಾನವ ಪರಿಶೀಲನೆ ಮಾಡಬೇಕು.`,
     translations: {
       kn: {
         crime_type: crimeKn,

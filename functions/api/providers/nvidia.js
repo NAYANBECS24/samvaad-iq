@@ -152,7 +152,7 @@ async function generateGroundedAnswer({ query, result, context = {}, fetchImpl =
   if (!config.available || !ALLOWED_INTENTS.has(result.intent) || !result.citations?.length || !result.evidence?.length) return null
 
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), Number(process.env.NVIDIA_LLM_TIMEOUT_MS || 20_000))
+  const timeout = setTimeout(() => controller.abort(), Number(process.env.NVIDIA_LLM_TIMEOUT_MS || 25_000))
   try {
     const response = await fetchImpl(`${config.baseUrl}/chat/completions`, {
       method: 'POST',
@@ -212,7 +212,7 @@ async function generateGeneralAnswer({ query, context = {}, fetchImpl = fetch })
   if (!config.available) return null
 
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), Number(process.env.NVIDIA_LLM_TIMEOUT_MS || 20_000))
+  const timeout = setTimeout(() => controller.abort(), Number(process.env.NVIDIA_LLM_TIMEOUT_MS || 25_000))
   try {
     const response = await fetchImpl(`${config.baseUrl}/chat/completions`, {
       method: 'POST',

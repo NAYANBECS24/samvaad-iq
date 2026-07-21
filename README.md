@@ -18,6 +18,12 @@ NETRA OS is a role-aware police-intelligence workspace for [**Datathon 2026 Chal
 
 The server binary-upload path now validates base64 payloads, enforces the 10 MB decoded-byte limit, recalculates SHA-256, and calls Stratus/File Store adapters. The Data Store seed endpoint now stages, validates, checksums, and activates a version before it becomes readable. Managed conversation persistence, Catalyst Auth, live Data Store activation, NVIDIA NIM, QuickML, Zia OCR, live Stratus/File Store persistence, SmartBrowz, and Circuits remain unavailable until each service is provisioned and passes a live Development canary. The UI must not present a configured flag as proof of availability.
 
+## Recent Updates
+
+- Refined the application layout by removing demo "Judge Mission" buttons and redundant images to professionalize the user experience.
+- Adjusted citation handling in SAMVAAD-IQ: clearly indicates when "0 matching synthetic sources found" to avoid confusion with empty "Database Grounded" messages.
+- Updated Dashboard and internal terminology for professional appeal.
+
 ## Investigation workflow
 
 1. Start an investigation or open a pinned case.

@@ -71,11 +71,18 @@ function restoredConversation() {
 }
 
 function responseLabel(turn) {
-  if (turn.answerClass === 'DATABASE_GROUNDED') return `Database Grounded · ${turn.citations?.length || 0} cited synthetic source${turn.citations?.length === 1 ? '' : 's'}`
+  if (turn.provider?.kind === 'deterministic') return 'KAVACH Core Output'
+  if (turn.provider?.kind === 'general-ai') return 'General AI — not a police-database result'
+  if (turn.answerClass === 'DATABASE_GROUNDED' || turn.provider?.kind === 'grounded-phrasing') {
+    return turn.modelSignals?.generativeAnswer?.grounded === false
+      ? `Partially Grounded · LLM output suppressed due to unsupported citations`
+      : turn.citations?.length
+        ? `Database Grounded · ${turn.citations.length} cited synthetic source${turn.citations.length === 1 ? '' : 's'}`
+        : '0 matching synthetic sources found'
+  }
   if (turn.answerClass === 'APPROVED_KNOWLEDGE') return 'Approved knowledge · verify the applicable KSP SOP'
   if (turn.answerClass === 'GENERAL_AI') return turn.provider?.kind === 'general-ai' ? 'General AI — not a police-database result' : 'General conversation · no database claim made'
-  if (turn.answerClass === 'SAFETY_REFUSAL') return 'Safety boundary · no database claim made'
-  return 'Clarification requested · no database claim made'
+  return 'System Response'
 }
 
 function ConfidenceRing({ confidence }) {

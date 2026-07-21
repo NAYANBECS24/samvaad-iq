@@ -5039,7 +5039,8 @@ input {
 }
 
 .command-palette {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 13px;
   width: min(720px, 100%);
   max-height: min(76vh, 760px);
@@ -5150,6 +5151,7 @@ input {
 }
 
 .command-results {
+  flex: 1;
   align-content: start;
   overflow-y: auto;
 }

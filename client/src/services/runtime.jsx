@@ -51,6 +51,19 @@ function offlineRuntime(message = 'Catalyst API is unavailable; the read-only de
   }
 }
 
+function localRetrievalQuery(query, context = {}) {
+  const previousFirIds = [
+    ...(Array.isArray(context.previousFirIds) ? context.previousFirIds : []),
+    ...(Array.isArray(context.contextRefs) ? context.contextRefs : []),
+  ].filter((item) => /^SYN-[A-Z0-9-]+$/i.test(String(item))).map((item) => String(item).toUpperCase())
+  const uniqueIds = [...new Set(previousFirIds)].slice(0, 5)
+  const looksLikeFollowUp = /\b(it|that|those|this|them|first|second|same|previous|former|latter|what about|compare|summari[sz]e|show that station)\b|ಅದು|ಇದು|ಮೊದಲ|ಎರಡನೇ|ಹಿಂದಿನ/i.test(query)
+  if (!looksLikeFollowUp || !uniqueIds.length) return query
+  if (/\bfirst|former\b|ಮೊದಲ/i.test(query)) return `${query} Context FIR: ${uniqueIds[0]}`
+  if (/\bsecond|latter\b|ಎರಡನೇ/i.test(query) && uniqueIds[1]) return `${query} Context FIR: ${uniqueIds[1]}`
+  return `${query} Context FIRs: ${uniqueIds.slice(0, 3).join(' ')}`
+}
+
 export function RuntimeProvider({ children }) {
   const [runtime, setRuntime] = useState(initialRuntime)
 
@@ -101,7 +114,8 @@ export function RuntimeProvider({ children }) {
         return result
       } catch (error) {
         if (!isRetryableApiError(error)) throw error
-        const fallback = offlineCore.answer(query, { mode: 'offline-demo' })
+        const groundedQuery = localRetrievalQuery(query, context)
+        const fallback = offlineCore.answer(groundedQuery, { mode: 'offline-demo' })
         fallback.limitations.unshift(`Server request failed (${error.code || 'NETWORK_ERROR'}); this answer was recomputed locally and was not persisted.`)
         const result = enrichInvestigationResult(fallback, { answerMode: context.answerMode })
         const reachable = Boolean(error.status && error.code !== 'NON_JSON_API')
@@ -123,7 +137,9 @@ export function RuntimeProvider({ children }) {
         }
       }
     }
-    const result = enrichInvestigationResult(offlineCore.answer(query, { mode: 'offline-demo' }), { answerMode: context.answerMode })
+    const groundedQuery = localRetrievalQuery(query, context)
+    const fallback = offlineCore.answer(groundedQuery, { mode: 'offline-demo' })
+    const result = enrichInvestigationResult(fallback, { answerMode: context.answerMode, contextUsed: groundedQuery !== query })
     return {
       ...result,
       conversationId: context.conversationId,
